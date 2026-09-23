@@ -10,9 +10,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.Util;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.BowItem;
@@ -29,7 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Inventory and learned-item catalog with direct mouse shortcuts. */
+/** 展示玩家背包和已学习物品目录；背包格子的快捷操作沿用原版容器界面。 */
 public final class OreConversionScreen extends AbstractContainerScreen<OreConversionMenu> {
     private static final int WIDTH = 432;
     private static final int HEIGHT = 228;
@@ -63,9 +61,6 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     private Component statusMessage;
     private boolean statusSuccess;
     private int statusTicks;
-    private ResourceLocation lastShiftInputItem;
-    private long lastShiftInputTime;
-    private int lastShiftInputSlot = -1;
 
     public OreConversionScreen(OreConversionMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
@@ -280,42 +275,6 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && hasShiftDown() && menu.getCarried().isEmpty()) {
-            for (Slot slot : menu.slots) {
-                if (slot.index < 0 || slot.index >= 36 || !isHovering(slot.x, slot.y, 16, 16, mouseX, mouseY)) continue;
-                long now = Util.getMillis();
-                boolean sameEmptySlotDoubleClick = !slot.hasItem() && slot.index == lastShiftInputSlot
-                        && lastShiftInputItem != null && now - lastShiftInputTime < 250L;
-                if (sameEmptySlotDoubleClick) {
-                    Item item = BuiltInRegistries.ITEM.get(lastShiftInputItem);
-                    if (OreConversionClient.canConvert(new ItemStack(item))) {
-                        action(OreConversionNetwork.INVENTORY_MATCHING, lastShiftInputItem, 0);
-                    }
-                    lastShiftInputItem = null;
-                    lastShiftInputSlot = -1;
-                    return true;
-                }
-                if (slot.hasItem()) {
-                    ItemStack stack = slot.getItem();
-                    ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-                    boolean doubleClick = id.equals(lastShiftInputItem) && now - lastShiftInputTime < 250L;
-                    if (doubleClick && OreConversionClient.canConvert(stack)) {
-                        action(OreConversionNetwork.INVENTORY_MATCHING, id, 0);
-                        lastShiftInputItem = null;
-                        lastShiftInputSlot = -1;
-                    } else {
-                        action(OreConversionNetwork.INVENTORY_SLOT,
-                                ResourceLocation.withDefaultNamespace("air"), slot.index);
-                        lastShiftInputItem = id;
-                        lastShiftInputTime = now;
-                        lastShiftInputSlot = slot.index;
-                    }
-                    return true;
-                }
-            }
-        }
-        lastShiftInputItem = null;
-        lastShiftInputSlot = -1;
         if (button == 0) {
             int localX = (int) mouseX - leftPos;
             int localY = (int) mouseY - topPos;

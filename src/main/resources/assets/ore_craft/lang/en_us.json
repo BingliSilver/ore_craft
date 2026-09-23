@@ -60,7 +60,7 @@
   "message.ore_craft.conversion.already_learned": "Item already learned",
   "message.ore_craft.conversion.converted_learned": "Converted +%s ME and learned",
   "message.ore_craft.conversion.converted_known": "Converted +%s ME; already learned",
-  "gui.ore_craft.conversion.inventory_hint": "Shift + click: Convert/Learn",
+  "gui.ore_craft.conversion.inventory_hint": "Shift-click: input | compatible mods can batch input",
   "gui.ore_craft.conversion.extract_hint": "Left-click: 1 to cursor | Shift + left-click: up to a stack to inventory",
   "tooltip.ore_craft.conversion.me": "ME: %s",
   "tooltip.ore_craft.conversion.affordable": "Can afford: %s",

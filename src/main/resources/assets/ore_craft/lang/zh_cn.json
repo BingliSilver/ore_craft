@@ -60,7 +60,7 @@
   "message.ore_craft.conversion.already_learned": "该物品已学习",
   "message.ore_craft.conversion.converted_learned": "已转化 +%s ME，并学习物品",
   "message.ore_craft.conversion.converted_known": "已转化 +%s ME，物品已学习",
-  "gui.ore_craft.conversion.inventory_hint": "Shift+转化/学习；同类双击全转",
+  "gui.ore_craft.conversion.inventory_hint": "Shift单击输入；支持快捷键 Mod 批量输入",
   "gui.ore_craft.conversion.extract_hint": "左键：取1个到指针；Shift+左键：最多取一组到背包",
   "tooltip.ore_craft.conversion.me": "ME: %s",
   "tooltip.ore_craft.conversion.affordable": "当前 ME 可兑换：%s 个",

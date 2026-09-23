@@ -19,6 +19,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.OptionalLong;
 
+/** 管理转化桌交易，并通过原版快速移动操作处理背包输入。 */
 public class OreConversionMenu extends AbstractContainerMenu {
     private static final int MAX_LEARNED = 2048;
     private final BlockPos pos;
@@ -48,32 +49,50 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return level.getBlockState(pos).is(Ore_craft.ORE_CONVERSION_TABLE.get()) && player.canInteractWithBlock(pos, 4.0);
     }
 
+    /**
+     * 处理原版 Shift 快速移动：背包中的整组物品输入转化桌。
+     * 原版 Shift 双击会对匹配的格子分别调用此方法。
+     *
+     * @param player 操作容器的玩家
+     * @param slot 被快速移动的容器格子索引
+     * @return 已输入的物品栈；无有效输入时返回空栈
+     */
     @Override
     public ItemStack quickMoveStack(Player player, int slot) {
-        // The screen sends explicit server-validated actions for Shift + left-click.
-        return ItemStack.EMPTY;
+        if (!(player instanceof ServerPlayer serverPlayer)) return ItemStack.EMPTY;
+        return useInventorySlot(serverPlayer, slot);
     }
 
-    public void useInventorySlot(ServerPlayer player, int slotIndex) {
-        if (!validRequest(player) || slotIndex < 0 || slotIndex >= 36 || !getCarried().isEmpty()) return;
+    /**
+     * 将背包格子的可转化物品输入转化桌；仅可学习的物品保持在原格子。
+     *
+     * @param player 操作转化桌的服务端玩家
+     * @param slotIndex 容器中的背包格子索引
+     * @return 已输入的原物品栈；未消耗物品时返回空栈，以结束原版快速移动循环
+     */
+    private ItemStack useInventorySlot(ServerPlayer player, int slotIndex) {
+        if (!validRequest(player) || slotIndex < 0 || slotIndex >= 36 || !getCarried().isEmpty()) return ItemStack.EMPTY;
         Slot slot = getSlot(slotIndex);
         ItemStack stack = slot.getItem();
-        if (!OreConversionPrices.isPlain(stack)) { status(player, "special_state"); return; }
-        if (!OreConversionPrices.canLearn(stack)) { status(player, "unpriced"); return; }
+        if (stack.isEmpty()) return ItemStack.EMPTY;
+        if (!OreConversionPrices.isPlain(stack)) { status(player, "special_state"); return ItemStack.EMPTY; }
+        if (!OreConversionPrices.canLearn(stack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
         OreConversionSavedData data = OreConversionSavedData.get(player);
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (data.account(player).learned().size() >= MAX_LEARNED && !data.account(player).knows(id)) {
-            status(player, "learn_limit"); return;
+            status(player, "learn_limit"); return ItemStack.EMPTY;
         }
         long converted = 0;
+        ItemStack moved = ItemStack.EMPTY;
         if (OreConversionPrices.canDeposit(stack)) {
             OptionalLong price = OreConversionPrices.price(stack.getItem());
-            if (price.isEmpty()) { status(player, "unpriced"); return; }
+            if (price.isEmpty()) { status(player, "unpriced"); return ItemStack.EMPTY; }
             long amount;
             try { amount = Math.multiplyExact(price.getAsLong(), stack.getCount()); }
-            catch (ArithmeticException ex) { status(player, "overflow"); return; }
-            if (!data.credit(player, amount)) { status(player, "overflow"); return; }
+            catch (ArithmeticException ex) { status(player, "overflow"); return ItemStack.EMPTY; }
+            if (!data.credit(player, amount)) { status(player, "overflow"); return ItemStack.EMPTY; }
             converted = amount;
+            moved = stack.copy();
             slot.set(ItemStack.EMPTY);
             broadcastChanges();
         }
@@ -81,57 +100,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         sync(player);
         status(player, converted > 0 ? learned ? "converted_learned" : "converted_known"
                 : learned ? "learned" : "already_learned", converted);
-    }
-
-    public void useMatchingInventoryItems(ServerPlayer player, ResourceLocation id) {
-        if (!validRequest(player) || !getCarried().isEmpty() || id == null
-                || !BuiltInRegistries.ITEM.containsKey(id)) return;
-        Item item = BuiltInRegistries.ITEM.get(id);
-        ItemStack reference = new ItemStack(item);
-        if (!OreConversionPrices.isPlain(reference) || !OreConversionPrices.canDeposit(reference)) return;
-        OptionalLong unitPrice = OreConversionPrices.price(item);
-        if (unitPrice.isEmpty()) return;
-
-        OreConversionSavedData data = OreConversionSavedData.get(player);
-        OreConversionSavedData.Account account = data.account(player);
-        if (account.learned().size() >= MAX_LEARNED && !account.knows(id)) {
-            status(player, "learn_limit");
-            return;
-        }
-
-        Inventory inventory = player.getInventory();
-        long itemCount = 0;
-        for (int index = 0; index < 36; index++) {
-            ItemStack stack = inventory.getItem(index);
-            if (ItemStack.isSameItemSameComponents(reference, stack) && OreConversionPrices.canDeposit(stack)) {
-                itemCount += stack.getCount();
-            }
-        }
-        if (itemCount == 0) return;
-
-        long amount;
-        try {
-            amount = Math.multiplyExact(unitPrice.getAsLong(), itemCount);
-        } catch (ArithmeticException ex) {
-            status(player, "overflow");
-            return;
-        }
-        if (!data.credit(player, amount)) {
-            status(player, "overflow");
-            return;
-        }
-
-        for (int index = 0; index < 36; index++) {
-            ItemStack stack = inventory.getItem(index);
-            if (ItemStack.isSameItemSameComponents(reference, stack) && OreConversionPrices.canDeposit(stack)) {
-                inventory.setItem(index, ItemStack.EMPTY);
-            }
-        }
-        boolean learned = data.learn(player, id);
-        inventory.setChanged();
-        broadcastChanges();
-        sync(player);
-        status(player, learned ? "converted_learned" : "converted_known", amount);
+        return moved;
     }
 
     public void extract(ServerPlayer player, ResourceLocation id, int count) {

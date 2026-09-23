@@ -24,10 +24,8 @@ import java.util.Comparator;
 import java.util.Map;
 
 public final class OreConversionNetwork {
-    public static final int INVENTORY_SLOT = 0;
     public static final int EXTRACT = 1;
     public static final int EXTRACT_STACK = 2;
-    public static final int INVENTORY_MATCHING = 3;
 
     private OreConversionNetwork() {}
 
@@ -37,8 +35,6 @@ public final class OreConversionNetwork {
                     if (!(context.player() instanceof ServerPlayer player)) return;
                     if (!(player.containerMenu instanceof OreConversionMenu menu) || menu.containerId != packet.containerId()) return;
                     switch (packet.action()) {
-                        case INVENTORY_SLOT -> menu.useInventorySlot(player, packet.count());
-                        case INVENTORY_MATCHING -> menu.useMatchingInventoryItems(player, packet.itemId());
                         case EXTRACT -> menu.extract(player, packet.itemId(), packet.count());
                         case EXTRACT_STACK -> menu.extractStackToInventory(player, packet.itemId());
                         default -> { }
