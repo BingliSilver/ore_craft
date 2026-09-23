@@ -21,17 +21,37 @@ import java.util.OptionalLong;
 
 /** 管理转化桌交易，并通过原版快速移动操作处理背包输入。 */
 public class OreConversionMenu extends AbstractContainerMenu {
+    /** 单个账户最多允许记录的已学习物品数量。 */
     private static final int MAX_LEARNED = 2048;
+    /** 该菜单绑定的转化桌坐标。 */
     private final BlockPos pos;
+    /** 转化桌所在世界，用于校验菜单有效性。 */
     private final Level level;
+    /** 最近同步给客户端显示的 ME 余额。 */
     private long clientBalance;
+    /** 最近同步给客户端显示的可提取物品目录。 */
     private List<OreConversionNetwork.PriceEntry> clientCatalog = List.of();
+    /** 每次接收新快照时递增，供界面检测目录变化。 */
     private int revision;
 
+    /**
+     * 从网络附加数据读取方块坐标并创建菜单。
+     *
+     * @param id 菜单容器 ID
+     * @param inventory 玩家物品栏
+     * @param extra 服务端传入的菜单附加数据
+     */
     public OreConversionMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
+    /**
+     * 创建绑定到指定转化桌的菜单，并添加玩家的 36 个背包槽位。
+     *
+     * @param id 菜单容器 ID
+     * @param inventory 玩家物品栏
+     * @param pos 转化桌方块坐标
+     */
     public OreConversionMenu(int id, Inventory inventory, BlockPos pos) {
         super(Ore_craft.ORE_CONVERSION_MENU.get(), id);
         this.pos = pos.immutable();
@@ -44,14 +64,14 @@ public class OreConversionMenu extends AbstractContainerMenu {
         for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 41 + column * 19, 174));
     }
 
+    /** 检查转化桌仍存在且玩家仍在交互距离内。 */
     @Override
     public boolean stillValid(Player player) {
         return level.getBlockState(pos).is(Ore_craft.ORE_CONVERSION_TABLE.get()) && player.canInteractWithBlock(pos, 4.0);
     }
 
     /**
-     * 处理原版 Shift 快速移动：背包中的整组物品输入转化桌。
-     * 原版 Shift 双击会对匹配的格子分别调用此方法。
+     * 处理原版容器的 Shift 快速移动请求，将背包中的整组物品提交转化验证。
      *
      * @param player 操作容器的玩家
      * @param slot 被快速移动的容器格子索引
@@ -96,6 +116,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
             slot.set(ItemStack.EMPTY);
             broadcastChanges();
         }
+        // 价格交易和学习记录是两个独立结果：只允许学习的物品不会从背包中移除。
         boolean learned = data.learn(player, id);
         sync(player);
         status(player, converted > 0 ? learned ? "converted_learned" : "converted_known"
@@ -103,14 +124,23 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return moved;
     }
 
+    /**
+     * 从账户提取指定数量的物品到鼠标指针，并扣除对应 ME。
+     *
+     * @param player 发起提取的服务端玩家
+     * @param id 目标物品注册 ID
+     * @param count 请求提取的数量；当前仅接受单个物品
+     */
     public void extract(ServerPlayer player, ResourceLocation id, int count) {
         if (!validRequest(player) || count != 1 || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return;
         Item item = BuiltInRegistries.ITEM.get(id);
+        // 只有已学习且仍可提取的物品才能购买，所有条件都在服务端重新核验。
         if (!OreConversionPrices.canExtract(item) || !OreConversionSavedData.get(player).account(player).knows(id)) {
             status(player, "not_learned"); return;
         }
         ItemStack carried = getCarried();
         ItemStack output = new ItemStack(item);
+        // 指针上已有其他物品时不扣款；同类物品则只填充剩余堆叠空间。
         if (!carried.isEmpty() && !ItemStack.isSameItemSameComponents(carried, output)) return;
         int room = output.getMaxStackSize() - carried.getCount();
         count = Math.min(count, room);
@@ -121,6 +151,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         try { total = Math.multiplyExact(unit.getAsLong(), count); }
         catch (ArithmeticException ex) { status(player, "overflow"); return; }
         OreConversionSavedData data = OreConversionSavedData.get(player);
+        // 先校验余额并成功扣款后才更新鼠标指针，确保交易不会免费生成物品。
         if (data.account(player).balance() < total) { status(player, "insufficient_me"); return; }
         if (!data.debit(player, total)) return;
         setCarried(new ItemStack(item, carried.getCount() + count));
@@ -128,6 +159,12 @@ public class OreConversionMenu extends AbstractContainerMenu {
         sync(player);
     }
 
+    /**
+     * 将账户允许购买的最多一组物品插入玩家物品栏，并按实际插入数量扣款。
+     *
+     * @param player 发起提取的服务端玩家
+     * @param id 目标物品注册 ID
+     */
     public void extractStackToInventory(ServerPlayer player, ResourceLocation id) {
         if (!validRequest(player) || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return;
         Item item = BuiltInRegistries.ITEM.get(id);
@@ -139,10 +176,12 @@ public class OreConversionMenu extends AbstractContainerMenu {
         OptionalLong unit = OreConversionPrices.price(item);
         if (unit.isEmpty()) return;
         OreConversionSavedData data = OreConversionSavedData.get(player);
+        // 同时受标准一组上限、物品自身堆叠上限和账户余额约束。
         int affordable = (int) Math.min(Math.min(64, output.getMaxStackSize()),
                 data.account(player).balance() / unit.getAsLong());
         if (affordable == 0) { status(player, "insufficient_me"); return; }
         Inventory inventory = player.getInventory();
+        // 先规划所有槽位的变更并计算真实可放数量，再扣款，避免背包放不下时多扣 ME。
         int[] additions = planInsertion(inventory, output.copyWithCount(affordable));
         int count = 0;
         for (int addition : additions) count += addition;
@@ -150,6 +189,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         long total = unit.getAsLong() * count;
         if (!data.debit(player, total)) return;
         ItemStack stack = output.copyWithCount(count);
+        // 按之前规划的数量写入各槽位，保证实际插入量与扣款金额一致。
         for (int slot = 0; slot < additions.length; slot++) {
             if (additions[slot] == 0) continue;
             ItemStack existing = inventory.getItem(slot);
@@ -161,9 +201,17 @@ public class OreConversionMenu extends AbstractContainerMenu {
         sync(player);
     }
 
+    /**
+     * 规划一组物品在背包现有堆叠和空槽中的分配，不实际修改背包。
+     *
+     * @param inventory 目标玩家物品栏
+     * @param output 待插入物品栈
+     * @return 每个背包槽位将增加的数量
+     */
     private static int[] planInsertion(Inventory inventory, ItemStack output) {
         int[] additions = new int[36];
         int remaining = output.getCount();
+        // 先填充同类堆叠，再使用空格，符合玩家手动整理物品的预期。
         for (int slot = 0; slot < additions.length; slot++) {
             ItemStack existing = inventory.getItem(slot);
             if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, output)) continue;
@@ -183,30 +231,38 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return additions;
     }
 
+    /** 向玩家同步当前账户状态；菜单无效时忽略请求。 */
     public void sync(ServerPlayer player) {
         if (!validRequest(player)) return;
         OreConversionNetwork.sendState(player, containerId);
     }
 
+    /** 验证请求玩家当前打开的正是此菜单且仍可交互。 */
     private boolean validRequest(ServerPlayer player) {
         return player.containerMenu == this && stillValid(player);
     }
 
+    /** 发送不携带数量的操作提示。 */
     private void status(ServerPlayer player, String key) {
         status(player, key, 0);
     }
 
+    /** 发送携带数量参数的操作提示。 */
     private void status(ServerPlayer player, String key, long amount) {
         OreConversionNetwork.sendStatus(player, containerId, key, amount);
     }
 
+    /** 接收服务端同步快照并递增修订号，通知界面刷新目录。 */
     public void receive(long balance, List<OreConversionNetwork.PriceEntry> catalog) {
         clientBalance = balance;
         clientCatalog = List.copyOf(catalog);
         revision++;
     }
 
+    /** 返回最近一次同步到客户端的余额。 */
     public long clientBalance() { return clientBalance; }
+    /** 返回最近一次同步到客户端的已学习物品目录。 */
     public List<OreConversionNetwork.PriceEntry> clientCatalog() { return clientCatalog; }
+    /** 返回服务端快照修订号，供界面检测变化。 */
     public int revision() { return revision; }
 }

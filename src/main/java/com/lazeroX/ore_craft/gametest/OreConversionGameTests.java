@@ -13,10 +13,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
+/** 验证转化价格推导和转化桌交易行为的游戏测试。 */
 @PrefixGameTestTemplate(false)
 public final class OreConversionGameTests {
+    /** 测试类不允许创建实例。 */
     private OreConversionGameTests() {}
 
+    /** 检查配方价格、分数价格取整和不可获得物品的过滤规则。 */
     @GameTest(templateNamespace = Ore_craft.MODID, template = "empty")
     public static void recipePrices(GameTestHelper helper) {
         helper.assertTrue(OreConversionPrices.price(Items.IRON_BLOCK).orElse(-1) == 2304,
@@ -28,6 +31,7 @@ public final class OreConversionGameTests {
         helper.succeed();
     }
 
+    /** 检查物品输入、学习、提取及鼠标持有冲突保护。 */
     @GameTest(templateNamespace = Ore_craft.MODID, template = "empty")
     @SuppressWarnings("removal")
     public static void transactions(GameTestHelper helper) {
@@ -37,7 +41,7 @@ public final class OreConversionGameTests {
         ServerPlayer player = helper.makeMockServerPlayerInLevel();
         player.setPos(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5);
         OreConversionMenu menu = new OreConversionMenu(1, player.getInventory(), pos) {
-            @Override public void sync(ServerPlayer ignored) { /* Mock player has no negotiated client payload channel. */ }
+            @Override public void sync(ServerPlayer ignored) { /* 模拟玩家没有协商客户端载荷通道。 */ }
         };
         player.containerMenu = menu;
         OreConversionSavedData data = OreConversionSavedData.get(player);

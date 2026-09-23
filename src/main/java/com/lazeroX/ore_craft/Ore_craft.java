@@ -76,15 +76,19 @@ public class Ore_craft {
     /** 本模组创造模式选项卡的延迟注册器。 */
     private static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+    /** 本模组容器菜单的延迟注册器。 */
     private static final DeferredRegister<MenuType<?>> MENU_TYPES =
             DeferredRegister.create(Registries.MENU, MODID);
 
+    /** 矿质转化桌方块注册项。 */
     public static final DeferredBlock<OreConversionTableBlock> ORE_CONVERSION_TABLE =
             BLOCKS.register("ore_conversion_table", () -> new OreConversionTableBlock(
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
+    /** 矿质转化桌对应的可放置物品。 */
     public static final DeferredItem<?> ORE_CONVERSION_TABLE_ITEM =
             ITEMS.registerSimpleBlockItem(ORE_CONVERSION_TABLE);
+    /** 矿质转化桌菜单类型。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMenu>> ORE_CONVERSION_MENU =
             MENU_TYPES.register("ore_conversion_table", () -> IMenuTypeExtension.create(OreConversionMenu::new));
 

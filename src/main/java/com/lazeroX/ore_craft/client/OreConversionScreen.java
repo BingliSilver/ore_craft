@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/** 展示玩家背包和已学习物品目录；背包格子的快捷操作沿用原版容器界面。 */
+/** 展示转化桌余额、玩家背包和可提取的已学习物品目录。 */
 public final class OreConversionScreen extends AbstractContainerScreen<OreConversionMenu> {
     private static final int WIDTH = 432;
     private static final int HEIGHT = 228;
@@ -62,12 +62,20 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     private boolean statusSuccess;
     private int statusTicks;
 
+    /**
+     * 创建转化桌界面并设置设计稿对应的画布尺寸。
+     *
+     * @param menu 当前转化桌菜单
+     * @param inventory 玩家物品栏
+     * @param title 菜单标题
+     */
     public OreConversionScreen(OreConversionMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = WIDTH;
         imageHeight = HEIGHT;
     }
 
+    /** 初始化搜索框、分类按钮和目录分页控件。 */
     @Override
     protected void init() {
         String previousSearch = search == null ? "" : search.getValue();
@@ -85,6 +93,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         search.setMaxLength(64);
         search.setHint(Component.translatable("gui.ore_craft.conversion.search"));
         search.setValue(previousSearch);
+        // 搜索条件改变后回到第一页，避免当前页码超过新的结果范围。
         search.setResponder(value -> { page = 0; refresh(); });
         addRenderableWidget(search);
 
@@ -103,16 +112,19 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         refresh();
     }
 
+    /** 按照界面缩放后的坐标创建统一样式按钮。 */
     private Button addButton(Component label, int x, int y, int width, int height, Runnable action) {
         return addRenderableWidget(Button.builder(label, button -> action.run())
                 .bounds(leftPos + x, topPos + y, width, height)
                 .build(FlatButton::new));
     }
 
+    /** 将目录操作封装成请求并发送到服务端验证。 */
     private void action(int kind, ResourceLocation id, int count) {
         PacketDistributor.sendToServer(new OreConversionNetwork.ActionPayload(menu.containerId, kind, id, count));
     }
 
+    /** 递减提示显示时间，并在菜单状态变化时刷新目录。 */
     @Override
     protected void containerTick() {
         super.containerTick();
@@ -121,6 +133,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         else updateControls();
     }
 
+    /** 根据服务端提示载荷更新界面中的短暂操作结果。 */
     public void receiveStatus(OreConversionNetwork.StatusPayload packet) {
         if (packet.containerId() != menu.containerId) return;
         String key = packet.key();
@@ -139,6 +152,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         statusTicks = statusMessage == null ? 0 : 120;
     }
 
+    /** 按搜索词、分类和菜单目录重建当前显示列表。 */
     private void refresh() {
         if (search == null || previous == null) return;
         seenRevision = menu.revision();
@@ -149,6 +163,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
                     || entry.id().toString().contains(query)
                     || item.getDescription().getString().toLowerCase(Locale.ROOT).contains(query));
         }).toList();
+        // 目录更新或筛选结果变少时，将页码限制在有效范围内。
         page = Math.max(0, Math.min(page, Math.max(0, (filtered.size() - 1) / PAGE_SIZE)));
         for (int index = 0; index < categoryButtons.size(); index++) {
             categoryButtons.get(index).selected = Category.values()[index] == category;
@@ -156,12 +171,14 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         updateControls();
     }
 
+    /** 根据页码和结果数量更新上一页、下一页按钮状态。 */
     private void updateControls() {
         if (previous == null || next == null) return;
         previous.active = page > 0;
         next.active = (page + 1) * PAGE_SIZE < filtered.size();
     }
 
+    /** 绘制界面背景、背包格子、目录格子和鼠标悬停反馈。 */
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
@@ -210,6 +227,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         }
     }
 
+    /** 绘制搜索框左侧的像素风放大镜图标。 */
     private static void searchIcon(GuiGraphics graphics, int x, int y) {
         graphics.fill(x + 2, y, x + 6, y + 1, MUTED);
         graphics.fill(x + 1, y + 1, x + 2, y + 2, MUTED);
@@ -222,12 +240,14 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         graphics.fill(x + 7, y + 8, x + 9, y + 10, MUTED);
     }
 
+    /** 绘制单个背包槽位的背景和边框。 */
     private static void slotBackground(GuiGraphics graphics, int x, int y) {
         graphics.fill(x, y, x + sx(17), y + sy(17), 0xEB111A22);
         outline(graphics, x, y, sx(17), sy(17), 0xFF627383);
         graphics.fill(x + sx(1), y + sy(1), x + sx(16), y + sy(2), 0xFF2B3946);
     }
 
+    /** 用四条矩形边绘制指定颜色的矩形边框。 */
     private static void outline(GuiGraphics graphics, int x, int y, int width, int height, int color) {
         graphics.fill(x, y, x + width, y + 1, color);
         graphics.fill(x, y + height - 1, x + width, y + height, color);
@@ -235,10 +255,13 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         graphics.fill(x + width - 1, y, x + width, y + height, color);
     }
 
+    /** 将设计稿横向坐标换算为当前界面像素坐标。 */
     private static int sx(int value) { return Math.round(value * X_LAYOUT_SCALE); }
 
+    /** 将设计稿纵向坐标换算为当前界面像素坐标。 */
     private static int sy(int value) { return Math.round(value * Y_LAYOUT_SCALE); }
 
+    /** 绘制标题、余额、状态提示和目录图标及价格。 */
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         graphics.drawString(font, title, sx(47), sy(30), TEXT, true);
@@ -273,6 +296,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
                 sx(278), sy(167), MUTED);
     }
 
+    /** 处理目录物品点击，并将背包槽位点击交由原版容器逻辑处理。 */
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
@@ -282,6 +306,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
             if (index >= 0 && index < filtered.size()) {
                 OreConversionNetwork.PriceEntry entry = filtered.get(index);
                 if (hasShiftDown()) {
+                    // Shift 操作请求将尽可能多的该物品直接放入背包。
                     action(OreConversionNetwork.EXTRACT_STACK, entry.id(), 0);
                     suppressCatalogRelease = true;
                     return true;
@@ -292,6 +317,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
                     suppressCatalogRelease = true;
                     return true;
                 }
+                // 普通左键只请求一个物品，避免点击目录时一次购买整组。
                 action(OreConversionNetwork.EXTRACT, entry.id(), 1);
                 suppressCatalogRelease = true;
                 return true;
@@ -300,6 +326,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    /** 在目录按钮消费释放事件时阻止容器把同一次点击继续处理。 */
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         if (button == 0 && suppressCatalogRelease) {
@@ -309,6 +336,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
+    /** 将界面局部坐标转换为当前页的目录索引；未命中格子时返回负数。 */
     private int catalogIndexAt(int localX, int localY) {
         if (localX < CATALOG_X || localX >= CATALOG_X + COLUMNS * CATALOG_STEP_X
                 || localY < CATALOG_Y || localY >= CATALOG_Y + 4 * CATALOG_STEP_Y) return -1;
@@ -319,6 +347,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         return page * PAGE_SIZE + row * COLUMNS + column;
     }
 
+    /** 在鼠标位于目录区域时用滚轮切换页面。 */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         int localX = (int) mouseX - leftPos;
@@ -332,6 +361,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
+    /** 渲染界面和物品提示，并显示余额、目录物品或状态详情。 */
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
@@ -364,10 +394,12 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         }
     }
 
+    /** 按当前界面固定使用的区域设置格式化完整整数。 */
     private static String formatNumber(long value) {
         return String.format(Locale.ROOT, "%,d", value);
     }
 
+    /** 为有限宽度的余额区域生成带单位后缀的紧凑数字。 */
     private static String shortNumber(long value) {
         if (value < 10000) return formatNumber(value);
         if (value < 1_000_000) return (value / 1000) + "k";
@@ -385,11 +417,14 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
 
         private final String translation;
 
+        /** 创建带本地化键的目录分类。 */
         Category(String translation) { this.translation = translation; }
 
+        /** 根据物品类型和注册 ID 将物品归入当前分类。 */
         private boolean matches(Item item) {
             if (this == ALL) return true;
             Category actual;
+            // 优先检查可明确识别的装备和工具类型，再用注册 ID 区分常见材料与其他物品。
             if (item instanceof BlockItem) actual = BLOCKS;
             else if (item instanceof ArmorItem || item.getDefaultInstance().isDamageableItem()
                     && !(item instanceof DiggerItem || item instanceof SwordItem
@@ -409,11 +444,14 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         }
     }
 
+    /** 绘制扁平像素风外观的目录分类与分页按钮。 */
     private static final class FlatButton extends Button {
         private boolean selected;
 
+        /** 使用原版按钮配置创建自定义绘制按钮。 */
         private FlatButton(Builder builder) { super(builder); }
 
+        /** 绘制按钮背景、焦点状态、选择标记和本地化文本。 */
         @Override
         protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
             int fill = !active ? 0xFF252D36 : selected ? 0xFF24565C : 0xFF2A333D;

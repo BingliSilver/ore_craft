@@ -143,12 +143,12 @@ public final class MiningFortuneEvents {
         List<ItemStack> effectDrops = calculateDrops(event, player, effectTool, lootTable, bonusSeed);
 
         if (enchantmentLevel == 0) {
-            // 工具没有时运时，直接采用 Buff 对应的完整时运结果。
+            // 工具没有时运时，直接采用状态效果对应的完整时运结果。
             replaceDrops(event, effectDrops);
             return;
         }
 
-        // 工具已有时运时，保留原掉落，并只追加 Buff 相对于无时运结果产生的差值。
+        // 工具已有时运时，保留原掉落，并只追加状态效果相对于无时运结果产生的差值。
         ItemStack baselineTool = copyWithFortuneLevel(event.getTool(), fortune, 0);
         List<ItemStack> baselineDrops = calculateDrops(event, player, baselineTool, lootTable, bonusSeed);
         applyDropDifference(event, baselineDrops, effectDrops);

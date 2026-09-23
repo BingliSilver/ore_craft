@@ -26,6 +26,7 @@ public final class OreCraftClientEvents {
         event.registerEntityRenderer(Ore_craft.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
     }
 
+    /** 注册转化桌菜单对应的客户端屏幕。 */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(Ore_craft.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
