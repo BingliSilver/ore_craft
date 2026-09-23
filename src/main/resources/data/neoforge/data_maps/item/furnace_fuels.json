@@ -1,0 +1,10 @@
+{
+  "values": {
+    "ore_craft:emerald_coal": {
+      "burn_time": 25600
+    },
+    "ore_craft:emerald_coal_block": {
+      "burn_time": 230400
+    }
+  }
+}

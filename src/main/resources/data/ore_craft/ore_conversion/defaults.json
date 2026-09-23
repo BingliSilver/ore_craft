@@ -1,0 +1,31 @@
+{
+  "sources": [
+    "minecraft:coal",
+    "minecraft:copper_ingot",
+    "minecraft:iron_ingot",
+    "minecraft:gold_ingot",
+    "minecraft:redstone",
+    "minecraft:lapis_lazuli",
+    "minecraft:diamond",
+    "minecraft:emerald",
+    "minecraft:quartz",
+    "minecraft:netherite_scrap",
+    "minecraft:amethyst_shard"
+  ],
+  "blocked_tags": ["#c:ores", "#c:raw_materials"],
+  "blocked": [
+    "minecraft:raw_copper",
+    "minecraft:raw_iron",
+    "minecraft:raw_gold",
+    "minecraft:bedrock",
+    "minecraft:barrier",
+    "minecraft:command_block",
+    "minecraft:chain_command_block",
+    "minecraft:repeating_command_block",
+    "minecraft:structure_block",
+    "minecraft:jigsaw",
+    "minecraft:spawner",
+    "minecraft:debug_stick",
+    "minecraft:knowledge_book"
+  ]
+}

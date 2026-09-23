@@ -1,0 +1,9 @@
+{
+  "multipart": [
+    {
+      "apply": {
+        "model": "ore_craft:block/mining_tnt"
+      }
+    }
+  ]
+}

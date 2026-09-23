@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " C ",
+    "CAC",
+    " C "
+  ],
+  "key": {
+    "C": {
+      "item": "minecraft:coal"
+    },
+    "A": {
+      "item": "ore_craft:emerald_nugget"
+    }
+  },
+  "result": {
+    "id": "ore_craft:emerald_coal",
+    "count": 4
+  }
+}

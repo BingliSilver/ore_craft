@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "pattern": [
+    "CCC",
+    "CCC",
+    "CCC"
+  ],
+  "key": {
+    "C": {
+      "item": "ore_craft:emerald_coal"
+    }
+  },
+  "result": {
+    "id": "ore_craft:emerald_coal_block",
+    "count": 1
+  }
+}

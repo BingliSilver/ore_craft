@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " A ",
+    "AXA",
+    " A "
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:diamond_block"
+    },
+    "X": {
+      "item": "minecraft:gold_block"
+    }
+  },
+  "result": {
+    "id": "ore_craft:radiant_diamond_heart",
+    "count": 1
+  }
+}

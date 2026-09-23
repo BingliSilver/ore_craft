@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "ore_craft:ore_conversion_table",
+    "ore_craft:emerald_coal_block"
+  ]
+}

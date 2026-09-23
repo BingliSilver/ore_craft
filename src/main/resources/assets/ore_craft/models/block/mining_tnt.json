@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "ore_craft:block/mining_tnt_bottom",
+    "up": "ore_craft:block/mining_tnt_top",
+    "north": "ore_craft:block/mining_tnt_side_text",
+    "south": "ore_craft:block/mining_tnt_side_text",
+    "west": "ore_craft:block/mining_tnt_side_pickaxe",
+    "east": "ore_craft:block/mining_tnt_side_pickaxe",
+    "particle": "ore_craft:block/mining_tnt_side_text"
+  }
+}
