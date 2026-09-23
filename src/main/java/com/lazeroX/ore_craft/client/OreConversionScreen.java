@@ -25,6 +25,8 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 /** 展示转化桌余额、玩家背包和可提取的已学习物品目录。 */
@@ -403,10 +405,20 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     private static String shortNumber(long value) {
         if (value < 10000) return formatNumber(value);
         if (value < 1_000_000) return (value / 1000) + "k";
-        if (value < 1_000_000_000) return (value / 1_000_000) + "m";
-        return (value / 1_000_000_000) + "b";
+        if (value < 1_000_000_000) return compactNumber(value, 1_000_000, "m");
+        if (value < 1_000_000_000_000L) return compactNumber(value, 1_000_000_000L, "b");
+        if (value < 1_000_000_000_000_000L) return compactNumber(value, 1_000_000_000_000L, "t");
+        if (value < 1_000_000_000_000_000_000L) return compactNumber(value, 1_000_000_000_000_000L, "q");
+        return compactNumber(value, 1_000_000_000_000_000_000L, "Q");
     }
 
+    /** 保留两位小数并添加单位后缀，用于显示大额余额。 */
+    private static String compactNumber(long value, long divisor, String suffix) {
+        return BigDecimal.valueOf(value).divide(BigDecimal.valueOf(divisor), 2, RoundingMode.HALF_UP)
+                .toPlainString() + suffix;
+    }
+
+    /** 目录筛选分类及其本地化标签。 */
     private enum Category {
         ALL("gui.ore_craft.conversion.category.all"),
         BLOCKS("gui.ore_craft.conversion.category.blocks"),

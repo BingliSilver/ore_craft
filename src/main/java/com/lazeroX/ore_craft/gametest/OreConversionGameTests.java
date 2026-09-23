@@ -47,7 +47,7 @@ public final class OreConversionGameTests {
         OreConversionSavedData data = OreConversionSavedData.get(player);
 
         menu.getSlot(0).set(new ItemStack(Items.DIAMOND, 2));
-        menu.useInventorySlot(player, 0);
+        menu.quickMoveStack(player, 0);
         helper.assertTrue(data.account(player).balance() == 16384, "Two diamonds must credit 16384 ME");
         helper.assertTrue(menu.getSlot(0).getItem().isEmpty(), "Deposit must consume the input");
         helper.assertTrue(data.account(player).knows(BuiltInRegistries.ITEM.getKey(Items.DIAMOND)),
@@ -58,8 +58,9 @@ public final class OreConversionGameTests {
         helper.assertTrue(menu.getCarried().is(Items.DIAMOND) && menu.getCarried().getCount() == 1,
                 "Extraction must put one diamond on the cursor");
 
+        menu.setCarried(ItemStack.EMPTY);
         menu.getSlot(1).set(new ItemStack(Items.OAK_PLANKS));
-        menu.useInventorySlot(player, 1);
+        menu.quickMoveStack(player, 1);
         helper.assertTrue(menu.getSlot(1).getItem().getCount() == 1, "Learning must not consume the item");
         helper.assertTrue(data.account(player).knows(BuiltInRegistries.ITEM.getKey(Items.OAK_PLANKS)),
                 "Learning must record the item");
