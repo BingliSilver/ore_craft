@@ -1,5 +1,7 @@
 package com.lazeroX.ore_craft.client;
 
+import com.lazeroX.ore_craft.register.ModEntities;
+import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.Ore_craft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -23,12 +25,12 @@ public final class OreCraftClientEvents {
      */
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(Ore_craft.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
+        event.registerEntityRenderer(ModEntities.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
     }
 
     /** 注册转化桌菜单对应的客户端屏幕。 */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
-        event.register(Ore_craft.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
+        event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
     }
 }

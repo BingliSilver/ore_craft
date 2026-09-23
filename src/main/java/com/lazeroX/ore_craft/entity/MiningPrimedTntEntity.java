@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.entity;
 
-import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.register.ModBlocks;
+import com.lazeroX.ore_craft.register.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
@@ -67,7 +68,7 @@ public class MiningPrimedTntEntity extends PrimedTnt {
             Level level
     ) {
         super(entityType, level);
-        setBlockState(Ore_craft.MINING_TNT_BLOCK.get().defaultBlockState());
+        setBlockState(ModBlocks.MINING_TNT_BLOCK.get().defaultBlockState());
     }
 
     /**
@@ -88,7 +89,7 @@ public class MiningPrimedTntEntity extends PrimedTnt {
             @Nullable LivingEntity owner,
             int fortuneLevel
     ) {
-        this(Ore_craft.MINING_TNT_ENTITY.get(), level);
+        this(ModEntities.MINING_TNT_ENTITY.get(), level);
         setPos(x, y, z);
 
         // 与原版 TNT 保持一致的轻微随机水平速度和向上弹起效果。
@@ -100,7 +101,7 @@ public class MiningPrimedTntEntity extends PrimedTnt {
         zo = z;
         miningOwner = owner;
         this.fortuneLevel = Math.max(0, Math.min(3, fortuneLevel));
-        setBlockState(Ore_craft.MINING_TNT_BLOCK.get().defaultBlockState()
+        setBlockState(ModBlocks.MINING_TNT_BLOCK.get().defaultBlockState()
                 .setValue(com.lazeroX.ore_craft.block.MiningTntBlock.FORTUNE_LEVEL, this.fortuneLevel));
     }
 
@@ -401,7 +402,7 @@ public class MiningPrimedTntEntity extends PrimedTnt {
     protected void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         fortuneLevel = Math.max(0, Math.min(3, tag.getByte(TAG_FORTUNE_LEVEL)));
-        setBlockState(Ore_craft.MINING_TNT_BLOCK.get().defaultBlockState()
+        setBlockState(ModBlocks.MINING_TNT_BLOCK.get().defaultBlockState()
                 .setValue(com.lazeroX.ore_craft.block.MiningTntBlock.FORTUNE_LEVEL, fortuneLevel));
     }
 

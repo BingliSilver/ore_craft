@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.menu;
 
-import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.register.ModBlocks;
+import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -53,7 +54,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param pos 转化桌方块坐标
      */
     public OreConversionMenu(int id, Inventory inventory, BlockPos pos) {
-        super(Ore_craft.ORE_CONVERSION_MENU.get(), id);
+        super(ModMenus.ORE_CONVERSION_MENU.get(), id);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
         for (int row = 0; row < 3; row++) {
@@ -67,7 +68,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     /** 检查转化桌仍存在且玩家仍在交互距离内。 */
     @Override
     public boolean stillValid(Player player) {
-        return level.getBlockState(pos).is(Ore_craft.ORE_CONVERSION_TABLE.get()) && player.canInteractWithBlock(pos, 4.0);
+        return level.getBlockState(pos).is(ModBlocks.ORE_CONVERSION_TABLE.get()) && player.canInteractWithBlock(pos, 4.0);
     }
 
     /**

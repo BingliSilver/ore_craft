@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.event;
 
-import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.register.ModEffects;
+import com.lazeroX.ore_craft.register.ModPotions;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -58,14 +59,14 @@ public final class MiningFortuneEvents {
         event.getBuilder().addMix(
                 Potions.THICK,
                 Items.EMERALD,
-                Ore_craft.MINING_FORTUNE_POTION
+                ModPotions.MINING_FORTUNE_POTION
         );
 
         // 红石粉只提高药水等级；火药继续沿用原版逻辑，将瓶装药水转为喷溅型。
         event.getBuilder().addMix(
-                Ore_craft.MINING_FORTUNE_POTION,
+                ModPotions.MINING_FORTUNE_POTION,
                 Items.REDSTONE,
-                Ore_craft.STRONG_MINING_FORTUNE_POTION
+                ModPotions.STRONG_MINING_FORTUNE_POTION
         );
     }
 
@@ -94,7 +95,7 @@ public final class MiningFortuneEvents {
 
         // 即使通过命令等方式获得滞留型 I 级药水，也不允许用红石粉升级为 II 级。
         if (ingredient.is(Items.REDSTONE)
-                && containsLingeringPotion(event, Ore_craft.MINING_FORTUNE_POTION)) {
+                && containsLingeringPotion(event, ModPotions.MINING_FORTUNE_POTION)) {
             event.setCanceled(true);
         }
     }
@@ -114,7 +115,7 @@ public final class MiningFortuneEvents {
             return;
         }
 
-        MobEffectInstance effect = player.getEffect(Ore_craft.MINING_FORTUNE_EFFECT);
+        MobEffectInstance effect = player.getEffect(ModEffects.MINING_FORTUNE_EFFECT);
         if (effect == null) {
             return;
         }
@@ -345,8 +346,8 @@ public final class MiningFortuneEvents {
     private static boolean containsMiningFortunePotion(PotionBrewEvent.Pre event) {
         for (int slot = 0; slot < BREWING_BOTTLE_SLOTS; slot++) {
             ItemStack stack = event.getItem(slot);
-            if (hasPotion(stack, Ore_craft.MINING_FORTUNE_POTION)
-                    || hasPotion(stack, Ore_craft.STRONG_MINING_FORTUNE_POTION)) {
+            if (hasPotion(stack, ModPotions.MINING_FORTUNE_POTION)
+                    || hasPotion(stack, ModPotions.STRONG_MINING_FORTUNE_POTION)) {
                 return true;
             }
         }

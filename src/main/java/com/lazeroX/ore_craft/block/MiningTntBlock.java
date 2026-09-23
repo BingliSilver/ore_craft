@@ -1,6 +1,6 @@
 package com.lazeroX.ore_craft.block;
 
-import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.register.ModItems;
 import com.lazeroX.ore_craft.entity.MiningPrimedTntEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -140,7 +140,7 @@ public class MiningTntBlock extends TntBlock {
      */
     @Override
     protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
-        ItemStack result = new ItemStack(Ore_craft.MINING_TNT_ITEM.get());
+        ItemStack result = new ItemStack(ModItems.MINING_TNT_ITEM.get());
         int fortuneLevel = state.getValue(FORTUNE_LEVEL);
 
         if (fortuneLevel > 0) {

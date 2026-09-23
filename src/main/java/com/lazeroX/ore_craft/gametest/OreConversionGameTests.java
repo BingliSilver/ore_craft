@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.gametest;
 
+import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
@@ -36,7 +37,7 @@ public final class OreConversionGameTests {
     @SuppressWarnings("removal")
     public static void transactions(GameTestHelper helper) {
         BlockPos relative = new BlockPos(2, 1, 2);
-        helper.setBlock(relative, Ore_craft.ORE_CONVERSION_TABLE.get());
+        helper.setBlock(relative, ModBlocks.ORE_CONVERSION_TABLE.get());
         BlockPos pos = helper.absolutePos(relative);
         ServerPlayer player = helper.makeMockServerPlayerInLevel();
         player.setPos(pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5);

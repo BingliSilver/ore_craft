@@ -64,5 +64,10 @@
   "gui.ore_craft.conversion.extract_hint": "Left-click: 1 to cursor | Shift + left-click: up to a stack to inventory",
   "tooltip.ore_craft.conversion.me": "ME: %s",
   "tooltip.ore_craft.conversion.affordable": "Can afford: %s",
-  "tooltip.ore_craft.conversion.convertible": "Convertible to ME"
+  "tooltip.ore_craft.conversion.convertible": "Convertible to ME",
+  "item.ore_craft.copper_ore_container": "Copper Ore Container",
+  "item.ore_craft.iron_ore_container": "Iron Ore Container",
+  "item.ore_craft.gold_ore_container": "Gold Ore Container",
+  "item.ore_craft.diamond_ore_container": "Diamond Ore Container",
+  "item.ore_craft.ender_ore_container": "Ender Ore Container"
 }

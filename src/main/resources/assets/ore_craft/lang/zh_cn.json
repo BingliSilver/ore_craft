@@ -64,5 +64,10 @@
   "gui.ore_craft.conversion.extract_hint": "左键：取1个到指针；Shift+左键：最多取一组到背包",
   "tooltip.ore_craft.conversion.me": "ME: %s",
   "tooltip.ore_craft.conversion.affordable": "当前 ME 可兑换：%s 个",
-  "tooltip.ore_craft.conversion.convertible": "可转换ME"
+  "tooltip.ore_craft.conversion.convertible": "可转换ME",
+  "item.ore_craft.copper_ore_container": "铜质矿质容器",
+  "item.ore_craft.iron_ore_container": "铁质矿质容器",
+  "item.ore_craft.gold_ore_container": "金质矿质容器",
+  "item.ore_craft.diamond_ore_container": "钻石矿质容器",
+  "item.ore_craft.ender_ore_container": "末影矿质容器"
 }

@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "ABA",
+    "XAX"
+  ],
+  "key": {
+    "X": { "item": "minecraft:copper_block" },
+    "A": { "item": "minecraft:copper_ingot" },
+    "B": { "item": "minecraft:chest" }
+  },
+  "result": { "id": "ore_craft:copper_ore_container", "count": 1 }
+}
