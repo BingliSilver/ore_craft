@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">矿脉深处</title>
+  <desc id="desc">幽暗洞穴中，矿工举灯走向散发青蓝光芒的矿脉。</desc>
+  <defs>
+    <linearGradient id="cave" x2="0" y2="1">
+      <stop stop-color="#101d2a"/>
+      <stop offset="1" stop-color="#07111a"/>
+    </linearGradient>
+    <radialGradient id="lamp">
+      <stop stop-color="#ffc970" stop-opacity=".7"/>
+      <stop offset=".5" stop-color="#d58c35" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#d58c35" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="oreGlow">
+      <stop stop-color="#49dfe7" stop-opacity=".65"/>
+      <stop offset=".55" stop-color="#1a8da9" stop-opacity=".15"/>
+      <stop offset="1" stop-color="#1a8da9" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="crystal" x2="1" y2="1">
+      <stop stop-color="#bafffa"/>
+      <stop offset=".45" stop-color="#42cad8"/>
+      <stop offset="1" stop-color="#166075"/>
+    </linearGradient>
+    <pattern id="stone" width="68" height="50" patternUnits="userSpaceOnUse">
+      <path d="M0 25h27l9-9h32M27 25v25M36 16V0" fill="none" stroke="#607584" stroke-opacity=".12" stroke-width="2"/>
+      <path d="M3 4h14M43 41h18" stroke="#9bb0b7" stroke-opacity=".08" stroke-width="3"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="420" fill="url(#cave)"/>
+  <path d="M0 0h1200v90l-67-11-37 29-66-9-64 31-60-21-45 19-69-33-72 12-54-20-61 26-48-11-67 25-72-15-53 27-70-22-56 12-59-24-46 8z" fill="#263541"/>
+  <path d="M0 0h1200v90l-67-11-37 29-66-9-64 31-60-21-45 19-69-33-72 12-54-20-61 26-48-11-67 25-72-15-53 27-70-22-56 12-59-24-46 8z" fill="url(#stone)"/>
+  <path d="M33 83l25 0-13 74zM185 105l35 9-25 84zM371 102l37 10-27 67zM632 107l33-15-21 74zM853 107l32 9-20 73zM1058 107l30-15-19 88z" fill="#1b2b37"/>
+  <path d="M0 260l73-9 82 32 77-10 69 35 89-20 68 31 88-13 62 35 82-11 61-20 75 10 82-38 89 20 72-34 91 20v132H0z" fill="#14232e"/>
+  <path d="M0 325l92 12 84-28 87 33 76-14 75 25 93-19 62 23 100-25 85 15 97-27 91 27 83-22 92 17 93-35v113H0z" fill="#25343f"/>
+  <path d="M0 325l92 12 84-28 87 33 76-14 75 25 93-19 62 23 100-25 85 15 97-27 91 27 83-22 92 17 93-35v113H0z" fill="url(#stone)"/>
+
+  <ellipse cx="343" cy="245" rx="165" ry="150" fill="url(#lamp)"/>
+  <ellipse cx="852" cy="240" rx="265" ry="190" fill="url(#oreGlow)"/>
+
+  <g fill="#215d68" opacity=".85">
+    <path d="M763 280l-24-24 11-31 29 14 8 25zM936 179l-16-25 20-26 27 18-2 31zM1045 293l-23-22 10-30 31 3 7 27z"/>
+    <path d="M856 308l-34-28 17-45 37-4 25 38-11 31z"/>
+  </g>
+  <g fill="url(#crystal)" stroke="#b7f9f6" stroke-opacity=".4" stroke-width="3">
+    <path d="M753 242l14-24 17 16 2 31-25 11-16-19z"/>
+    <path d="M834 238l31-49 43 25-10 76-36 24-35-29z"/>
+    <path d="M921 151l21-25 27 20-11 34-28 8z"/>
+    <path d="M1034 263l19-19 24 19-9 29-28 3z"/>
+  </g>
+  <g fill="#e2fffa" opacity=".9">
+    <path d="M850 226l15-29 14 10-14 41zM936 143l6-10 9 7-7 15zM759 239l8-12 5 5-8 14z"/>
+    <circle cx="804" cy="181" r="3"/><circle cx="994" cy="220" r="2"/><circle cx="989" cy="136" r="3"/>
+  </g>
+
+  <g fill="#101b23" stroke="#40535b" stroke-width="3" stroke-linejoin="round">
+    <path d="M269 316v-49l14-22h28l15 22-1 49-17 8h-27z"/>
+    <path d="M280 319l-6 37 18 2 9-35zM309 322l8 34 19-3-10-38z"/>
+    <path d="M271 269l-23 36 11 9 27-29zM324 270l19 32-10 11-25-27z"/>
+    <path d="M278 247v-24l12-13h15l14 13v24z"/>
+    <path d="M272 226l11-22h35l10 22z"/>
+  </g>
+  <path d="M320 234l-42-3" stroke="#d0ad6d" stroke-width="5" stroke-linecap="round"/>
+  <path d="M293 246h13v5h-13z" fill="#ffd187"/>
+  <path d="M240 294l-5-30" stroke="#61717a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M225 263h20l-3 21h-14z" fill="#8d6336" stroke="#dcae67" stroke-width="3"/>
+  <rect x="229" y="267" width="12" height="13" fill="#ffd184"/>
+
+  <path d="M0 384l87-15 115 20 97-12 102 15 112-22 110 20 94-16 93 20 100-18 100 10 90-22v56H0z" fill="#344551"/>
+  <path d="M0 384l87-15 115 20 97-12 102 15 112-22 110 20 94-16 93 20 100-18 100 10 90-22v56H0z" fill="url(#stone)"/>
+  <path d="M115 391l22-12 27 8-13 12zM461 388l25-14 30 8-11 13zM923 390l20-12 28 8-10 12z" fill="#4f6b76" opacity=".55"/>
+</svg>
