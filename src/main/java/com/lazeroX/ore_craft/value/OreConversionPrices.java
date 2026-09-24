@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.recipe.OreContainerUpgradeRecipe;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -161,7 +162,8 @@ public final class OreConversionPrices {
         for (RecipeHolder<?> holder : server.getRecipeManager().getRecipes()) {
             Recipe<?> recipe = holder.value();
             // 仅推导确定性配方；特殊配方的产物受运行时状态影响，无法可靠定价。
-            if (!recipe.isSpecial() && (recipe instanceof ShapedRecipe || recipe instanceof ShapelessRecipe
+            if (!recipe.isSpecial() && (recipe instanceof ShapedRecipe || recipe instanceof OreContainerUpgradeRecipe
+                    || recipe instanceof ShapelessRecipe
                     || recipe instanceof StonecutterRecipe || recipe instanceof AbstractCookingRecipe)) {
                 supported.add(recipe);
             }

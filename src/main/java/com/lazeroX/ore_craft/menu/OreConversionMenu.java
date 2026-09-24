@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.menu;
 
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
+import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -12,6 +13,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
@@ -24,10 +26,17 @@ import java.util.OptionalLong;
 public class OreConversionMenu extends AbstractContainerMenu {
     /** 单个账户最多允许记录的已学习物品数量。 */
     private static final int MAX_LEARNED = 2048;
+    /** 背包槽位后的两个容器交互口索引。 */
+    public static final int ME_INPUT_SLOT = 36;
+    public static final int ME_OUTPUT_SLOT = 37;
     /** 该菜单绑定的转化桌坐标。 */
     private final BlockPos pos;
     /** 转化桌所在世界，用于校验菜单有效性。 */
     private final Level level;
+    /** 转化口内暂存的容器，关闭界面时归还玩家。 */
+    private final SimpleContainer oreContainers = new SimpleContainer(2);
+    private final Player owner;
+    private boolean transferring;
     /** 最近同步给客户端显示的 ME 余额。 */
     private long clientBalance;
     /** 最近同步给客户端显示的可提取物品目录。 */
@@ -57,12 +66,61 @@ public class OreConversionMenu extends AbstractContainerMenu {
         super(ModMenus.ORE_CONVERSION_MENU.get(), id);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
+        this.owner = inventory.player;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9, 41 + column * 19, 114 + row * 19));
             }
         }
         for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 41 + column * 19, 174));
+        addContainerSlot(0, 142, 75);
+        addContainerSlot(1, 168, 75);
+    }
+
+    /** 创建只接受可存储 ME 容器的输入或输出槽。 */
+    private void addContainerSlot(int portIndex, int x, int y) {
+        addSlot(new Slot(oreContainers, portIndex, Math.round(x * 432 / 390.0F), Math.round(y * 228 / 206.0F)) {
+            @Override
+            public boolean mayPlace(ItemStack stack) {
+                return stack.getItem() instanceof OreContainerItem;
+            }
+
+            @Override
+            public void setChanged() {
+                super.setChanged();
+                if (owner instanceof ServerPlayer player && !transferring) transferContainer(player, portIndex);
+            }
+        });
+    }
+
+    /**
+     * 在容器放入交互口时转移当前能够转移的全部 ME。
+     * 输入口从容器到账户；输出口从账户到容器。转移前先确定上限，避免溢出或丢失。
+     */
+    private void transferContainer(ServerPlayer player, int index) {
+        if (!validRequest(player)) return;
+        ItemStack stack = oreContainers.getItem(index);
+        if (!(stack.getItem() instanceof OreContainerItem container)) return;
+        OreConversionSavedData data = OreConversionSavedData.get(player);
+        long stored = container.storedMe(stack);
+        long balance = data.account(player).balance();
+        long amount = index == 0
+                ? Math.min(stored, Long.MAX_VALUE - balance)
+                : Math.min(container.capacity() - stored, balance);
+        if (amount <= 0) return;
+        // 先成功更新账户，再写入物品；两者均在服务端同一线程完成。
+        boolean success = index == 0 ? data.credit(player, amount) : data.debit(player, amount);
+        if (!success) return;
+        transferring = true;
+        try {
+            ItemStack updated = stack.copy();
+            container.setStoredMe(updated, index == 0 ? stored - amount : stored + amount);
+            getSlot(ME_INPUT_SLOT + index).set(updated);
+        } finally {
+            transferring = false;
+        }
+        broadcastChanges();
+        sync(player);
     }
 
     /** 检查转化桌仍存在且玩家仍在交互距离内。 */
@@ -81,7 +139,33 @@ public class OreConversionMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player player, int slot) {
         if (!(player instanceof ServerPlayer serverPlayer)) return ItemStack.EMPTY;
+        if (slot == ME_INPUT_SLOT || slot == ME_OUTPUT_SLOT) {
+            ItemStack stack = getSlot(slot).getItem();
+            if (stack.isEmpty()) return ItemStack.EMPTY;
+            ItemStack original = stack.copy();
+            if (!moveItemStackTo(stack, 0, ME_INPUT_SLOT, false)) return ItemStack.EMPTY;
+            getSlot(slot).set(ItemStack.EMPTY);
+            return original;
+        }
+        if (slot >= 0 && slot < ME_INPUT_SLOT) {
+            ItemStack stack = getSlot(slot).getItem();
+            if (stack.getItem() instanceof OreContainerItem container) {
+                int target = container.storedMe(stack) > 0 ? ME_INPUT_SLOT : ME_OUTPUT_SLOT;
+                if (getSlot(target).hasItem()) return ItemStack.EMPTY;
+                ItemStack original = stack.copy();
+                getSlot(slot).set(ItemStack.EMPTY);
+                getSlot(target).set(original);
+                return original;
+            }
+        }
         return useInventorySlot(serverPlayer, slot);
+    }
+
+    /** 关闭界面时将两侧交互口内的容器返还给玩家。 */
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        if (!player.level().isClientSide()) clearContainer(player, oreContainers);
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.client;
 
 import com.lazeroX.ore_craft.register.ModEntities;
+import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.Ore_craft;
 import net.neoforged.api.distmarker.Dist;
@@ -19,18 +20,20 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册采矿 TNT 点燃实体的渲染器。
+     * 注册采矿 TNT 实体和矿质附魔书方块实体的渲染器。
      *
      * @param event NeoForge 实体渲染器注册事件
      */
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
+        event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
-    /** 注册转化桌菜单对应的客户端屏幕。 */
+    /** 注册转化桌和矿质附魔台菜单对应的客户端屏幕。 */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
+        event.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
     }
 }

@@ -4,8 +4,10 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.item.EmeraldCoalBlockItem;
 import com.lazeroX.ore_craft.item.EmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
+import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
+import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -20,6 +22,10 @@ public final class ModItems {
     /** 矿质转化桌对应的可放置物品。 */
     public static final DeferredItem<?> ORE_CONVERSION_TABLE_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_TABLE);
+
+    /** 矿质附魔台的可放置方块物品，暂时没有额外使用效果。 */
+    public static final DeferredItem<?> ORE_ENCHANTING_TABLE_ITEM =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ORE_ENCHANTING_TABLE);
 
     /** 绿宝石煤炭物品。 */
     public static final DeferredItem<EmeraldCoalItem> EMERALD_COAL =
@@ -43,25 +49,25 @@ public final class ModItems {
             ITEMS.register("radiant_diamond_heart", () ->
                     new RadiantDiamondHeartItem(new Item.Properties().durability(6).stacksTo(1)));
 
-    /** 铜质矿质容器。 */
-    public static final DeferredItem<Item> COPPER_ORE_CONTAINER =
-            ITEMS.registerSimpleItem("copper_ore_container");
+    /** 容量 10,240 ME 的铜质矿质容器。 */
+    public static final DeferredItem<OreContainerItem> COPPER_ORE_CONTAINER =
+            ITEMS.register("copper_ore_container", () -> new OreContainerItem(10_240, new Item.Properties().stacksTo(1)));
 
-    /** 铁质矿质容器。 */
-    public static final DeferredItem<Item> IRON_ORE_CONTAINER =
-            ITEMS.registerSimpleItem("iron_ore_container");
+    /** 容量 40,960 ME 的铁质矿质容器。 */
+    public static final DeferredItem<OreContainerItem> IRON_ORE_CONTAINER =
+            ITEMS.register("iron_ore_container", () -> new OreContainerItem(40_960, new Item.Properties().stacksTo(1)));
 
-    /** 金质矿质容器。 */
-    public static final DeferredItem<Item> GOLD_ORE_CONTAINER =
-            ITEMS.registerSimpleItem("gold_ore_container");
+    /** 容量 163,840 ME 的金质矿质容器。 */
+    public static final DeferredItem<OreContainerItem> GOLD_ORE_CONTAINER =
+            ITEMS.register("gold_ore_container", () -> new OreContainerItem(163_840, new Item.Properties().stacksTo(1)));
 
-    /** 钻石矿质容器。 */
-    public static final DeferredItem<Item> DIAMOND_ORE_CONTAINER =
-            ITEMS.registerSimpleItem("diamond_ore_container");
+    /** 容量 655,360 ME 的钻石矿质容器。 */
+    public static final DeferredItem<OreContainerItem> DIAMOND_ORE_CONTAINER =
+            ITEMS.register("diamond_ore_container", () -> new OreContainerItem(655_360, new Item.Properties().stacksTo(1)));
 
-    /** 末影矿质容器。 */
-    public static final DeferredItem<Item> ENDER_ORE_CONTAINER =
-            ITEMS.registerSimpleItem("ender_ore_container");
+    /** 无独立容量、直接连接玩家全局 ME 账户的末影矿质容器。 */
+    public static final DeferredItem<EnderOreContainerItem> ENDER_ORE_CONTAINER =
+            ITEMS.register("ender_ore_container", () -> new EnderOreContainerItem(new Item.Properties()));
 
     /** 可以接受时运附魔的采矿 TNT 方块物品。 */
     public static final DeferredItem<MiningTntBlockItem> MINING_TNT_ITEM =

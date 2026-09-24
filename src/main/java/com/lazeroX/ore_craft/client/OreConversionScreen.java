@@ -198,11 +198,14 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         outline(graphics, x + sx(35), y + sy(101), sx(155), sy(53), 0xFF586674);
         graphics.fill(x + sx(35), y + sy(154), x + sx(190), y + sy(155), 0xFF53616E);
         if (statusTicks > 0) {
-            graphics.fill(x + sx(45), y + sy(78), x + sx(190), y + sy(92),
+            graphics.fill(x + sx(45), y + sy(78), x + sx(136), y + sy(92),
                     statusSuccess ? 0xDB183438 : 0xDB3D2927);
-            outline(graphics, x + sx(45), y + sy(78), sx(145), sy(14),
+            outline(graphics, x + sx(45), y + sy(78), sx(91), sy(14),
                     statusSuccess ? 0xFF70D6D1 : 0xFFE99C80);
         }
+
+        slotBackground(graphics, x + sx(142), y + sy(75));
+        slotBackground(graphics, x + sx(168), y + sy(75));
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -272,14 +275,17 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         graphics.drawString(font, shortNumber(menu.clientBalance()) + " ME", sx(46), sy(69), CYAN, true);
         if (statusTicks > 0 && statusMessage != null) {
             String message = statusMessage.getString();
-            String visible = font.plainSubstrByWidth(message, sx(140));
+            String visible = font.plainSubstrByWidth(message, sx(86));
             if (visible.length() < message.length()) {
-                visible = font.plainSubstrByWidth(message, sx(140) - font.width("...")) + "...";
+                visible = font.plainSubstrByWidth(message, sx(86) - font.width("...")) + "...";
             }
             graphics.drawString(font, visible, sx(46), sy(81), statusSuccess ? CYAN : 0xFFFFB09B, false);
         } else {
-            graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.inventory_hint"), sx(46), sy(81), MUTED, false);
+            String hint = Component.translatable("gui.ore_craft.conversion.inventory_hint").getString();
+            graphics.drawString(font, font.plainSubstrByWidth(hint, sx(87)), sx(46), sy(81), MUTED, false);
         }
+        graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.me_input"), sx(150), sy(63), CYAN);
+        graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.me_output"), sx(176), sy(63), CYAN);
         graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.inventory"), sx(42), sy(92), TEXT, false);
         for (int index = 0; index < PAGE_SIZE; index++) {
             int catalogIndex = page * PAGE_SIZE + index;
@@ -388,9 +394,19 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
             lines.add(Component.translatable("gui.ore_craft.conversion.extract_hint")
                     .withStyle(style -> style.withColor(0xA9A6B0)));
             graphics.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY);
-        } else if (statusTicks > 0 && statusMessage != null && font.width(statusMessage) > sx(140)
-                && localX >= sx(45) && localX < sx(190) && localY >= sy(78) && localY < sy(92)) {
+        } else if (localY >= sy(62) && localY < sy(94)
+                && ((localX >= sx(141) && localX < sx(161)) || (localX >= sx(167) && localX < sx(187)))) {
+            int slot = localX < sx(161) ? OreConversionMenu.ME_INPUT_SLOT : OreConversionMenu.ME_OUTPUT_SLOT;
+            if (menu.getSlot(slot).getItem().isEmpty()) {
+                String key = slot == OreConversionMenu.ME_INPUT_SLOT ? "me_input_hint" : "me_output_hint";
+                graphics.renderTooltip(font, Component.translatable("gui.ore_craft.conversion." + key), mouseX, mouseY);
+            }
+        } else if (statusTicks > 0 && statusMessage != null && font.width(statusMessage) > sx(86)
+                && localX >= sx(45) && localX < sx(136) && localY >= sy(78) && localY < sy(92)) {
             graphics.renderTooltip(font, statusMessage, mouseX, mouseY);
+        } else if (statusTicks == 0 && localX >= sx(45) && localX < sx(136)
+                && localY >= sy(78) && localY < sy(92)) {
+            graphics.renderTooltip(font, Component.translatable("gui.ore_craft.conversion.inventory_hint"), mouseX, mouseY);
         } else if (localX >= sx(45) && localX < sx(190) && localY >= sy(57) && localY < sy(79)) {
             graphics.renderTooltip(font, Component.literal(formatNumber(menu.clientBalance()) + " ME"), mouseX, mouseY);
         }

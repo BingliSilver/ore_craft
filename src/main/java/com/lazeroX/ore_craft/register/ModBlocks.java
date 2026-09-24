@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.MiningTntBlock;
 import com.lazeroX.ore_craft.block.OreConversionTableBlock;
+import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -19,6 +20,12 @@ public final class ModBlocks {
             BLOCKS.register("ore_conversion_table", () -> new OreConversionTableBlock(
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
+
+    /** 矿质附魔台：可以打开预览界面，暂不承载附魔交易。 */
+    public static final DeferredBlock<OreEnchantingTableBlock> ORE_ENCHANTING_TABLE =
+            BLOCKS.register("ore_enchanting_table", () -> new OreEnchantingTableBlock(
+                    BlockBehaviour.Properties.of().strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
+                            .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 10)));
 
     /** 可作为高效燃料的绿宝石煤炭块。 */
     public static final DeferredBlock<Block> EMERALD_COAL_BLOCK =

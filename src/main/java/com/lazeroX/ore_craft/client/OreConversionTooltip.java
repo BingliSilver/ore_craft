@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.client;
 
 import com.mojang.datafixers.util.Either;
 import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -22,7 +23,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import java.util.List;
 import java.util.Locale;
 
-/** 在物品提示中展示服务端同步的 ME 单价和可输入状态。 */
+/** 在物品提示中展示 ME 单价、可输入状态与末影容器连接的账户余额。 */
 @EventBusSubscriber(modid = Ore_craft.MODID, value = Dist.CLIENT)
 public final class OreConversionTooltip {
     private static final String ME_LINE = "tooltip.ore_craft.conversion.me";
@@ -30,11 +31,19 @@ public final class OreConversionTooltip {
     /** 工具类不允许创建实例。 */
     private OreConversionTooltip() {}
 
-    /** 为已定价物品追加 ME 价格和可输入状态提示。 */
+    /** 为末影容器显示个人账户余额，为其他已定价物品显示 ME 价格和输入状态。 */
     @SubscribeEvent
     public static void onTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
         if (Minecraft.getInstance().player == null || stack.isEmpty()) return;
+        if (stack.getItem() instanceof EnderOreContainerItem) {
+            // 末影容器没有物品内存储量，始终显示当前玩家同步后的全局账户余额。
+            event.getToolTip().add(Component.translatable("tooltip.ore_craft.ender_ore_container.balance",
+                    format(OreConversionClient.balance())));
+            event.getToolTip().add(Component.translatable("tooltip.ore_craft.ender_ore_container.linked")
+                    .withStyle(style -> style.withColor(0xA9A6B0)));
+            return;
+        }
         OreConversionClient.price(stack.getItem()).ifPresent(unit -> {
             event.getToolTip().add(Component.translatable(ME_LINE, format(unit)));
             if (OreConversionClient.canConvert(stack)) {

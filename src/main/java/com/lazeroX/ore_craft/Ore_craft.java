@@ -3,13 +3,16 @@ package com.lazeroX.ore_craft;
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
+import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
 import com.lazeroX.ore_craft.register.ModBlocks;
+import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModCreativeTabs;
 import com.lazeroX.ore_craft.register.ModEffects;
 import com.lazeroX.ore_craft.register.ModEntities;
 import com.lazeroX.ore_craft.register.ModItems;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.register.ModPotions;
+import com.lazeroX.ore_craft.register.ModRecipes;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -34,14 +37,17 @@ public class Ore_craft {
     public Ore_craft(IEventBus modEventBus) {
         // 方块物品依赖方块注册项，先初始化方块再初始化物品。
         ModBlocks.register(modEventBus);
+        ModBlockEntities.register(modEventBus);
         ModItems.register(modEventBus);
         ModEffects.register(modEventBus);
         ModPotions.register(modEventBus);
         ModEntities.register(modEventBus);
         ModCreativeTabs.register(modEventBus);
         ModMenus.register(modEventBus);
+        ModRecipes.register(modEventBus);
 
         modEventBus.addListener(OreConversionNetwork::register);
+        modEventBus.addListener(OreEnchantingNetwork::register);
         modEventBus.addListener((RegisterGameTestsEvent event) -> event.register(OreConversionGameTests.class));
         NeoForge.EVENT_BUS.addListener(OreConversionPrices::registerReloadListener);
         NeoForge.EVENT_BUS.addListener(OreConversionPrices::onServerStarted);
