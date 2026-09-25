@@ -3,6 +3,7 @@
   "values": [
     "ore_craft:ore_conversion_table",
     "ore_craft:ore_enchanting_table",
-    "ore_craft:emerald_coal_block"
+    "ore_craft:emerald_coal_block",
+    "ore_craft:ore_converter"
   ]
 }

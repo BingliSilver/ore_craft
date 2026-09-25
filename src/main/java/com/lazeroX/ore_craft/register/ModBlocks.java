@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.MiningTntBlock;
 import com.lazeroX.ore_craft.block.OreConversionTableBlock;
 import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
+import com.lazeroX.ore_craft.block.OreConverterBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -33,6 +34,14 @@ public final class ModBlocks {
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.STONE));
+
+    /** 矿质转换器：每五秒将输入物转换为放置者账户中的 ME。 */
+    public static final DeferredBlock<OreConverterBlock> ORE_CONVERTER =
+            BLOCKS.register("ore_converter", () -> new OreConverterBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .sound(SoundType.METAL)
+                    .lightLevel(state -> 10)));
 
     /** 点燃后收集爆炸掉落物的采矿 TNT。 */
     public static final DeferredBlock<MiningTntBlock> MINING_TNT_BLOCK =

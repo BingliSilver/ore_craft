@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "ore_craft:block/ore_converter_top",
+    "bottom": "minecraft:block/polished_blackstone",
+    "side": "ore_craft:block/ore_converter_side"
+  }
+}

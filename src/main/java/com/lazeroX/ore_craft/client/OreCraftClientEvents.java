@@ -30,10 +30,11 @@ public final class OreCraftClientEvents {
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
-    /** 注册转化桌和矿质附魔台菜单对应的客户端屏幕。 */
+    /** 注册转化桌、矿质附魔台和矿质转换器菜单对应的客户端屏幕。 */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
         event.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
+        event.register(ModMenus.ORE_CONVERTER_MENU.get(), OreConverterScreen::new);
     }
 }

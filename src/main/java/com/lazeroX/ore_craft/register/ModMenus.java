@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
+import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
@@ -22,6 +23,10 @@ public final class ModMenus {
     /** 矿质附魔台的外观预览菜单类型。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreEnchantingMenu>> ORE_ENCHANTING_MENU =
             MENU_TYPES.register("ore_enchanting_table", () -> IMenuTypeExtension.create(OreEnchantingMenu::new));
+
+    /** 矿质转换器单格存储菜单。 */
+    public static final DeferredHolder<MenuType<?>, MenuType<OreConverterMenu>> ORE_CONVERTER_MENU =
+            MENU_TYPES.register("ore_converter", () -> IMenuTypeExtension.create(OreConverterMenu::new));
 
     private ModMenus() {}
 

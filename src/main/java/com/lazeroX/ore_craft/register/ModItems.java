@@ -40,6 +40,10 @@ public final class ModItems {
             ITEMS.register("emerald_coal_block", () ->
                     new EmeraldCoalBlockItem(ModBlocks.EMERALD_COAL_BLOCK.get(), new Item.Properties()));
 
+    /** 矿质转换器对应的可放置方块物品，使用方块模型展示立体外观。 */
+    public static final DeferredItem<?> ORE_CONVERTER_ITEM =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERTER);
+
     /** 放在玩家物品栏中时定期修复装备的矿工徽章。 */
     public static final DeferredItem<MinerBadgeItem> MINER_BADGE =
             ITEMS.register("miner_badge", () -> new MinerBadgeItem(new Item.Properties().stacksTo(1)));

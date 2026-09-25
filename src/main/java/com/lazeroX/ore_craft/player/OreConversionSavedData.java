@@ -10,6 +10,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import org.slf4j.Logger;
 
@@ -34,13 +35,23 @@ public final class OreConversionSavedData extends SavedData {
      * @return 当前存档的转化数据
      */
     public static OreConversionSavedData get(ServerPlayer player) {
-        return player.getServer().overworld().getDataStorage().computeIfAbsent(
+        return get(player.getServer());
+    }
+
+    /** 从服务器主世界取得共享账户存档，供玩家离线时运行的矿质转换器使用。 */
+    public static OreConversionSavedData get(MinecraftServer server) {
+        return server.overworld().getDataStorage().computeIfAbsent(
                 new Factory<>(OreConversionSavedData::new, OreConversionSavedData::load), FILE_ID);
     }
 
     /** 取得玩家账户；首次访问时创建空账户。 */
     public Account account(ServerPlayer player) {
-        return accounts.computeIfAbsent(player.getUUID(), ignored -> new Account());
+        return account(player.getUUID());
+    }
+
+    /** 按 UUID 取得账户，使方块实体可在玩家离线时继续向其余额记账。 */
+    public Account account(UUID playerId) {
+        return accounts.computeIfAbsent(playerId, ignored -> new Account());
     }
 
     /**
@@ -51,8 +62,19 @@ public final class OreConversionSavedData extends SavedData {
      * @return 成功入账时返回 {@code true}
      */
     public boolean credit(ServerPlayer player, long amount) {
+        return credit(player.getUUID(), amount);
+    }
+
+    /**
+     * 向指定 UUID 的账户增加 ME；余额达到 long 上限时拒绝交易，调用方不得消耗输入物。
+     *
+     * @param playerId 账户所属玩家 UUID
+     * @param amount 要存入的正数 ME
+     * @return 记账成功时为 true
+     */
+    public boolean credit(UUID playerId, long amount) {
         if (amount <= 0) return false;
-        Account account = account(player);
+        Account account = account(playerId);
         if (account.balance > Long.MAX_VALUE - amount) return false;
         account.balance += amount;
         setDirty();

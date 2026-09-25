@@ -130,11 +130,11 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 处理原版容器的 Shift 快速移动请求，将背包中的整组物品提交转化验证。
+     * 处理原版容器的 Shift 快速移动请求；背包物品交给学习与转化逻辑，交互口中的容器可移回背包。
      *
      * @param player 操作容器的玩家
      * @param slot 被快速移动的容器格子索引
-     * @return 已输入的物品栈；无有效输入时返回空栈
+     * @return 已转化或移回背包的物品栈；仅学习或无有效操作时返回空栈
      */
     @Override
     public ItemStack quickMoveStack(Player player, int slot) {
@@ -147,17 +147,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
             getSlot(slot).set(ItemStack.EMPTY);
             return original;
         }
-        if (slot >= 0 && slot < ME_INPUT_SLOT) {
-            ItemStack stack = getSlot(slot).getItem();
-            if (stack.getItem() instanceof OreContainerItem container) {
-                int target = container.storedMe(stack) > 0 ? ME_INPUT_SLOT : ME_OUTPUT_SLOT;
-                if (getSlot(target).hasItem()) return ItemStack.EMPTY;
-                ItemStack original = stack.copy();
-                getSlot(slot).set(ItemStack.EMPTY);
-                getSlot(target).set(original);
-                return original;
-            }
-        }
+        // 背包中的矿质容器也走学习流程；只有手动放入交互口才会转移 ME。
         return useInventorySlot(serverPlayer, slot);
     }
 
@@ -169,7 +159,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 将背包格子的可转化物品输入转化桌；仅可学习的物品保持在原格子。
+     * 将背包格子的可转化物品输入转化桌；矿质容器按零 ME 状态学习类型，原容器及其 ME 留在背包。
      *
      * @param player 操作转化桌的服务端玩家
      * @param slotIndex 容器中的背包格子索引
@@ -180,8 +170,14 @@ public class OreConversionMenu extends AbstractContainerMenu {
         Slot slot = getSlot(slotIndex);
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return ItemStack.EMPTY;
-        if (!OreConversionPrices.isPlain(stack)) { status(player, "special_state"); return ItemStack.EMPTY; }
-        if (!OreConversionPrices.canLearn(stack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
+        // 只在副本中清除存储量：有 ME 的容器也能学习，但原物品不变，其他特殊数据仍受普通校验约束。
+        ItemStack learningStack = stack;
+        if (stack.getItem() instanceof OreContainerItem container) {
+            learningStack = stack.copy();
+            container.setStoredMe(learningStack, 0);
+        }
+        if (!OreConversionPrices.isPlain(learningStack)) { status(player, "special_state"); return ItemStack.EMPTY; }
+        if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
         OreConversionSavedData data = OreConversionSavedData.get(player);
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
         if (data.account(player).learned().size() >= MAX_LEARNED && !data.account(player).knows(id)) {
@@ -189,7 +185,8 @@ public class OreConversionMenu extends AbstractContainerMenu {
         }
         long converted = 0;
         ItemStack moved = ItemStack.EMPTY;
-        if (OreConversionPrices.canDeposit(stack)) {
+        // 即使数据包将容器列为可输入来源，Shift 点击仍只学习，不消耗容器或兑换 ME。
+        if (!(stack.getItem() instanceof OreContainerItem) && OreConversionPrices.canDeposit(stack)) {
             OptionalLong price = OreConversionPrices.price(stack.getItem());
             if (price.isEmpty()) { status(player, "unpriced"); return ItemStack.EMPTY; }
             long amount;

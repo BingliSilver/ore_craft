@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["XAX", "ACA", "XAX"],
+  "key": {
+    "X": { "item": "minecraft:stone" },
+    "A": { "item": "minecraft:diamond" },
+    "C": { "item": "minecraft:ender_eye" }
+  },
+  "result": { "id": "ore_craft:ore_converter", "count": 1 }
+}
