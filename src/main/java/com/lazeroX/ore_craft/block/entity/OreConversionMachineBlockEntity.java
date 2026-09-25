@@ -32,7 +32,7 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     /** 容器和真实输出物的库存位置；选择框由菜单单独同步。 */
     public static final int CONTAINER_SLOT = 0;
     public static final int OUTPUT_SLOT = 1;
-    /** 顶部和侧面输入支付容器，底部只暴露真实产物格。 */
+    /** 顶部只输入支付容器，其余五面只暴露真实产物格。 */
     private static final int[] INPUT_SLOTS = {CONTAINER_SLOT};
     private static final int[] OUTPUT_SLOTS = {OUTPUT_SLOT};
     /** 一轮最多生成 16 件，仍受物品自身最大堆叠数量限制。 */
@@ -73,10 +73,10 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     /** 返回真实库存，供菜单操作与方块破坏时掉落。 */
     public SimpleContainer inventory() { return inventory; }
 
-    /** 顶部、侧面让漏斗插入容器，底部只提供产物；虚拟选择框不可自动化。 */
+    /** 顶部让漏斗插入容器，其余五面只提供产物；虚拟选择框不可自动化。 */
     @Override
     public int[] getSlotsForFace(Direction direction) {
-        return direction == Direction.DOWN ? OUTPUT_SLOTS : INPUT_SLOTS;
+        return direction == Direction.UP ? INPUT_SLOTS : OUTPUT_SLOTS;
     }
 
     /** 除矿质容器外拒绝漏斗插入，输出格只能由服务端计时逻辑写入。 */
@@ -85,16 +85,22 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         return slot == CONTAINER_SLOT && OreMachineEnergy.isContainer(stack);
     }
 
-    /** 底面只输出，容器可由顶部或侧面漏斗输入。 */
+    /** 只有顶部可以插入容器，所有产物面都禁止插入物品。 */
     @Override
     public boolean canPlaceItemThroughFace(int slot, ItemStack stack, Direction direction) {
-        return direction != Direction.DOWN && canPlaceItem(slot, stack);
+        return direction == Direction.UP && canPlaceItem(slot, stack);
     }
 
-    /** 下方漏斗可以提取已经生成的产物，不能抽走支付容器或选择图标。 */
+    /** 除顶部外的任意方向均可提取产物，不能抽走支付容器或选择图标。 */
     @Override
     public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction direction) {
-        return direction == Direction.DOWN && slot == OUTPUT_SLOT;
+        return direction != Direction.UP && slot == OUTPUT_SLOT;
+    }
+
+    /** 无方向管道仍只能抽取真实产物，支付容器和虚拟选择均不可输出。 */
+    @Override
+    public boolean canTakeItemWithoutSide(int slot, ItemStack stack) {
+        return slot == OUTPUT_SLOT;
     }
 
     /** 返回放置者 UUID；尚未认领时为空。 */

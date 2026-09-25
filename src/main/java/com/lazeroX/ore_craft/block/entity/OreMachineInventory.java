@@ -9,11 +9,24 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * 将矿质机器已有的持久库存暴露为原版漏斗可识别的带方向容器。
- * 具体方块实体只需声明各面的槽位与进出规则；物品变动仍交给原库存保存并按需要调整计时。
+ * NeoForge 管道通过同一容器的物品能力访问；各面的进出规则仍由具体方块实体声明。
+ * 物品变动交给原库存保存并按需要调整计时。
  */
 public interface OreMachineInventory extends WorldlyContainer {
     /** 返回方块实体原有的真实物品库存，不包括虚拟选择框。 */
     SimpleContainer inventory();
+
+    /**
+     * 未指定方向的管道不应获得顶部专用容器入口；默认禁止插入。
+     * 需要兼容无方向原料管道的机器可单独开放原料格。
+     */
+    default boolean canPlaceItemWithoutSide(int slot, ItemStack stack) { return false; }
+
+    /**
+     * 无方向管道只可提取机器明确允许的物品，避免包装器把全部真实库存当成输出。
+     * 默认拒绝提取；有产物格的机器需单独开放对应槽位。
+     */
+    default boolean canTakeItemWithoutSide(int slot, ItemStack stack) { return false; }
 
     /** 返回真实库存格数，供漏斗枚举有效槽位。 */
     @Override

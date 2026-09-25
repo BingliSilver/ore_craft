@@ -30,10 +30,9 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     /** 原料和矿质容器在持久库存中的位置。 */
     public static final int INPUT_SLOT = 0;
     public static final int CONTAINER_SLOT = 1;
-    /** 顶部只收原料，侧面可补原料或容器；底部不暴露任何库存。 */
-    private static final int[] TOP_SLOTS = {INPUT_SLOT};
-    private static final int[] SIDE_SLOTS = {INPUT_SLOT, CONTAINER_SLOT};
-    private static final int[] BOTTOM_SLOTS = {};
+    /** 顶部专收矿质容器；其余五面只向自动化暴露原料输入格。 */
+    private static final int[] TOP_SLOTS = {CONTAINER_SLOT};
+    private static final int[] OTHER_SLOTS = {INPUT_SLOT};
     /** 持久化库存；内容变化会使计时重新开始并标记方块实体待保存。 */
     private final SimpleContainer inventory = new SimpleContainer(2) {
         @Override
@@ -58,11 +57,10 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         return inventory;
     }
 
-    /** 顶部输入原料，侧面补充原料或容器；底面不向漏斗开放库存。 */
+    /** 顶部仅开放容器格；侧面和底部仅开放原料格。 */
     @Override
     public int[] getSlotsForFace(Direction direction) {
-        return direction == Direction.UP ? TOP_SLOTS
-                : direction == Direction.DOWN ? BOTTOM_SLOTS : SIDE_SLOTS;
+        return direction == Direction.UP ? TOP_SLOTS : OTHER_SLOTS;
     }
 
     /** 按槽位限制漏斗可插入的物品，与玩家菜单采用相同的服务端规则。 */
@@ -72,11 +70,17 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
                 : slot == CONTAINER_SLOT && OreMachineEnergy.isContainer(stack);
     }
 
-    /** 底面不允许回填，其他面只接受其可见槽位对应的物品。 */
+    /** 顶部只接受矿质容器，其余五面只接受可转化的原料。 */
     @Override
     public boolean canPlaceItemThroughFace(int slot, ItemStack stack, Direction direction) {
-        return direction != Direction.DOWN && (direction != Direction.UP || slot == INPUT_SLOT)
+        return (direction == Direction.UP ? slot == CONTAINER_SLOT : slot == INPUT_SLOT)
                 && canPlaceItem(slot, stack);
+    }
+
+    /** 未指定方向的管道默认按原料入口处理，不能绕过顶部专用容器口。 */
+    @Override
+    public boolean canPlaceItemWithoutSide(int slot, ItemStack stack) {
+        return slot == INPUT_SLOT && canPlaceItem(slot, stack);
     }
 
     /** 容器和原料始终不能被漏斗抽出，避免自动化系统取走支付容器或抢走未处理原料。 */

@@ -6,6 +6,7 @@ import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
+import com.lazeroX.ore_craft.register.ModCapabilities;
 import com.lazeroX.ore_craft.register.ModCreativeTabs;
 import com.lazeroX.ore_craft.register.ModEffects;
 import com.lazeroX.ore_craft.register.ModEntities;
@@ -45,6 +46,9 @@ public class Ore_craft {
         ModCreativeTabs.register(modEventBus);
         ModMenus.register(modEventBus);
         ModRecipes.register(modEventBus);
+
+        // 管道物流通过 NeoForge 物品能力访问机器，与原版漏斗共用方向和槽位规则。
+        modEventBus.addListener(ModCapabilities::register);
 
         modEventBus.addListener(OreConversionNetwork::register);
         modEventBus.addListener(OreEnchantingNetwork::register);
