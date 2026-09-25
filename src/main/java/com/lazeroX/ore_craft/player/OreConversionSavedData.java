@@ -38,7 +38,7 @@ public final class OreConversionSavedData extends SavedData {
         return get(player.getServer());
     }
 
-    /** 从服务器主世界取得共享账户存档，供玩家离线时运行的矿质转换器使用。 */
+    /** 从服务器主世界取得共享账户存档，供玩家离线时运行的矿质机器使用。 */
     public static OreConversionSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
                 new Factory<>(OreConversionSavedData::new, OreConversionSavedData::load), FILE_ID);
@@ -89,7 +89,12 @@ public final class OreConversionSavedData extends SavedData {
      * @return 余额充足且扣款成功时返回 {@code true}
      */
     public boolean debit(ServerPlayer player, long amount) {
-        Account account = account(player);
+        return debit(player.getUUID(), amount);
+    }
+
+    /** 按玩家 UUID 扣款，使矿质转化器在拥有者离线时也能支付 ME。 */
+    public boolean debit(UUID playerId, long amount) {
+        Account account = account(playerId);
         if (amount <= 0 || account.balance < amount) return false;
         account.balance -= amount;
         setDirty();

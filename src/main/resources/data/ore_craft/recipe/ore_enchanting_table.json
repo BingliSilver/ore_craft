@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "BCD",
+    "XEX"
+  ],
+  "key": {
+    "X": { "item": "minecraft:amethyst_shard" },
+    "A": { "item": "minecraft:coal" },
+    "B": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "minecraft:enchanting_table" },
+    "D": { "item": "minecraft:iron_ingot" },
+    "E": { "item": "minecraft:diamond" }
+  },
+  "result": { "id": "ore_craft:ore_enchanting_table", "count": 1 }
+}

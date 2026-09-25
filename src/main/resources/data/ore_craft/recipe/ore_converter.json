@@ -5,7 +5,7 @@
   "key": {
     "X": { "item": "minecraft:stone" },
     "A": { "item": "minecraft:diamond" },
-    "C": { "item": "minecraft:ender_eye" }
+    "C": { "item": "minecraft:hopper" }
   },
   "result": { "id": "ore_craft:ore_converter", "count": 1 }
 }

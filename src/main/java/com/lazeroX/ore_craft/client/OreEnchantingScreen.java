@@ -64,6 +64,8 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     private ResourceLocation selectedId;
     /** 附魔列表的首条可见记录。 */
     private int scroll;
+    /** 界面按设计尺寸的 85% 显示；仍保留物品和文字的可读性。 */
+    private static final float MAX_UI_SCALE = 0.85F;
     /** 当前窗口对应的界面绘制倍率；鼠标事件使用其逆变换。 */
     private float uiScale = 1.0F;
 
@@ -85,8 +87,9 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     protected void init() {
         String previousSearch = search == null ? "" : search.getValue();
         super.init();
-        // 槽位和组件仍使用 512×341 的设计坐标，整体缩放后重新计算逻辑原点。
-        uiScale = Math.min(2.0F, Math.min(width / 540.0F, height / 365.0F));
+        // 四周至少预留 12 像素；窗口较小时再缩小，避免右侧附魔列表被裁掉。
+        uiScale = Math.min(MAX_UI_SCALE,
+                Math.min((width - 24.0F) / WIDTH, (height - 24.0F) / HEIGHT));
         leftPos = Math.round((width / uiScale - WIDTH) / 2.0F);
         topPos = Math.round((height / uiScale - HEIGHT) / 2.0F);
         search = new EditBox(font, leftPos + 310, topPos + 57, 125, 14,
@@ -248,6 +251,13 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         graphics.blit(BACKGROUND, leftPos, topPos, WIDTH, HEIGHT, 0, 0,
                 TEXTURE_WIDTH, TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        // 底图的金框按整幅插画制作，远大于 16×16 物品图标；覆盖旧框后重画紧凑槽。
+        compactSlot(graphics, leftPos + 64, topPos + 79, 48, 44,
+                leftPos + 77, topPos + 89);
+        compactSlot(graphics, leftPos + 64, topPos + 135, 48, 45,
+                leftPos + 77, topPos + 145);
+        compactSlot(graphics, leftPos + 168, topPos + 105, 51, 54,
+                leftPos + 181, topPos + 123);
         // 余额从左下角移到法阵右上方；独立暗底保证发光纹样后面的数字清晰。
         graphics.fill(leftPos + 215, topPos + 84, leftPos + 271, topPos + 101, 0xD9142634);
         outline(graphics, leftPos + 215, topPos + 84, 56, 17, 0xFF398FA7);
@@ -480,5 +490,27 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     private static String levelName(int level) {
         if (level == 0) return Component.translatable("gui.ore_craft.enchanting.none").getString();
         return level <= 10 ? Component.translatable("enchantment.level." + level).getString() : Integer.toString(level);
+    }
+
+    /**
+     * 用深色面板遮住贴图中的大号装饰框，再绘制与原版 16×16 物品匹配的 22×22 槽框。
+     * 物品实际坐标由菜单控制，框的左上角比物品各提前三像素。
+     *
+     * @param graphics 界面绘制上下文
+     * @param coverX 原装饰框覆盖区域的左边界
+     * @param coverY 原装饰框覆盖区域的上边界
+     * @param coverWidth 覆盖区域宽度
+     * @param coverHeight 覆盖区域高度
+     * @param frameX 新槽框左边界
+     * @param frameY 新槽框上边界
+     */
+    private static void compactSlot(GuiGraphics graphics, int coverX, int coverY,
+                                    int coverWidth, int coverHeight, int frameX, int frameY) {
+        graphics.fill(coverX, coverY, coverX + coverWidth, coverY + coverHeight, 0xFF111D2A);
+        outline(graphics, coverX, coverY, coverWidth, coverHeight, 0xFF294357);
+        graphics.fill(frameX, frameY, frameX + 22, frameY + 22, 0xFF9D692C);
+        outline(graphics, frameX, frameY, 22, 22, 0xFFFFC968);
+        graphics.fill(frameX + 2, frameY + 2, frameX + 20, frameY + 20, 0xFF172A3A);
+        outline(graphics, frameX + 2, frameY + 2, 18, 18, 0xFF4A9AB2);
     }
 }

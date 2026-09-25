@@ -131,7 +131,8 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         });
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 52 + column * 23, 224 + row * 23));
+                // 底图背包格为 23×23；物品图标居中后四周留约三像素边距。
+                addSlot(new Slot(inventory, column + row * 9 + 9, 54 + column * 23, 225 + row * 23));
             }
         }
         // 预览图未画快捷栏；这里在底边补出九格，方便放入手持工具。

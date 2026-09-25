@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "ore_craft:block/ore_conversion_machine" }
+  }
+}

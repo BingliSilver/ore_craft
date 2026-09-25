@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "ACA",
+    "XAX"
+  ],
+  "key": {
+    "X": {
+      "item": "minecraft:stone"
+    },
+    "A": {
+      "item": "minecraft:diamond"
+    },
+    "C": {
+      "item": "minecraft:chest"
+    }
+  },
+  "result": {
+    "id": "ore_craft:ore_conversion_machine",
+    "count": 1
+  }
+}

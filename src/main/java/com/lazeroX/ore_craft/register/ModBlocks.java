@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.MiningTntBlock;
 import com.lazeroX.ore_craft.block.OreConversionTableBlock;
+import com.lazeroX.ore_craft.block.OreConversionMachineBlock;
 import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
 import com.lazeroX.ore_craft.block.OreConverterBlock;
 import net.minecraft.world.level.block.Block;
@@ -35,9 +36,17 @@ public final class ModBlocks {
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.STONE));
 
-    /** 矿质转换器：每五秒将输入物转换为放置者账户中的 ME。 */
+    /** 矿质传输接口：每五秒将原料转换成 ME 并存入其矿质容器。 */
     public static final DeferredBlock<OreConverterBlock> ORE_CONVERTER =
             BLOCKS.register("ore_converter", () -> new OreConverterBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .sound(SoundType.METAL)
+                    .lightLevel(state -> 10)));
+
+    /** 矿质转化器：消耗容器 ME，定时生成已学习的指定物品。 */
+    public static final DeferredBlock<OreConversionMachineBlock> ORE_CONVERSION_MACHINE =
+            BLOCKS.register("ore_conversion_machine", () -> new OreConversionMachineBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.METAL)

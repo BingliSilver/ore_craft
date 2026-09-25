@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.block;
 
 import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
+import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
@@ -24,8 +25,8 @@ import net.minecraft.world.Containers;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
- * 矿质转换器的世界方块，管理归属玩家、单格菜单与服务端定时转换。
- * 每个放置实例使用独立方块实体；挖掉时返还尚未转换的输入物。
+ * 矿质传输接口的世界方块，管理归属玩家、原料与容器菜单以及服务端定时转换。
+ * 每个放置实例使用独立方块实体；挖掉时返还尚未转换的原料和容器。
  */
 public final class OreConverterBlock extends Block implements EntityBlock {
     /** 方块属性编解码器。 */
@@ -33,7 +34,7 @@ public final class OreConverterBlock extends Block implements EntityBlock {
     /** 打开菜单时显示的标题。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_converter");
 
-    /** 根据注册器传入的硬度、音效和亮度创建转换器方块。 */
+    /** 根据注册器传入的硬度、音效和亮度创建传输接口方块。 */
     public OreConverterBlock(Properties properties) {
         super(properties);
     }
@@ -58,7 +59,7 @@ public final class OreConverterBlock extends Block implements EntityBlock {
                 OreConverterBlockEntity.serverTick(tickLevel, pos, tickState, (OreConverterBlockEntity) entity);
     }
 
-    /** 由放置者领取转换收益，后续重新打开菜单不会改变账户归属。 */
+    /** 为末影容器固定放置者账户，后续重新打开菜单不会改变归属。 */
     @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
@@ -69,7 +70,7 @@ public final class OreConverterBlock extends Block implements EntityBlock {
     }
 
     /**
-     * 所有者打开单格库存；没有归属信息的旧方块由首次打开者认领。
+     * 所有者打开原料与容器库存；没有归属信息的旧方块由首次打开者认领。
      * 其他玩家不能放入物品，避免其投入物被记入别人的账户。
      */
     @Override
@@ -82,17 +83,22 @@ public final class OreConverterBlock extends Block implements EntityBlock {
                 return InteractionResult.SUCCESS;
             }
             serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+            // 客户端输入格依赖价格目录显示可放入状态，打开时补发最新配置。
+            if (serverPlayer.containerMenu instanceof OreConverterMenu) {
+                OreConversionNetwork.sendPrices(serverPlayer);
+                OreConversionNetwork.sendState(serverPlayer, -1);
+            }
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
     }
 
-    /** 创建绑定世界库存的菜单；关闭界面不会搬走未转换物品。 */
+    /** 创建绑定世界库存的菜单；关闭界面不会搬走原料或容器。 */
     @Override
     protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreConverterMenu(id, inventory, pos), TITLE);
     }
 
-    /** 破坏方块时掉落尚未转换的库存，并避免旧方块实体吞掉物品。 */
+    /** 破坏方块时掉落原料和容器，避免旧方块实体吞掉物品。 */
     @Override
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())

@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
+import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -20,10 +21,15 @@ public final class ModBlockEntities {
             BLOCK_ENTITY_TYPES.register("ore_enchanting_table", () -> BlockEntityType.Builder.of(
                     OreEnchantingBlockEntity::new, ModBlocks.ORE_ENCHANTING_TABLE.get()).build(null));
 
-    /** 矿质转换器的持久库存、归属玩家及五秒计时。 */
+    /** 矿质传输接口的原料、容器、归属玩家及五秒计时。 */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConverterBlockEntity>> ORE_CONVERTER =
             BLOCK_ENTITY_TYPES.register("ore_converter", () -> BlockEntityType.Builder.of(
                     OreConverterBlockEntity::new, ModBlocks.ORE_CONVERTER.get()).build(null));
+
+    /** 矿质转化器保存支付容器、输出、已选物品和五秒计时。 */
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConversionMachineBlockEntity>> ORE_CONVERSION_MACHINE =
+            BLOCK_ENTITY_TYPES.register("ore_conversion_machine", () -> BlockEntityType.Builder.of(
+                    OreConversionMachineBlockEntity::new, ModBlocks.ORE_CONVERSION_MACHINE.get()).build(null));
 
     /** 工具类不允许创建实例。 */
     private ModBlockEntities() {

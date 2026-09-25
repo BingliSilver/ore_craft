@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.network;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.client.OreConversionClient;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
+import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -23,18 +24,20 @@ import java.util.List;
 import java.util.Comparator;
 import java.util.Map;
 
-/** 注册转化桌网络载荷，并负责同步价格、账户状态和操作反馈。 */
+/** 注册转化桌与矿质转化器的网络载荷，并同步价格、账户状态和操作反馈。 */
 public final class OreConversionNetwork {
     /** 从已学习目录提取单个物品到鼠标指针的操作编号。 */
     public static final int EXTRACT = 1;
     /** 按价格和背包空间批量提取物品的操作编号。 */
     public static final int EXTRACT_STACK = 2;
+    /** 矿质转化器从已学习目录选择生产物品的操作编号。 */
+    public static final int SELECT_MACHINE_ITEM = 3;
 
     /** 工具类不允许创建实例。 */
     private OreConversionNetwork() {}
 
     /**
-     * 注册客户端请求和服务端同步载荷的编解码器及处理器。
+     * 注册转化桌提取、机器物品选择和服务端同步载荷的编解码器及处理器。
      *
      * @param event 网络载荷注册事件
      */
@@ -42,12 +45,18 @@ public final class OreConversionNetwork {
         event.registrar("7")
                 .playToServer(ActionPayload.TYPE, ActionPayload.CODEC, (packet, context) -> {
                     if (!(context.player() instanceof ServerPlayer player)) return;
-                    // 校验菜单实例和容器 ID，拒绝过期界面发送的操作请求。
-                    if (!(player.containerMenu instanceof OreConversionMenu menu) || menu.containerId != packet.containerId()) return;
-                    switch (packet.action()) {
-                        case EXTRACT -> menu.extract(player, packet.itemId(), packet.count());
-                        case EXTRACT_STACK -> menu.extractStackToInventory(player, packet.itemId());
-                        default -> { }
+                    // 校验菜单实例和容器 ID，拒绝旧界面或其他机器伪造的操作请求。
+                    if (player.containerMenu instanceof OreConversionMenu menu
+                            && menu.containerId == packet.containerId()) {
+                        switch (packet.action()) {
+                            case EXTRACT -> menu.extract(player, packet.itemId(), packet.count());
+                            case EXTRACT_STACK -> menu.extractStackToInventory(player, packet.itemId());
+                            default -> { }
+                        }
+                    } else if (player.containerMenu instanceof OreConversionMachineMenu machine
+                            && machine.containerId == packet.containerId()
+                            && packet.action() == SELECT_MACHINE_ITEM) {
+                        machine.select(player, packet.itemId());
                     }
                 })
                 .playToClient(SyncPayload.TYPE, SyncPayload.CODEC, (packet, context) -> {
