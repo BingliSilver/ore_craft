@@ -37,9 +37,9 @@ public final class OreConversionTooltip {
         ItemStack stack = event.getItemStack();
         if (Minecraft.getInstance().player == null || stack.isEmpty()) return;
         if (stack.getItem() instanceof EnderOreContainerItem) {
-            // 末影容器没有物品内存储量，始终显示当前玩家同步后的全局账户余额。
+            // 末影容器读取玩家账户余额，并沿用转换桌的后置单位以避免长数字撑宽提示框。
             event.getToolTip().add(Component.translatable("tooltip.ore_craft.ender_ore_container.balance",
-                    format(OreConversionClient.balance())));
+                    MeNumberFormat.compact(OreConversionClient.balance())));
             event.getToolTip().add(Component.translatable("tooltip.ore_craft.ender_ore_container.linked")
                     .withStyle(style -> style.withColor(0xA9A6B0)));
             return;

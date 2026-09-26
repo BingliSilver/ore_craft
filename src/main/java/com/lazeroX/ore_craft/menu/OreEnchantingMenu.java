@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.menu;
 
+import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
@@ -66,14 +67,16 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     private final BlockPos pos;
     /** 当前世界，用于验证方块是否仍存在。 */
     private final Level level;
-    /** 输入槽的临时物品，菜单关闭时全部归还。 */
-    private final SimpleContainer inputs = new SimpleContainer(2) {
-        /** 输入物变化时立即重建预览，避免展示已经失效的附魔结果。 */
+    /** 待附魔物品只属于当前菜单，关闭时返还给玩家。 */
+    private final SimpleContainer targetInput = new SimpleContainer(1) {
+        /** 目标变化时立即重建预览，避免展示已经失效的附魔结果。 */
         @Override public void setChanged() {
             super.setChanged();
             if (previewReady && !level.isClientSide()) refreshPreview();
         }
     };
+    /** 服务端共享附魔台保存的支付槽；客户端使用仅供同步展示的临时槽。 */
+    private final SimpleContainer containerInput;
     /** 输出副本只用于菜单同步；真实输入物在领取成功前始终保留。 */
     private final SimpleContainer preview = new SimpleContainer(1);
     /** 构造完槽位后才允许输入容器触发预览刷新。 */
@@ -93,7 +96,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 创建绑定指定方块的菜单。输入槽各收纳一件物品；主背包和快捷栏都可操作。
+     * 创建绑定指定方块的菜单。目标物品临时保存，支付容器留在方块中；主背包和快捷栏都可操作。
      *
      * @param id 容器同步编号
      * @param inventory 玩家背包
@@ -103,14 +106,22 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         super(ModMenus.ORE_ENCHANTING_MENU.get(), id);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
+        this.containerInput = !level.isClientSide()
+                && level.getBlockEntity(pos) instanceof OreEnchantingBlockEntity table
+                ? table.paymentContainer() : new SimpleContainer(1);
         // 两个匿名槽分别约束物品类型，并限制每次只处理一件。
-        addSlot(new Slot(inputs, TARGET_SLOT, 80, 92) {
+        addSlot(new Slot(targetInput, 0, 80, 92) {
             @Override public boolean mayPlace(ItemStack stack) { return canPlaceTarget(stack); }
             @Override public int getMaxStackSize() { return 1; }
         });
-        addSlot(new Slot(inputs, CONTAINER_SLOT, 80, 148) {
+        addSlot(new Slot(containerInput, 0, 80, 148) {
             @Override public boolean mayPlace(ItemStack stack) { return isMeContainer(stack); }
             @Override public int getMaxStackSize() { return 1; }
+            /** 支付容器变化后刷新预览；库存本身负责标记方块实体待保存。 */
+            @Override public void setChanged() {
+                super.setChanged();
+                if (previewReady && !level.isClientSide()) refreshPreview();
+            }
         });
         // 领取动作在 tryRemove 内完成交易，不能让原版先交付预览物品再扣费。
         addSlot(new Slot(preview, 0, 184, 126) {
@@ -161,10 +172,10 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     }
 
     /** 返回目标物品，供客户端构建候选附魔。 */
-    public ItemStack target() { return inputs.getItem(TARGET_SLOT); }
+    public ItemStack target() { return targetInput.getItem(0); }
 
     /** 返回当前支付容器，供客户端显示可用 ME。 */
-    public ItemStack container() { return inputs.getItem(CONTAINER_SLOT); }
+    public ItemStack container() { return containerInput.getItem(0); }
 
     /** 返回最近一次领取尝试的结果状态，供菜单界面绘制提示。 */
     public int resultStatus() { return resultData[0]; }
@@ -221,11 +232,11 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         return original;
     }
 
-    /** 关闭菜单时返还两个输入槽内的物品。 */
+    /** 关闭菜单时只返还临时目标物品；支付容器继续保存在附魔台中。 */
     @Override
     public void removed(Player player) {
         super.removed(player);
-        if (!player.level().isClientSide()) clearContainer(player, inputs);
+        if (!player.level().isClientSide()) clearContainer(player, targetInput);
     }
 
     /**

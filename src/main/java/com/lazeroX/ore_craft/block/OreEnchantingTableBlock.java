@@ -7,6 +7,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Containers;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleMenuProvider;
@@ -77,5 +78,15 @@ public final class OreEnchantingTableBlock extends Block implements EntityBlock 
     @Override
     protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreEnchantingMenu(id, inventory, pos), TITLE);
+    }
+
+    /** 方块被替换时掉落持久化的支付容器，避免其中的 ME 随方块实体一起丢失。 */
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+        if (!level.isClientSide() && !state.is(newState.getBlock())
+                && level.getBlockEntity(pos) instanceof OreEnchantingBlockEntity table) {
+            Containers.dropContents(level, pos, table.paymentContainer());
+        }
+        super.onRemove(state, level, pos, newState, moved);
     }
 }

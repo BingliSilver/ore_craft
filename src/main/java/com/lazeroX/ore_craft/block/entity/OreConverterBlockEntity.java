@@ -33,12 +33,26 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     /** 顶部专收矿质容器；其余五面只向自动化暴露原料输入格。 */
     private static final int[] TOP_SLOTS = {CONTAINER_SLOT};
     private static final int[] OTHER_SLOTS = {INPUT_SLOT};
-    /** 持久化库存；内容变化会使计时重新开始并标记方块实体待保存。 */
+    /** 上次库存通知时的原料快照；仅原料种类或组件变化会使当前转换失效。 */
+    private ItemStack previousInput = ItemStack.EMPTY;
+    /** 上次库存通知时的容器快照；更换容器时重新开始转换计时。 */
+    private ItemStack previousContainer = ItemStack.EMPTY;
+    /** 持久化库存；同种原料补充数量保留进度，其他关键内容变化重新计时。 */
     private final SimpleContainer inventory = new SimpleContainer(2) {
         @Override
         public void setChanged() {
             super.setChanged();
-            progressTicks = 0;
+            // 同种原料追加数量仍属于当前一轮转换；更换原料或容器才需要重新计时。
+            ItemStack currentInput = getItem(INPUT_SLOT);
+            ItemStack currentContainer = getItem(CONTAINER_SLOT);
+            if (!ItemStack.isSameItemSameComponents(previousInput, currentInput)
+                    || !ItemStack.isSameItemSameComponents(previousContainer, currentContainer)
+                    || previousContainer.getCount() != currentContainer.getCount()) {
+                progressTicks = 0;
+            }
+            // 保存副本以识别原地修改数量的操作，避免下次比较时旧值随库存一起变化。
+            previousInput = currentInput.copy();
+            previousContainer = currentContainer.copy();
             OreConverterBlockEntity.this.setChanged();
         }
     };

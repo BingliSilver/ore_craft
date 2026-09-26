@@ -2,18 +2,30 @@ package com.lazeroX.ore_craft.block.entity;
 
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * 保存矿质附魔台书本翻页、开合和朝向的客户端动画状态。
- * 这些值只影响显示，无需保存到世界或与服务端同步。
+ * 保存矿质附魔台支付容器，并维护书本翻页、开合和朝向的客户端动画状态。
+ * 容器保存在世界中以便关闭菜单后继续使用；动画值仅影响显示，无需持久化。
  */
 public final class OreEnchantingBlockEntity extends BlockEntity {
+    /** 支付槽最多保存一个矿质容器；库存变化时标记方块实体待保存。 */
+    private final SimpleContainer paymentContainer = new SimpleContainer(1) {
+        @Override
+        public void setChanged() {
+            super.setChanged();
+            OreEnchantingBlockEntity.this.setChanged();
+        }
+    };
     /** 与原版附魔书一致的随机翻页来源。 */
     private static final RandomSource RANDOM = RandomSource.create();
     /** 已经过的客户端刻数，用于轻微上下漂浮。 */
@@ -35,6 +47,26 @@ public final class OreEnchantingBlockEntity extends BlockEntity {
     /** 为世界中放置的矿质附魔台创建动画状态。 */
     public OreEnchantingBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), pos, state);
+    }
+
+    /** 返回持久化的单格支付槽，供菜单共享及方块破坏时掉落物品。 */
+    public SimpleContainer paymentContainer() {
+        return paymentContainer;
+    }
+
+    /** 将支付容器写入区块存档，空槽不写入物品数据。 */
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        ItemStack stack = paymentContainer.getItem(0);
+        if (!stack.isEmpty()) tag.put("PaymentContainer", stack.save(registries));
+    }
+
+    /** 恢复上次放入的支付容器；旧存档缺少此字段时保持空槽。 */
+    @Override
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        paymentContainer.setItem(0, ItemStack.parseOptional(registries, tag.getCompound("PaymentContainer")));
     }
 
     /**

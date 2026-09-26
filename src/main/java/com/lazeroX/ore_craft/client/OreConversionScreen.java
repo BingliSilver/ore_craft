@@ -23,10 +23,9 @@ import net.minecraft.world.item.SwordItem;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Optional;
 
 /** 展示转化桌余额、玩家背包和可提取的已学习物品目录。 */
@@ -154,17 +153,19 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         statusTicks = statusMessage == null ? 0 : 120;
     }
 
-    /** 按搜索词、分类和菜单目录重建当前显示列表。 */
+    /** 按搜索词和分类筛选目录，再按 ME 单价从高到低重建当前显示列表。 */
     private void refresh() {
         if (search == null || previous == null) return;
         seenRevision = menu.revision();
         String query = search.getValue().toLowerCase(Locale.ROOT).trim();
+        // 同价物品按注册 ID 固定顺序，避免同步或筛选后目录位置随机变化。
         filtered = menu.clientCatalog().stream().filter(entry -> {
             Item item = BuiltInRegistries.ITEM.get(entry.id());
             return category.matches(item) && (query.isEmpty()
                     || entry.id().toString().contains(query)
                     || item.getDescription().getString().toLowerCase(Locale.ROOT).contains(query));
-        }).toList();
+        }).sorted(Comparator.comparingLong(OreConversionNetwork.PriceEntry::price).reversed()
+                .thenComparing(entry -> entry.id().toString())).toList();
         // 目录更新或筛选结果变少时，将页码限制在有效范围内。
         page = Math.max(0, Math.min(page, Math.max(0, (filtered.size() - 1) / PAGE_SIZE)));
         for (int index = 0; index < categoryButtons.size(); index++) {
@@ -272,7 +273,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         graphics.drawString(font, title, sx(47), sy(30), TEXT, true);
         graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.subtitle_short"), sx(48), sy(46), MUTED, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.balance"), sx(46), sy(59), MUTED, false);
-        graphics.drawString(font, shortNumber(menu.clientBalance()) + " ME", sx(46), sy(69), CYAN, true);
+        graphics.drawString(font, MeNumberFormat.compact(menu.clientBalance()) + " ME", sx(46), sy(69), CYAN, true);
         if (statusTicks > 0 && statusMessage != null) {
             String message = statusMessage.getString();
             String visible = font.plainSubstrByWidth(message, sx(86));
@@ -294,7 +295,7 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
             int cellX = CATALOG_X + index % COLUMNS * CATALOG_STEP_X;
             int cellY = CATALOG_Y + index / COLUMNS * CATALOG_STEP_Y;
             graphics.renderItem(new ItemStack(BuiltInRegistries.ITEM.get(entry.id())), cellX + sx(5), cellY + sy(1));
-            graphics.drawCenteredString(font, shortNumber(entry.price()), cellX + sx(13), cellY + sy(15), TEXT);
+            graphics.drawCenteredString(font, MeNumberFormat.compact(entry.price()), cellX + sx(13), cellY + sy(15), TEXT);
         }
         if (filtered.isEmpty()) {
             graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.empty"), sx(278), sy(113), MUTED);
@@ -415,23 +416,6 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     /** 按当前界面固定使用的区域设置格式化完整整数。 */
     private static String formatNumber(long value) {
         return String.format(Locale.ROOT, "%,d", value);
-    }
-
-    /** 为有限宽度的余额区域生成带单位后缀的紧凑数字。 */
-    private static String shortNumber(long value) {
-        if (value < 10000) return formatNumber(value);
-        if (value < 1_000_000) return (value / 1000) + "k";
-        if (value < 1_000_000_000) return compactNumber(value, 1_000_000, "m");
-        if (value < 1_000_000_000_000L) return compactNumber(value, 1_000_000_000L, "b");
-        if (value < 1_000_000_000_000_000L) return compactNumber(value, 1_000_000_000_000L, "t");
-        if (value < 1_000_000_000_000_000_000L) return compactNumber(value, 1_000_000_000_000_000L, "q");
-        return compactNumber(value, 1_000_000_000_000_000_000L, "Q");
-    }
-
-    /** 保留两位小数并添加单位后缀，用于显示大额余额。 */
-    private static String compactNumber(long value, long divisor, String suffix) {
-        return BigDecimal.valueOf(value).divide(BigDecimal.valueOf(divisor), 2, RoundingMode.HALF_UP)
-                .toPlainString() + suffix;
     }
 
     /** 目录筛选分类及其本地化标签。 */
