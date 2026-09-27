@@ -1,6 +1,7 @@
 {
   "creativetab.ore_craft.ore_craft": "矿石工艺",
   "item.ore_craft.emerald_coal": "绿宝石煤炭",
+  "item.ore_craft.eternal_emerald_coal": "永恒绿宝石煤炭",
   "item.ore_craft.emerald_nugget": "绿宝石粒",
   "block.ore_craft.emerald_coal_block": "绿宝石煤炭块",
   "block.ore_craft.ore_converter": "矿质传输接口",
@@ -28,6 +29,9 @@
   "tooltip.ore_craft.radiant_diamond_heart.cooldown": "使用冷却时间：20秒。",
   "tooltip.ore_craft.radiant_diamond_heart.durability": "每次使用消耗1点耐久；耐久耗尽时物品销毁。",
   "tooltip.ore_craft.emerald_coal.fuel": "燃烧时间为普通煤炭的16倍（约可烧炼128个物品）。",
+  "tooltip.ore_craft.eternal_emerald_coal.fuel": "每次燃烧时间与绿宝石煤炭相同（默认约可烧炼128个物品）。",
+  "tooltip.ore_craft.eternal_emerald_coal.me": "每次点火从所属玩家账户扣除1个绿宝石煤炭的ME；余额不足时停止供燃。",
+  "tooltip.ore_craft.eternal_emerald_coal.owner": "从放入前最后持有它的玩家账户扣费；燃烧后物品保留。",
   "tooltip.ore_craft.emerald_coal_block.fuel": "燃烧时间为绿宝石煤炭的9倍（约可烧炼1152个物品）。",
   "tooltip.ore_craft.emerald_nugget.usage": "用于合成绿宝石煤炭。",
   "tooltip.ore_craft.mining_tnt.storage": "点燃后将被摧毁方块的全部掉落物保存到爆炸中心的箱子中。",

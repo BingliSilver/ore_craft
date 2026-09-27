@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.item.EmeraldCoalBlockItem;
 import com.lazeroX.ore_craft.item.EmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
+import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
@@ -30,6 +31,11 @@ public final class ModItems {
     /** 绿宝石煤炭物品。 */
     public static final DeferredItem<EmeraldCoalItem> EMERALD_COAL =
             ITEMS.register("emerald_coal", () -> new EmeraldCoalItem(new Item.Properties()));
+
+    /** 记录最后持有者、每轮燃烧扣除绿宝石煤炭价格且不会消失的燃料。 */
+    public static final DeferredItem<EternalEmeraldCoalItem> ETERNAL_EMERALD_COAL =
+            ITEMS.register("eternal_emerald_coal", () ->
+                    new EternalEmeraldCoalItem(new Item.Properties().stacksTo(1)));
 
     /** 用于合成绿宝石煤炭的绿宝石粒。 */
     public static final DeferredItem<EmeraldNuggetItem> EMERALD_NUGGET =
@@ -73,9 +79,9 @@ public final class ModItems {
     public static final DeferredItem<OreContainerItem> DIAMOND_ORE_CONTAINER =
             ITEMS.register("diamond_ore_container", () -> new OreContainerItem(655_360, new Item.Properties().stacksTo(1)));
 
-    /** 无独立容量、直接连接玩家全局 ME 账户的末影矿质容器。 */
+    /** 不可堆叠、无独立容量，直接连接玩家全局 ME 账户的末影矿质容器。 */
     public static final DeferredItem<EnderOreContainerItem> ENDER_ORE_CONTAINER =
-            ITEMS.register("ender_ore_container", () -> new EnderOreContainerItem(new Item.Properties()));
+            ITEMS.register("ender_ore_container", () -> new EnderOreContainerItem(new Item.Properties().stacksTo(1)));
 
     /** 可以接受时运附魔的采矿 TNT 方块物品。 */
     public static final DeferredItem<MiningTntBlockItem> MINING_TNT_ITEM =

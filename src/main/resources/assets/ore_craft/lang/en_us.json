@@ -1,6 +1,7 @@
 {
   "creativetab.ore_craft.ore_craft": "Ore Craft",
   "item.ore_craft.emerald_coal": "Emerald Coal",
+  "item.ore_craft.eternal_emerald_coal": "Eternal Emerald Coal",
   "item.ore_craft.emerald_nugget": "Emerald Nugget",
   "block.ore_craft.emerald_coal_block": "Emerald Coal Block",
   "block.ore_craft.ore_converter": "Mineral Transfer Interface",
@@ -28,6 +29,9 @@
   "tooltip.ore_craft.radiant_diamond_heart.cooldown": "Use cooldown: 20 seconds.",
   "tooltip.ore_craft.radiant_diamond_heart.durability": "Consumes 1 durability per use and is destroyed when depleted.",
   "tooltip.ore_craft.emerald_coal.fuel": "Burns 16 times as long as coal (smelts about 128 items).",
+  "tooltip.ore_craft.eternal_emerald_coal.fuel": "Each burn lasts as long as Emerald Coal (about 128 items by default).",
+  "tooltip.ore_craft.eternal_emerald_coal.me": "Each ignition charges its owner's account the ME price of one Emerald Coal; stops when funds run out.",
+  "tooltip.ore_craft.eternal_emerald_coal.owner": "Charges the last player to carry it before insertion; the item remains after burning.",
   "tooltip.ore_craft.emerald_coal_block.fuel": "Burns 9 times as long as Emerald Coal (smelts about 1,152 items).",
   "tooltip.ore_craft.emerald_nugget.usage": "Crafting material for Emerald Coal.",
   "tooltip.ore_craft.mining_tnt.storage": "Stores every destroyed block drop in a chest at the explosion center.",

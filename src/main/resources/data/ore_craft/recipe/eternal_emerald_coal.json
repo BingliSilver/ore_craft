@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "X X",
+    " A ",
+    "X X"
+  ],
+  "key": {
+    "X": { "item": "ore_craft:ender_ore_container" },
+    "A": { "item": "ore_craft:emerald_coal" }
+  },
+  "result": {
+    "id": "ore_craft:eternal_emerald_coal",
+    "count": 1
+  }
+}
