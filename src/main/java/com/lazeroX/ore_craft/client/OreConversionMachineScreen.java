@@ -1,6 +1,5 @@
 package com.lazeroX.ore_craft.client;
 
-import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -77,7 +76,7 @@ public final class OreConversionMachineScreen extends AbstractContainerScreen<Or
         }).toList();
     }
 
-    /** 绘制机器槽位、五秒进度条和右侧可搜索的物品目录。 */
+    /** 绘制机器槽位、按等级缩放的进度条和右侧可搜索的物品目录。 */
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         int x = leftPos;
@@ -91,8 +90,9 @@ public final class OreConversionMachineScreen extends AbstractContainerScreen<Or
         }
         for (int column = 0; column < 9; column++) drawSlot(graphics, x + 7 + column * 18, y + 141);
         graphics.fill(x + 63, y + 63, x + 115, y + 69, 0xFF111820);
-        int progress = Math.clamp(menu.progressTicks(), 0, OreConversionMachineBlockEntity.INTERVAL_TICKS);
-        graphics.fill(x + 64, y + 64, x + 64 + 50 * progress / OreConversionMachineBlockEntity.INTERVAL_TICKS,
+        int interval = menu.intervalTicks();
+        int progress = Math.clamp(menu.progressTicks(), 0, interval);
+        graphics.fill(x + 64, y + 64, x + 64 + 50 * progress / interval,
                 y + 68, CYAN);
 
         List<OreConversionNetwork.PriceEntry> entries = filtered();
@@ -129,7 +129,8 @@ public final class OreConversionMachineScreen extends AbstractContainerScreen<Or
         graphics.drawString(font, Component.translatable("gui.ore_craft.machine.container"), 19, 23, 0xFFDDE9F4, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.machine.selection"), 73, 23, 0xFFDDE9F4, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.machine.output"), 127, 23, 0xFFDDE9F4, false);
-        graphics.drawString(font, Component.translatable("gui.ore_craft.machine.rate"), 61, 53, 0xFF9BDCE8, false);
+        graphics.drawString(font, Component.translatable(menu.isUpgraded()
+                ? "gui.ore_craft.machine.rate_plus" : "gui.ore_craft.machine.rate"), 61, 53, 0xFF9BDCE8, false);
         graphics.drawString(font, playerInventoryTitle, 8, inventoryLabelY, 0xFFDDE9F4, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.machine.learned"), LIST_X, 6, 0xFFF5D58C, false);
     }
@@ -194,7 +195,9 @@ public final class OreConversionMachineScreen extends AbstractContainerScreen<Or
         if (index >= entries.size()) return;
         OreConversionNetwork.PriceEntry entry = entries.get(index);
         Item item = BuiltInRegistries.ITEM.get(entry.id());
+        // 机器目录同样只收录已学习物品；将灰色状态标记接在 ME 数值之后。
         graphics.renderTooltip(font, List.of(item.getDescription(),
-                Component.literal(entry.price() + " ME")), Optional.empty(), mouseX, mouseY);
+                Component.literal(entry.price() + " ME").append(Component.translatable("tooltip.ore_craft.conversion.learned")
+                        .withStyle(style -> style.withColor(0xA9A6B0)))), Optional.empty(), mouseX, mouseY);
     }
 }

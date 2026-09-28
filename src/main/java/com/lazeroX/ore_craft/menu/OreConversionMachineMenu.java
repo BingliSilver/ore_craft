@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.menu;
 
 import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
+import com.lazeroX.ore_craft.block.OreConversionMachineBlock;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
@@ -23,7 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * 矿质转化器菜单：真实库存只有支付容器和产物，中央选择框只是已学习目录的预览。
+ * 普通版和升级版矿质转化器共用的菜单：真实库存只有支付容器和产物。
  * 服务端验证学习权限与价格后记录选择，客户端不能直接改写虚拟框或拿走其物品。
  */
 public final class OreConversionMachineMenu extends AbstractContainerMenu {
@@ -43,7 +44,7 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
     private final SimpleContainer selection = new SimpleContainer(1);
     /** 客户端没有真实方块实体，服务端在这里保留绑定对象。 */
     private final OreConversionMachineBlockEntity machine;
-    /** 最近同步到客户端的五秒轮次进度。 */
+    /** 最近同步到客户端的轮次进度；时长由方块等级决定。 */
     private int clientProgress;
 
     /** 从打开菜单时的附加数据读取方块坐标。 */
@@ -98,7 +99,7 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
     /** 仅允许放置者在交互范围内操作当前方块。 */
     @Override
     public boolean stillValid(Player player) {
-        if (!level.getBlockState(pos).is(ModBlocks.ORE_CONVERSION_MACHINE.get())
+        if (!(level.getBlockState(pos).getBlock() instanceof OreConversionMachineBlock)
                 || !player.canInteractWithBlock(pos, 4.0)) return false;
         if (level.isClientSide()) return true;
         return machine != null && level.getBlockEntity(pos) == machine
@@ -146,4 +147,15 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
 
     /** 返回当前轮次进度，供客户端绘制进度条。 */
     public int progressTicks() { return machine == null ? clientProgress : machine.progressTicks(); }
+
+    /** 返回当前等级的轮次时长，供原界面的进度条按实际速度缩放。 */
+    public int intervalTicks() {
+        return isUpgraded() ? OreConversionMachineBlockEntity.PLUS_INTERVAL_TICKS
+                : OreConversionMachineBlockEntity.INTERVAL_TICKS;
+    }
+
+    /** 判断当前菜单是否绑定下界合金升级版转化器。 */
+    public boolean isUpgraded() {
+        return level.getBlockState(pos).is(ModBlocks.ORE_CONVERSION_MACHINE_PLUS.get());
+    }
 }

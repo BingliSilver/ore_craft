@@ -25,25 +25,38 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 
 /**
- * 矿质转化器的世界方块，提供只有放置者可用的选物、支付和输出界面。
- * 方块实体独立计时；破坏时返还容器与产物，虚拟选择不会作为实物掉落。
+ * 普通版与升级版矿质转化器共用的世界方块，提供放置者专用的选物、支付和输出界面。
+ * 两个等级共用菜单；方块实体独立计时，破坏时只返还真实库存。
  */
 public final class OreConversionMachineBlock extends Block implements EntityBlock {
     /** 方块属性编解码器，供游戏保存和复制方块状态。 */
     public static final MapCodec<OreConversionMachineBlock> CODEC = simpleCodec(OreConversionMachineBlock::new);
+    /** 升级版的编解码器，确保重建方块时仍使用快速等级。 */
+    public static final MapCodec<OreConversionMachineBlock> PLUS_CODEC =
+            simpleCodec(properties -> new OreConversionMachineBlock(properties, true));
     /** 菜单标题使用语言文件，客户端和服务端保持一致。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_conversion_machine");
+    /** 升级版菜单标题；与普通版使用同一套槽位。 */
+    private static final Component PLUS_TITLE = Component.translatable("container.ore_craft.ore_conversion_machine_plus");
+    /** 注册时固定的设备等级。 */
+    private final boolean upgraded;
 
     /**
      * 使用注册时指定的硬度、音效和亮度创建方块。
      *
      * @param properties 注册器传入的方块属性
      */
-    public OreConversionMachineBlock(Properties properties) { super(properties); }
+    public OreConversionMachineBlock(Properties properties) { this(properties, false); }
+
+    /** 创建指定等级的转化器，两个等级共用交互和库存规则。 */
+    public OreConversionMachineBlock(Properties properties, boolean upgraded) {
+        super(properties);
+        this.upgraded = upgraded;
+    }
 
     /** 返回此方块的属性编解码器。 */
     @Override
-    protected MapCodec<? extends Block> codec() { return CODEC; }
+    protected MapCodec<? extends Block> codec() { return upgraded ? PLUS_CODEC : CODEC; }
 
     /**
      * 每个放置实例创建独立支付容器、输出和计时状态。
@@ -103,7 +116,8 @@ public final class OreConversionMachineBlock extends Block implements EntityBloc
     /** 创建绑定当前方块实体的菜单，关闭时库存留在方块内。 */
     @Override
     protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
-        return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMachineMenu(id, inventory, pos), TITLE);
+        return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMachineMenu(id, inventory, pos),
+                upgraded ? PLUS_TITLE : TITLE);
     }
 
     /** 破坏方块时掉落真实库存；选中物品只是目录引用，无需掉落。 */

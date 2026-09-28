@@ -107,13 +107,13 @@ public class EternalEmeraldCoalItem extends Item {
     }
 
     /**
-     * 生成仅用于转化桌学习校验的副本，并移除燃料自动记录的持有者 UUID。
-     * 真实物品不变；若还带有其他自定义数据，普通物品校验仍会拒绝学习。
+     * 生成仅用于 ME 兑换校验的副本，并移除燃料自动记录的持有者 UUID。
+     * 真实物品不变；其他自定义数据仍会使兑换校验失败，学习则使用物品默认状态。
      *
-     * @param stack 待学习的永恒绿宝石煤炭
+     * @param stack 待校验兑换资格的永恒绿宝石煤炭
      * @return 不含持有者字段的独立物品副本
      */
-    public ItemStack copyWithoutOwnerForLearning(ItemStack stack) {
+    public ItemStack copyWithoutOwnerForDeposit(ItemStack stack) {
         ItemStack copy = stack.copy();
         CustomData customData = copy.get(DataComponents.CUSTOM_DATA);
         if (customData == null) return copy;

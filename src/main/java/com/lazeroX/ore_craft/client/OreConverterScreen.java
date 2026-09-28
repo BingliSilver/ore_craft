@@ -1,6 +1,5 @@
 package com.lazeroX.ore_craft.client;
 
-import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -8,7 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
 /**
- * 矿质传输接口的双格界面，显示原料、矿质容器和五秒转换进度。
+ * 普通版和升级版矿质传输接口共用的双格界面，显示原料、容器和转换进度。
  * 绘制值仅供提示，物品消耗与 ME 记账全部由服务端方块实体执行。
  */
 public final class OreConverterScreen extends AbstractContainerScreen<OreConverterMenu> {
@@ -43,8 +42,9 @@ public final class OreConverterScreen extends AbstractContainerScreen<OreConvert
         }
         for (int column = 0; column < 9; column++) drawSlot(graphics, x + 7 + column * 18, y + 141);
         graphics.fill(x + 62, y + 63, x + 114, y + 69, 0xFF111820);
-        int progress = Math.clamp(menu.progressTicks(), 0, OreConverterBlockEntity.INTERVAL_TICKS);
-        graphics.fill(x + 63, y + 64, x + 63 + 50 * progress / OreConverterBlockEntity.INTERVAL_TICKS,
+        int interval = menu.intervalTicks();
+        int progress = Math.clamp(menu.progressTicks(), 0, interval);
+        graphics.fill(x + 63, y + 64, x + 63 + 50 * progress / interval,
                 y + 68, CYAN);
     }
 
@@ -60,7 +60,8 @@ public final class OreConverterScreen extends AbstractContainerScreen<OreConvert
         graphics.drawString(font, title, 8, 6, 0xFFF5D58C, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.converter.input"), 35, 23, 0xFFDDE9F4, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.converter.container"), 99, 23, 0xFFDDE9F4, false);
-        graphics.drawString(font, Component.translatable("gui.ore_craft.converter.rate"), 62, 53, 0xFF9BDCE8, false);
+        graphics.drawString(font, Component.translatable(menu.isUpgraded()
+                ? "gui.ore_craft.converter.rate_plus" : "gui.ore_craft.converter.rate"), 62, 53, 0xFF9BDCE8, false);
         graphics.drawString(font, playerInventoryTitle, 8, inventoryLabelY, 0xFFDDE9F4, false);
     }
 

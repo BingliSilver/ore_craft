@@ -51,9 +51,17 @@ public final class ModItems {
     public static final DeferredItem<?> ORE_CONVERTER_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERTER);
 
+    /** 可放置的下界合金升级版矿质传输接口。 */
+    public static final DeferredItem<?> ORE_CONVERTER_PLUS_ITEM =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERTER_PLUS);
+
     /** 矿质转化器的可放置方块物品，放下后创建独立的容器与输出库存。 */
     public static final DeferredItem<?> ORE_CONVERSION_MACHINE_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_MACHINE);
+
+    /** 可放置的下界合金升级版矿质转化器。 */
+    public static final DeferredItem<?> ORE_CONVERSION_MACHINE_PLUS_ITEM =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_MACHINE_PLUS);
 
     /** 放在玩家物品栏中时定期修复装备的矿工徽章。 */
     public static final DeferredItem<MinerBadgeItem> MINER_BADGE =

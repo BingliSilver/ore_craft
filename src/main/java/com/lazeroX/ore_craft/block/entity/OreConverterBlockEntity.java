@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.block.entity;
 
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
+import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
@@ -19,25 +20,29 @@ import java.util.OptionalLong;
 import java.util.UUID;
 
 /**
- * 保存矿质传输接口的物品输入、矿质容器、放置者和转换计时。
- * 普通容器收取生成的 ME；末影容器连接放置者账户，离线时也可运行。
+ * 保存普通版及升级版矿质传输接口的输入物、收款容器、放置者和转换计时。
+ * 设备等级由方块状态决定；普通容器收取 ME，末影容器连接放置者账户。
  */
 public final class OreConverterBlockEntity extends BlockEntity implements OreMachineInventory {
     /** 两次转换间隔为 100 游戏刻，即正常刻速下约五秒。 */
     public static final int INTERVAL_TICKS = 100;
+    /** 升级版每 20 游戏刻完成一轮，正常刻速下为一秒。 */
+    public static final int PLUS_INTERVAL_TICKS = 20;
     /** 单次最多消耗 16 件，剩余物品留待下一轮。 */
     private static final int ITEMS_PER_CYCLE = 16;
-    /** 原料和矿质容器在持久库存中的位置。 */
+    /** 升级版每轮最多消耗 32 件，仍受输入数量和容器剩余容量限制。 */
+    private static final int PLUS_ITEMS_PER_CYCLE = 32;
+    /** 待回收物品和收款容器在持久库存中的位置。 */
     public static final int INPUT_SLOT = 0;
     public static final int CONTAINER_SLOT = 1;
-    /** 顶部专收矿质容器；其余五面只向自动化暴露原料输入格。 */
+    /** 顶部专收收款容器；其余五面只向自动化暴露待回收物品格。 */
     private static final int[] TOP_SLOTS = {CONTAINER_SLOT};
     private static final int[] OTHER_SLOTS = {INPUT_SLOT};
-    /** 上次库存通知时的原料快照；仅原料种类或组件变化会使当前转换失效。 */
+    /** 上次库存通知时的输入物快照；种类或组件变化会使当前转换失效。 */
     private ItemStack previousInput = ItemStack.EMPTY;
     /** 上次库存通知时的容器快照；更换容器时重新开始转换计时。 */
     private ItemStack previousContainer = ItemStack.EMPTY;
-    /** 持久化库存；同种原料补充数量保留进度，其他关键内容变化重新计时。 */
+    /** 持久化库存；同种输入物补充数量保留进度，其他关键内容变化重新计时。 */
     private final SimpleContainer inventory = new SimpleContainer(2) {
         @Override
         public void setChanged() {
@@ -58,7 +63,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     };
     /** 末影容器账户所属玩家；首位放置者固定此 UUID。 */
     private UUID owner;
-    /** 当前物品已等待的游戏刻数，范围为 0 到 99。 */
+    /** 当前物品已等待的游戏刻数，最大值随设备等级变化。 */
     private int progressTicks;
 
     /** 创建一个尚未绑定玩家的新传输接口，放置或首次打开时绑定账户。 */
@@ -120,16 +125,28 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         return progressTicks;
     }
 
+    /** 返回当前方块等级对应的轮次时长，供服务端计时和客户端进度条共用。 */
+    public int intervalTicks() {
+        return getBlockState().is(ModBlocks.ORE_CONVERTER_PLUS.get())
+                ? PLUS_INTERVAL_TICKS : INTERVAL_TICKS;
+    }
+
+    /** 返回当前等级每轮最多可处理的原料数量。 */
+    private int itemsPerCycle() {
+        return intervalTicks() == PLUS_INTERVAL_TICKS ? PLUS_ITEMS_PER_CYCLE : ITEMS_PER_CYCLE;
+    }
+
     /**
-     * 每服务端刻检查原料和容器；五秒后最多消耗 16 件，将对应 ME 存入容器。
-     * 容量不足时按可容纳的整件数量结算，存入成功后才消耗原料。
+     * 每服务端刻检查输入物和收款容器；普通版五秒最多 16 件，升级版一秒最多 32 件。
+     * 普通矿质容器作为输入时按本体加存储量回收，末影容器只按本体价值回收。
+     * 容量不足时按可容纳的整件数量结算，存入成功后才消耗输入物。
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, OreConverterBlockEntity converter) {
         if (level.isClientSide() || converter.owner == null || level.getServer() == null) return;
         ItemStack stack = converter.inventory.getItem(INPUT_SLOT);
         ItemStack container = converter.inventory.getItem(CONTAINER_SLOT);
-        OptionalLong unit = OreConversionPrices.price(stack.getItem());
-        if (!OreConversionPrices.canDeposit(stack) || !OreMachineEnergy.isContainer(container)
+        OptionalLong unit = OreConversionPrices.depositValue(stack);
+        if (!OreMachineEnergy.isContainer(container)
                 || unit.isEmpty() || OreMachineEnergy.remaining(level.getServer(), converter.owner, container) < unit.getAsLong()) {
             if (converter.progressTicks != 0) {
                 converter.progressTicks = 0;
@@ -138,7 +155,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
             return;
         }
         converter.progressTicks++;
-        if (converter.progressTicks < INTERVAL_TICKS) {
+        if (converter.progressTicks < converter.intervalTicks()) {
             converter.setChanged();
             return;
         }
@@ -146,7 +163,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         converter.setChanged();
 
         // 按当前数据包价格重新计算本轮可转化数量，容量不足一整件时保持输入不变。
-        int count = (int) Math.min(Math.min(ITEMS_PER_CYCLE, stack.getCount()),
+        int count = (int) Math.min(Math.min(converter.itemsPerCycle(), stack.getCount()),
                 OreMachineEnergy.remaining(level.getServer(), converter.owner, container) / unit.getAsLong());
         if (count <= 0) return;
         long amount = unit.getAsLong() * count;
@@ -179,6 +196,6 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         inventory.setItem(INPUT_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Input")));
         inventory.setItem(CONTAINER_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Container")));
-        progressTicks = Math.clamp(tag.getInt("Progress"), 0, INTERVAL_TICKS - 1);
+        progressTicks = Math.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
     }
 }

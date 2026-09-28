@@ -383,7 +383,8 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
             Item item = BuiltInRegistries.ITEM.get(entry.id());
             List<Component> lines = new ArrayList<>();
             lines.add(item.getDescription());
-            lines.add(Component.translatable("tooltip.ore_craft.conversion.me", formatNumber(entry.price()))
+            // 目录仅展示已学习物品，价格后沿用普通物品提示的灰色学习标记。
+            lines.add(OreConversionTooltip.meLine(formatNumber(entry.price()), true)
                     .withStyle(style -> style.withColor(0x64E7F1)));
             long affordable = menu.clientBalance() / entry.price();
             lines.add(Component.translatable("tooltip.ore_craft.conversion.affordable", formatNumber(affordable))

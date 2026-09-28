@@ -12,13 +12,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
+import java.util.Set;
 
-/** 保存服务端同步到客户端的余额、价格目录和价格查询状态。 */
+/** 保存服务端同步到客户端的余额、完整学习记录和价格目录，供界面与物品提示读取。 */
 public final class OreConversionClient {
     /** 最近同步到本地的玩家余额。 */
     private static long balance;
     /** 当前已学习且可提取的物品目录。 */
     private static List<OreConversionNetwork.PriceEntry> catalog = List.of();
+    /** 服务端同步的完整学习记录；不能只依赖会过滤不可提取物品的目录。 */
+    private static Set<ResourceLocation> learnedIds = Set.of();
     /** 当前完整价格目录，供物品提示和输入状态查询使用。 */
     private static Map<ResourceLocation, OreConversionNetwork.PriceEntry> prices = Map.of();
     /** 正在接收的价格分块；末块到达前不会发布为完整目录。 */
@@ -27,10 +30,11 @@ public final class OreConversionClient {
     /** 工具类不允许创建实例。 */
     private OreConversionClient() {}
 
-    /** 接收账户状态，并更新当前打开的转化菜单。 */
+    /** 接收余额、提取目录和完整学习记录，并更新当前打开的转化菜单。 */
     public static void receive(OreConversionNetwork.SyncPayload packet) {
         balance = packet.balance();
         catalog = List.copyOf(packet.catalog());
+        learnedIds = Set.copyOf(packet.learnedIds());
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player != null && minecraft.player.containerMenu instanceof OreConversionMenu menu
                 && menu.containerId == packet.containerId()) {
@@ -65,6 +69,7 @@ public final class OreConversionClient {
     public static void clear() {
         balance = 0;
         catalog = List.of();
+        learnedIds = Set.of();
         prices = Map.of();
         incomingPrices = null;
     }
@@ -77,6 +82,11 @@ public final class OreConversionClient {
     public static OptionalLong price(Item item) {
         OreConversionNetwork.PriceEntry entry = prices.get(BuiltInRegistries.ITEM.getKey(item));
         return entry == null ? OptionalLong.empty() : OptionalLong.of(entry.price());
+    }
+
+    /** 判断当前玩家的转化桌账户是否已经学习指定物品。 */
+    public static boolean isLearned(Item item) {
+        return learnedIds.contains(BuiltInRegistries.ITEM.getKey(item));
     }
 
     /** 判断物品栈能否作为普通物品输入转化桌。 */

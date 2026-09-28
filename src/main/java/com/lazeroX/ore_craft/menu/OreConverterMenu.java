@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.menu;
 
 import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
+import com.lazeroX.ore_craft.block.OreConverterBlock;
 import com.lazeroX.ore_craft.client.OreConversionClient;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
@@ -19,7 +20,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
- * 矿质传输接口的双格菜单，服务端直接操作原料和矿质容器库存。
+ * 普通版和升级版矿质传输接口共用的双格菜单，服务端直接操作输入物和收款容器。
  * 客户端仅显示同步来的物品与进度；所有放入条件在服务端槽位重新核验。
  */
 public final class OreConverterMenu extends AbstractContainerMenu {
@@ -38,7 +39,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
     private final Container storage;
     /** 服务端方块实体，客户端为空。 */
     private final OreConverterBlockEntity converter;
-    /** 客户端最近收到的 0 到 99 刻进度。 */
+    /** 客户端最近收到的轮次进度；上限由方块等级决定。 */
     private int clientProgress;
 
     /** 从打开菜单时的附加数据读取方块坐标并创建客户端菜单。 */
@@ -95,7 +96,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
     /** 方块实体、所有者和交互距离均有效时才允许继续操作。 */
     @Override
     public boolean stillValid(Player player) {
-        if (!level.getBlockState(pos).is(ModBlocks.ORE_CONVERTER.get())
+        if (!(level.getBlockState(pos).getBlock() instanceof OreConverterBlock)
                 || !player.canInteractWithBlock(pos, 4.0)) return false;
         // 所有权只由服务端验证；客户端方块实体没有同步 UUID，不能据此关闭界面。
         if (level.isClientSide()) return true;
@@ -103,7 +104,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
                 && player.getUUID().equals(converter.owner());
     }
 
-    /** Shift 点击按容器类型分流；原料的价格和来源由服务端最终校验。 */
+    /** Shift 点击先把容器放入收款格；收款格已占用时可将可回收容器放入输入格。 */
     @Override
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (!stillValid(player) || slotIndex < 0 || slotIndex >= INVENTORY_END) return ItemStack.EMPTY;
@@ -115,7 +116,13 @@ public final class OreConverterMenu extends AbstractContainerMenu {
             if (!moveItemStackTo(stack, INVENTORY_START, INVENTORY_END, true)) return ItemStack.EMPTY;
         } else {
             if (OreMachineEnergy.isContainer(stack)) {
-                if (!moveItemStackTo(stack, CONTAINER_SLOT, CONTAINER_SLOT + 1, false)) return ItemStack.EMPTY;
+                // 收款容器已有物品时，允许另一个矿质容器进入输入格回收。
+                if (!moveItemStackTo(stack, CONTAINER_SLOT, CONTAINER_SLOT + 1, false)) {
+                    boolean convertible = level.isClientSide() ? OreConversionClient.canConvert(stack)
+                            : OreConversionPrices.canDeposit(stack);
+                    if (!convertible || !moveItemStackTo(stack, INPUT_SLOT, INPUT_SLOT + 1, false))
+                        return ItemStack.EMPTY;
+                }
             } else {
                 boolean convertible = level.isClientSide() ? OreConversionClient.canConvert(stack)
                         : OreConversionPrices.canDeposit(stack);
@@ -131,5 +138,15 @@ public final class OreConverterMenu extends AbstractContainerMenu {
     /** 返回同步后的等待刻数，供界面绘制下一轮的进度条。 */
     public int progressTicks() {
         return converter == null ? clientProgress : converter.progressTicks();
+    }
+
+    /** 返回当前等级的轮次时长，客户端据此把相同进度条缩放到一秒或五秒。 */
+    public int intervalTicks() {
+        return isUpgraded() ? OreConverterBlockEntity.PLUS_INTERVAL_TICKS : OreConverterBlockEntity.INTERVAL_TICKS;
+    }
+
+    /** 判断菜单绑定的是否为下界合金升级版接口。 */
+    public boolean isUpgraded() {
+        return level.getBlockState(pos).is(ModBlocks.ORE_CONVERTER_PLUS.get());
     }
 }

@@ -42,7 +42,7 @@ public final class OreConversionNetwork {
      * @param event 网络载荷注册事件
      */
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("7")
+        event.registrar("8")
                 .playToServer(ActionPayload.TYPE, ActionPayload.CODEC, (packet, context) -> {
                     if (!(context.player() instanceof ServerPlayer player)) return;
                     // 校验菜单实例和容器 ID，拒绝旧界面或其他机器伪造的操作请求。
@@ -87,7 +87,7 @@ public final class OreConversionNetwork {
     }
 
     /**
-     * 向玩家发送余额及可兑换的已学习物品目录。
+     * 向玩家发送余额、可兑换目录和完整学习记录，供界面及物品提示分别使用。
      *
      * @param player 数据接收者
      * @param containerId 当前菜单 ID；非菜单同步时使用负数
@@ -104,7 +104,10 @@ public final class OreConversionNetwork {
             }
         }
         learned.sort(Comparator.comparing(entry -> entry.id().toString()));
-        PacketDistributor.sendToPlayer(player, new SyncPayload(containerId, account.balance(), learned));
+        // 提示中的“已学习”以账户完整记录为准；提取目录会过滤当前无法兑换的物品。
+        List<ResourceLocation> learnedIds = account.learned().stream()
+                .sorted(Comparator.comparing(ResourceLocation::toString)).toList();
+        PacketDistributor.sendToPlayer(player, new SyncPayload(containerId, account.balance(), learned, learnedIds));
     }
 
     /** 将全量价格目录按网络载荷上限分块发送给玩家。 */
@@ -168,13 +171,15 @@ public final class OreConversionNetwork {
     }
 
     /**
-     * 服务端发给客户端的余额和已学习目录快照。
+     * 服务端发给客户端的余额、可提取目录和完整学习记录快照。
      *
      * @param containerId 对应的菜单 ID
      * @param balance 玩家 ME 余额
-     * @param catalog 已学习物品价格列表
+     * @param catalog 当前可提取的已学习物品价格列表
+     * @param learnedIds 账户中全部已学习物品的 ID，供客户端提示判断
      */
-    public record SyncPayload(int containerId, long balance, List<PriceEntry> catalog) implements CustomPacketPayload {
+    public record SyncPayload(int containerId, long balance, List<PriceEntry> catalog,
+                              List<ResourceLocation> learnedIds) implements CustomPacketPayload {
         public static final Type<SyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_sync"));
         public static final StreamCodec<RegistryFriendlyByteBuf, SyncPayload> CODEC = StreamCodec.of(
                 (buf, packet) -> {
@@ -185,6 +190,8 @@ public final class OreConversionNetwork {
                         buf.writeResourceLocation(entry.id());
                         buf.writeLong(entry.price());
                     }
+                    buf.writeVarInt(packet.learnedIds.size());
+                    for (ResourceLocation id : packet.learnedIds) buf.writeResourceLocation(id);
                 },
                 buf -> {
                     int id = buf.readVarInt();
@@ -194,7 +201,12 @@ public final class OreConversionNetwork {
                     if (size < 0 || size > 2048) throw new IllegalArgumentException("Invalid conversion catalog size");
                     List<PriceEntry> catalog = new ArrayList<>(size);
                     for (int i = 0; i < size; i++) catalog.add(new PriceEntry(buf.readResourceLocation(), buf.readLong(), false));
-                    return new SyncPayload(id, balance, catalog);
+                    int learnedSize = buf.readVarInt();
+                    // 学习记录最多 2048 条，解码时沿用服务端的数量上限。
+                    if (learnedSize < 0 || learnedSize > 2048) throw new IllegalArgumentException("Invalid learned item count");
+                    List<ResourceLocation> learnedIds = new ArrayList<>(learnedSize);
+                    for (int i = 0; i < learnedSize; i++) learnedIds.add(buf.readResourceLocation());
+                    return new SyncPayload(id, balance, catalog, learnedIds);
                 });
 
         /** 返回此载荷的注册类型。 */

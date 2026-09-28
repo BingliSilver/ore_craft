@@ -21,15 +21,17 @@ public final class ModBlockEntities {
             BLOCK_ENTITY_TYPES.register("ore_enchanting_table", () -> BlockEntityType.Builder.of(
                     OreEnchantingBlockEntity::new, ModBlocks.ORE_ENCHANTING_TABLE.get()).build(null));
 
-    /** 矿质传输接口的原料、容器、归属玩家及五秒计时。 */
+    /** 普通版与升级版传输接口共用库存和归属类型，处理速度由方块等级决定。 */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConverterBlockEntity>> ORE_CONVERTER =
             BLOCK_ENTITY_TYPES.register("ore_converter", () -> BlockEntityType.Builder.of(
-                    OreConverterBlockEntity::new, ModBlocks.ORE_CONVERTER.get()).build(null));
+                    OreConverterBlockEntity::new, ModBlocks.ORE_CONVERTER.get(),
+                    ModBlocks.ORE_CONVERTER_PLUS.get()).build(null));
 
-    /** 矿质转化器保存支付容器、输出、已选物品和五秒计时。 */
+    /** 普通版与升级版转化器共用支付容器、产物、选择和进度类型。 */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConversionMachineBlockEntity>> ORE_CONVERSION_MACHINE =
             BLOCK_ENTITY_TYPES.register("ore_conversion_machine", () -> BlockEntityType.Builder.of(
-                    OreConversionMachineBlockEntity::new, ModBlocks.ORE_CONVERSION_MACHINE.get()).build(null));
+                    OreConversionMachineBlockEntity::new, ModBlocks.ORE_CONVERSION_MACHINE.get(),
+                    ModBlocks.ORE_CONVERSION_MACHINE_PLUS.get()).build(null));
 
     /** 工具类不允许创建实例。 */
     private ModBlockEntities() {

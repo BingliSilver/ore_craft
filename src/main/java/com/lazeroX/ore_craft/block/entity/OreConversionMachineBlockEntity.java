@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.block.entity;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
+import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
@@ -23,12 +24,14 @@ import java.util.OptionalLong;
 import java.util.UUID;
 
 /**
- * 矿质转化器的持久状态：支付容器、单格产物、已学习物品选择和五秒计时。
+ * 普通版及升级版矿质转化器的持久状态：支付容器、单格产物、已学习选择和轮次计时。
  * 放置者离线时仍可运行；选择只保存物品 ID，不额外保存或掉落实物模板。
  */
 public final class OreConversionMachineBlockEntity extends BlockEntity implements OreMachineInventory {
     /** 每轮间隔 100 游戏刻，正常刻速下约五秒。 */
     public static final int INTERVAL_TICKS = 100;
+    /** 升级版每 20 游戏刻完成一轮，正常刻速下为一秒。 */
+    public static final int PLUS_INTERVAL_TICKS = 20;
     /** 容器和真实输出物的库存位置；选择框由菜单单独同步。 */
     public static final int CONTAINER_SLOT = 0;
     public static final int OUTPUT_SLOT = 1;
@@ -37,6 +40,8 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     private static final int[] OUTPUT_SLOTS = {OUTPUT_SLOT};
     /** 一轮最多生成 16 件，仍受物品自身最大堆叠数量限制。 */
     private static final int ITEMS_PER_CYCLE = 16;
+    /** 升级版每轮最多生成 32 件，仍受目标物品最大堆叠数限制。 */
+    private static final int PLUS_ITEMS_PER_CYCLE = 32;
     /** 上一次检查时的支付容器快照，用于区分支付条件变化和单纯提取产物。 */
     private ItemStack observedContainer = ItemStack.EMPTY;
     /** 方块内的持久物品库存；只有支付容器变化才会重新开始本轮计时。 */
@@ -135,9 +140,20 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     /** 返回需要同步到界面的轮次进度。 */
     public int progressTicks() { return progressTicks; }
 
+    /** 返回设备等级对应的轮次时长，供计时与菜单进度条共用。 */
+    public int intervalTicks() {
+        return getBlockState().is(ModBlocks.ORE_CONVERSION_MACHINE_PLUS.get())
+                ? PLUS_INTERVAL_TICKS : INTERVAL_TICKS;
+    }
+
+    /** 返回当前设备等级的单轮产物上限。 */
+    private int itemsPerCycle() {
+        return intervalTicks() == PLUS_INTERVAL_TICKS ? PLUS_ITEMS_PER_CYCLE : ITEMS_PER_CYCLE;
+    }
+
     /**
      * 每服务端刻核对学习记录、实时价格、ME 余额和完整批次的输出空间。
-     * 满五秒时先成功扣费，再写入输出；条件变化时归零等待进度。
+     * 普通版满五秒最多产出 16 件，升级版满一秒最多产出 32 件；先扣费再写入输出。
      *
      * @param level 当前服务端世界
      * @param pos 当前方块坐标
@@ -164,7 +180,7 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
             return;
         }
         // 单格输出必须容得下一整个批次；不可堆叠物品每轮只生产一件。
-        int count = Math.min(ITEMS_PER_CYCLE, target.getMaxStackSize());
+        int count = Math.min(machine.itemsPerCycle(), target.getMaxStackSize());
         long unitPrice = unit.getAsLong();
         if (output.getCount() > target.getMaxStackSize() - count || unitPrice > Long.MAX_VALUE / count) {
             machine.resetProgress();
@@ -176,7 +192,7 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
             return;
         }
         machine.progressTicks++;
-        if (machine.progressTicks < INTERVAL_TICKS) {
+        if (machine.progressTicks < machine.intervalTicks()) {
             machine.setChanged();
             return;
         }
@@ -219,6 +235,6 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         selected = id != null && BuiltInRegistries.ITEM.containsKey(id) ? id : null;
         inventory.setItem(CONTAINER_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Container")));
         inventory.setItem(OUTPUT_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Output")));
-        progressTicks = Math.clamp(tag.getInt("Progress"), 0, INTERVAL_TICKS - 1);
+        progressTicks = Math.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
     }
 }

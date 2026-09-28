@@ -7,6 +7,8 @@ import com.google.gson.JsonParseException;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.recipe.OreContainerUpgradeRecipe;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
+import com.lazeroX.ore_craft.item.EnderOreContainerItem;
+import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.register.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -254,7 +256,7 @@ public final class OreConversionPrices {
         return value == null || value <= 0 ? OptionalLong.empty() : OptionalLong.of(value);
     }
 
-    /** 判断物品栈是否可以加入已学习目录。 */
+    /** 判断默认状态的物品栈是否可学习并在之后按同一基础状态提取。 */
     public static boolean canLearn(ItemStack stack) {
         return isPlain(stack) && canExtract(stack.getItem());
     }
@@ -266,27 +268,55 @@ public final class OreConversionPrices {
     }
 
     /**
-     * 判断物品是否能按当前 ME 单价输入转化桌或传输接口。
-     * 普通来源仍需直接定价；两种绿宝石煤炭允许使用配方推导价格，且永恒煤只豁免自动记录的持有者 UUID。
+     * 判断物品是否能输入转化桌或传输接口。
+     * 矿质容器允许按本体价格回收；其他普通来源仍需直接定价，两种绿宝石煤炭允许配方推导价格。
      */
     public static boolean canDeposit(ItemStack stack) {
         Item item = stack.getItem();
         boolean emeraldCoal = item == ModItems.EMERALD_COAL.get() || item == ModItems.ETERNAL_EMERALD_COAL.get();
-        if (!isPlainForDeposit(stack) || !canExtract(item)
-                || !(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
+        if (!isPlainForDeposit(stack) || !canExtract(item)) return false;
+        // 容器自身是可定价物品，回收不依赖普通矿物来源列表；末影容器不读取所连账户。
+        if (item instanceof OreContainerItem || item instanceof EnderOreContainerItem) return true;
+        if (!(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
         return config.sources().stream().anyMatch(source -> source.matches(stack));
     }
 
     /**
-     * 检查输入物品的状态；只忽略永恒煤的持有者标记，附魔等其他组件仍不能兑换 ME。
+     * 计算输入栈中每件物品可回收的 ME；普通容器加上存储量，末影容器只回收本体。
+     * 输入资格先按原栈校验，避免附魔或其他额外组件随容器一起被低价吞掉。
+     *
+     * @param stack 准备放入转化桌或传输接口的物品栈
+     * @return 每件可到账的 ME；不允许输入或金额溢出时为空
+     */
+    public static OptionalLong depositValue(ItemStack stack) {
+        if (!canDeposit(stack)) return OptionalLong.empty();
+        OptionalLong base = price(stack.getItem());
+        if (base.isEmpty()) return OptionalLong.empty();
+        if (stack.getItem() instanceof OreContainerItem container) {
+            long stored = container.storedMe(stack);
+            if (base.getAsLong() > Long.MAX_VALUE - stored) return OptionalLong.empty();
+            return OptionalLong.of(base.getAsLong() + stored);
+        }
+        // 末影容器不持有独立 ME，不能把玩家全局余额当作物品内部价值。
+        return base;
+    }
+
+    /**
+     * 检查输入物品的状态；忽略普通容器自身存储量和永恒煤自动记录的持有者标记。
+     * 附魔、自定义名称及其他组件仍不能兑换 ME，避免带特殊状态的物品被误消耗。
      * 客户端使用同一规则显示可兑换提示，实际价格和来源资格由服务端判定。
      *
      * @param stack 待投入的物品栈
      * @return 物品状态符合兑换要求时为 true
      */
     public static boolean isPlainForDeposit(ItemStack stack) {
+        if (stack.getItem() instanceof OreContainerItem container) {
+            ItemStack withoutStoredMe = stack.copy();
+            container.setStoredMe(withoutStoredMe, 0);
+            return isPlain(withoutStoredMe);
+        }
         if (stack.getItem() instanceof EternalEmeraldCoalItem eternalCoal) {
-            return isPlain(eternalCoal.copyWithoutOwnerForLearning(stack));
+            return isPlain(eternalCoal.copyWithoutOwnerForDeposit(stack));
         }
         return isPlain(stack);
     }

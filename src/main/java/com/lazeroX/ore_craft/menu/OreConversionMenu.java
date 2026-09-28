@@ -3,7 +3,6 @@ package com.lazeroX.ore_craft.menu;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.item.OreContainerItem;
-import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -148,7 +147,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
             getSlot(slot).set(ItemStack.EMPTY);
             return original;
         }
-        // 背包中的矿质容器也走学习流程；只有手动放入交互口才会转移 ME。
+        // 背包中的矿质容器可学习并整体回收；只有手动放入交互口才会无损转移内部 ME。
         return useInventorySlot(serverPlayer, slot);
     }
 
@@ -160,7 +159,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 将背包格子的可转化物品输入转化桌；矿质容器按零 ME 状态、永恒煤按无持有者状态学习类型，原物品留在背包。
+     * 从背包物品的默认状态学习类型；只有原物品本身满足兑换规则时才消耗并转入 ME。
+     * 普通矿质容器回收本体和内部存储量；末影容器只回收本体，不把既有账户余额重复计价。
+     * 附魔、耐久等不允许输入的特殊组件不会被转化，原物品保留在背包。
      *
      * @param player 操作转化桌的服务端玩家
      * @param slotIndex 容器中的背包格子索引
@@ -171,14 +172,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
         Slot slot = getSlot(slotIndex);
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return ItemStack.EMPTY;
-        // 只在校验副本中清除容器存储量或永恒煤的持有者 UUID，原物品及其他特殊数据保持不变。
-        ItemStack learningStack = stack;
-        if (stack.getItem() instanceof OreContainerItem container) {
-            learningStack = stack.copy();
-            container.setStoredMe(learningStack, 0);
-        } else if (stack.getItem() instanceof EternalEmeraldCoalItem eternalCoal) {
-            learningStack = eternalCoal.copyWithoutOwnerForLearning(stack);
-        }
+        // 学习目录按物品 ID 保存，提取时生成该物品的默认状态；用同样的默认栈校验可学习性。
+        // 这里不修改原栈，附魔、损伤、容器 ME 和其他数据都不会被写进学习记录。
+        ItemStack learningStack = new ItemStack(stack.getItem());
         if (!OreConversionPrices.isPlain(learningStack)) { status(player, "special_state"); return ItemStack.EMPTY; }
         if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
         OreConversionSavedData data = OreConversionSavedData.get(player);
@@ -188,12 +184,15 @@ public class OreConversionMenu extends AbstractContainerMenu {
         }
         long converted = 0;
         ItemStack moved = ItemStack.EMPTY;
-        // 即使数据包将容器列为可输入来源，Shift 点击仍只学习，不消耗容器或兑换 ME。
-        if (!(stack.getItem() instanceof OreContainerItem) && OreConversionPrices.canDeposit(stack)) {
-            OptionalLong price = OreConversionPrices.price(stack.getItem());
-            if (price.isEmpty()) { status(player, "unpriced"); return ItemStack.EMPTY; }
+        // 兑换按原栈计算，普通容器的存储量只在此时计入，学习记录仍是默认空容器。
+        OptionalLong unit = OreConversionPrices.depositValue(stack);
+        if (unit.isEmpty() && OreConversionPrices.canDeposit(stack)) {
+            status(player, "overflow");
+            return ItemStack.EMPTY;
+        }
+        if (unit.isPresent()) {
             long amount;
-            try { amount = Math.multiplyExact(price.getAsLong(), stack.getCount()); }
+            try { amount = Math.multiplyExact(unit.getAsLong(), stack.getCount()); }
             catch (ArithmeticException ex) { status(player, "overflow"); return ItemStack.EMPTY; }
             if (!data.credit(player, amount)) { status(player, "overflow"); return ItemStack.EMPTY; }
             converted = amount;

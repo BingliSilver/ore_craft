@@ -44,6 +44,14 @@ public final class ModBlocks {
                     .sound(SoundType.METAL)
                     .lightLevel(state -> 10)));
 
+    /** 下界合金升级的矿质传输接口：每秒最多处理 32 件原料。 */
+    public static final DeferredBlock<OreConverterBlock> ORE_CONVERTER_PLUS =
+            BLOCKS.register("ore_converter_plus", () -> new OreConverterBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .sound(SoundType.METAL)
+                    .lightLevel(state -> 10), true));
+
     /** 矿质转化器：消耗容器 ME，定时生成已学习的指定物品。 */
     public static final DeferredBlock<OreConversionMachineBlock> ORE_CONVERSION_MACHINE =
             BLOCKS.register("ore_conversion_machine", () -> new OreConversionMachineBlock(BlockBehaviour.Properties.of()
@@ -51,6 +59,14 @@ public final class ModBlocks {
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.METAL)
                     .lightLevel(state -> 10)));
+
+    /** 下界合金升级的矿质转化器：每秒最多生成 32 件已学习物品。 */
+    public static final DeferredBlock<OreConversionMachineBlock> ORE_CONVERSION_MACHINE_PLUS =
+            BLOCKS.register("ore_conversion_machine_plus", () -> new OreConversionMachineBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .sound(SoundType.METAL)
+                    .lightLevel(state -> 10), true));
 
     /** 点燃后收集爆炸掉落物的采矿 TNT。 */
     public static final DeferredBlock<MiningTntBlock> MINING_TNT_BLOCK =
