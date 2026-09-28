@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "ore_craft:item/mineral_time_scepter"
+  }
+}

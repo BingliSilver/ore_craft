@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
+import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
@@ -62,6 +63,11 @@ public final class ModItems {
     public static final DeferredItem<RadiantDiamondHeartItem> RADIANT_DIAMOND_HEART =
             ITEMS.register("radiant_diamond_heart", () ->
                     new RadiantDiamondHeartItem(new Item.Properties().durability(6).stacksTo(1)));
+
+    /** 矿质时间权杖：右键设置倍率和时长，主手潜行右键为目标方块付费加速。 */
+    public static final DeferredItem<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =
+            ITEMS.register("mineral_time_scepter", () ->
+                    new MineralTimeScepterItem(new Item.Properties().stacksTo(1)));
 
     /** 容量 10,240 ME 的铜质矿质容器。 */
     public static final DeferredItem<OreContainerItem> COPPER_ORE_CONTAINER =

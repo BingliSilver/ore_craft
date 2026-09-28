@@ -107,6 +107,27 @@ public class EternalEmeraldCoalItem extends Item {
     }
 
     /**
+     * 生成仅用于转化桌学习校验的副本，并移除燃料自动记录的持有者 UUID。
+     * 真实物品不变；若还带有其他自定义数据，普通物品校验仍会拒绝学习。
+     *
+     * @param stack 待学习的永恒绿宝石煤炭
+     * @return 不含持有者字段的独立物品副本
+     */
+    public ItemStack copyWithoutOwnerForLearning(ItemStack stack) {
+        ItemStack copy = stack.copy();
+        CustomData customData = copy.get(DataComponents.CUSTOM_DATA);
+        if (customData == null) return copy;
+
+        CompoundTag tag = customData.copyTag();
+        // 只豁免本物品自动写入的有效 UUID，不清除其他来源的特殊数据。
+        if (tag.hasUUID(OWNER_KEY)) {
+            tag.remove(OWNER_KEY);
+            CustomData.set(DataComponents.CUSTOM_DATA, copy, tag);
+        }
+        return copy;
+    }
+
+    /**
      * 显示燃烧时长、扣费规则和所属玩家的判定方式。
      *
      * @param stack 当前物品栈

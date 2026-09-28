@@ -1,6 +1,8 @@
 {
   "sources": [
     "minecraft:coal",
+    "ore_craft:emerald_coal",
+    "ore_craft:eternal_emerald_coal",
     "minecraft:copper_ingot",
     "minecraft:iron_ingot",
     "minecraft:gold_ingot",

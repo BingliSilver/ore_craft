@@ -82,6 +82,6 @@ public final class OreConversionClient {
     /** 判断物品栈能否作为普通物品输入转化桌。 */
     public static boolean canConvert(ItemStack stack) {
         OreConversionNetwork.PriceEntry entry = prices.get(BuiltInRegistries.ITEM.getKey(stack.getItem()));
-        return entry != null && entry.convertible() && OreConversionPrices.isPlain(stack);
+        return entry != null && entry.convertible() && OreConversionPrices.isPlainForDeposit(stack);
     }
 }

@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "ACA",
+    "XAX"
+  ],
+  "key": {
+    "X": { "item": "ore_craft:ender_ore_container" },
+    "A": { "item": "minecraft:clock" },
+    "C": { "item": "minecraft:obsidian" }
+  },
+  "result": { "id": "ore_craft:mineral_time_scepter", "count": 1 }
+}

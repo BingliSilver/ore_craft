@@ -30,12 +30,13 @@ public final class OreCraftClientEvents {
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
-    /** 注册转化桌、矿质附魔台、传输接口和矿质转化器的客户端屏幕。 */
+    /** 注册转化桌、矿质附魔台、传输接口、矿质转化器和时间权杖的客户端屏幕。 */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
         event.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
         event.register(ModMenus.ORE_CONVERTER_MENU.get(), OreConverterScreen::new);
         event.register(ModMenus.ORE_CONVERSION_MACHINE_MENU.get(), OreConversionMachineScreen::new);
+        event.register(ModMenus.MINERAL_TIME_SCEPTER_MENU.get(), MineralTimeScepterScreen::new);
     }
 }

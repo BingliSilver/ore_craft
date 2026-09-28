@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft;
 
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
+import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
@@ -63,5 +64,7 @@ public class Ore_craft {
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::registerBrewingRecipes);
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::onPotionBrew);
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::onBlockDrops);
+        NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerTick);
+        NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerStopped);
     }
 }

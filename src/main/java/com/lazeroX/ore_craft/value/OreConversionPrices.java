@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.recipe.OreContainerUpgradeRecipe;
+import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
+import com.lazeroX.ore_craft.register.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -263,11 +265,30 @@ public final class OreConversionPrices {
         return item != Items.AIR && !isBlocked(item) && price(item).isPresent();
     }
 
-    /** 判断物品栈是否既符合普通物品约束又属于允许输入的来源。 */
+    /**
+     * 判断物品是否能按当前 ME 单价输入转化桌或传输接口。
+     * 普通来源仍需直接定价；两种绿宝石煤炭允许使用配方推导价格，且永恒煤只豁免自动记录的持有者 UUID。
+     */
     public static boolean canDeposit(ItemStack stack) {
-        if (!isPlain(stack) || !basePriced.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()))
-                || price(stack.getItem()).isEmpty()) return false;
+        Item item = stack.getItem();
+        boolean emeraldCoal = item == ModItems.EMERALD_COAL.get() || item == ModItems.ETERNAL_EMERALD_COAL.get();
+        if (!isPlainForDeposit(stack) || !canExtract(item)
+                || !(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
         return config.sources().stream().anyMatch(source -> source.matches(stack));
+    }
+
+    /**
+     * 检查输入物品的状态；只忽略永恒煤的持有者标记，附魔等其他组件仍不能兑换 ME。
+     * 客户端使用同一规则显示可兑换提示，实际价格和来源资格由服务端判定。
+     *
+     * @param stack 待投入的物品栈
+     * @return 物品状态符合兑换要求时为 true
+     */
+    public static boolean isPlainForDeposit(ItemStack stack) {
+        if (stack.getItem() instanceof EternalEmeraldCoalItem eternalCoal) {
+            return isPlain(eternalCoal.copyWithoutOwnerForLearning(stack));
+        }
+        return isPlain(stack);
     }
 
     /** 判断物品栈是否非空、未损坏且不带数据组件。 */

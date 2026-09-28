@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.menu;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.item.OreContainerItem;
+import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -159,7 +160,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 将背包格子的可转化物品输入转化桌；矿质容器按零 ME 状态学习类型，原容器及其 ME 留在背包。
+     * 将背包格子的可转化物品输入转化桌；矿质容器按零 ME 状态、永恒煤按无持有者状态学习类型，原物品留在背包。
      *
      * @param player 操作转化桌的服务端玩家
      * @param slotIndex 容器中的背包格子索引
@@ -170,11 +171,13 @@ public class OreConversionMenu extends AbstractContainerMenu {
         Slot slot = getSlot(slotIndex);
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return ItemStack.EMPTY;
-        // 只在副本中清除存储量：有 ME 的容器也能学习，但原物品不变，其他特殊数据仍受普通校验约束。
+        // 只在校验副本中清除容器存储量或永恒煤的持有者 UUID，原物品及其他特殊数据保持不变。
         ItemStack learningStack = stack;
         if (stack.getItem() instanceof OreContainerItem container) {
             learningStack = stack.copy();
             container.setStoredMe(learningStack, 0);
+        } else if (stack.getItem() instanceof EternalEmeraldCoalItem eternalCoal) {
+            learningStack = eternalCoal.copyWithoutOwnerForLearning(stack);
         }
         if (!OreConversionPrices.isPlain(learningStack)) { status(player, "special_state"); return ItemStack.EMPTY; }
         if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
