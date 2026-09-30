@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 可主动使用的辉耀钻石之心。
  *
- * <p>玩家手持右键后获得 1 分钟急迫 IV，随后进入 20 秒冷却并消耗 1 点耐久。
+ * <p>玩家手持右键后同时获得持续 1 分钟的急迫 IV 和速度 II，随后进入 20 秒冷却并消耗 1 点耐久。
  * 物品的全部 6 点耐久耗尽后会被销毁。</p>
  */
 public class RadiantDiamondHeartItem extends Item {
@@ -27,6 +27,12 @@ public class RadiantDiamondHeartItem extends Item {
 
     /** 急迫 IV 对应的零基放大等级。 */
     private static final int HASTE_AMPLIFIER = 3;
+
+    /** 速度效果的持续时间：1 分钟，与本次使用的急迫效果同时生效。 */
+    private static final int SPEED_DURATION_TICKS = 20 * 60;
+
+    /** 速度 II 对应的零基放大等级，数值 1 表示二级效果。 */
+    private static final int SPEED_AMPLIFIER = 1;
 
     /** 每次成功使用后的冷却时间：20 秒。 */
     private static final int USE_COOLDOWN_TICKS = 20 * 20;
@@ -60,7 +66,7 @@ public class RadiantDiamondHeartItem extends Item {
     }
 
     /**
-     * 响应玩家手持右键，为玩家施加急迫效果并消耗物品耐久。
+     * 响应玩家手持右键，为玩家同时施加急迫 IV 和速度 II，并消耗 1 点物品耐久。
      *
      * @param level 物品被使用时所在的世界
      * @param player 使用物品的玩家
@@ -82,6 +88,12 @@ public class RadiantDiamondHeartItem extends Item {
                     MobEffects.DIG_SPEED,
                     HASTE_DURATION_TICKS,
                     HASTE_AMPLIFIER
+            ));
+            // 两种效果共享本次使用的冷却和耐久消耗，不为新增速度效果另收一次耐久。
+            player.addEffect(new MobEffectInstance(
+                    MobEffects.MOVEMENT_SPEED,
+                    SPEED_DURATION_TICKS,
+                    SPEED_AMPLIFIER
             ));
             player.getCooldowns().addCooldown(this, USE_COOLDOWN_TICKS);
 

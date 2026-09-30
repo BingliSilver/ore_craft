@@ -5,6 +5,7 @@ import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
 import com.lazeroX.ore_craft.value.EnchantMeCostCalculator;
+import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -164,12 +165,10 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         return null;
     }
 
-    /** 返回一条附魔的目标等级；首次显示时直接使用输入物当前等级。 */
+    /** 返回目标等级；未手动调整时保留实际原等级，避免打开界面就自动降级超限附魔。 */
     private int selectedLevel(Holder.Reference<Enchantment> holder) {
-        int current = menu.target().getAllEnchantments(minecraft.level.registryAccess()
-                .lookupOrThrow(Registries.ENCHANTMENT)).getLevel(holder);
-        int maximum = Math.min(255, holder.value().getMaxLevel());
-        return Math.clamp(selectedLevels.getOrDefault(holder.key().location(), current), 0, maximum);
+        int current = EnchantmentHelper.getEnchantmentsForCrafting(menu.target()).getLevel(holder);
+        return selectedLevels.getOrDefault(holder.key().location(), current);
     }
 
     /**
@@ -341,7 +340,9 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                     locked ? 0xFF617381 : affordable ? CYAN : 0xFFFF8E88, false);
             graphics.drawCenteredString(font, "−", 401, y + 5, locked ? 0xFF617381 : TEXT);
             graphics.drawCenteredString(font, levelName(level), 426, y + 5, locked ? 0xFF7C8E9C : TEXT);
-            graphics.drawCenteredString(font, "+", 452, y + 5, locked ? 0xFF617381 : TEXT);
+            // 已到制作上限或持有超限附魔时禁用加号；减号仍可把超限等级降至制作上限。
+            boolean canIncrease = !locked && level < EnchantLevelLimits.maxCraftableLevel(holder);
+            graphics.drawCenteredString(font, "+", 452, y + 5, canIncrease ? TEXT : 0xFF617381);
         }
         if (filtered.isEmpty()) {
             Component hint = target.isEmpty()
@@ -410,8 +411,11 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                 if (isConflictLocked(holder)) return true;
                 selectedId = holder.key().location();
                 int level = selectedLevel(holder);
-                if (x >= 394 && x < 409) level = Math.max(0, level - 1);
-                if (x >= 445 && x < 460) level = Math.min(Math.min(255, holder.value().getMaxLevel()), level + 1);
+                int maximum = EnchantLevelLimits.maxCraftableLevel(holder);
+                // 超限附魔第一次降级直接进入可制作范围，差额按实际高等级计算，不能重建中间超限等级。
+                if (x >= 394 && x < 409) level = Math.min(maximum, Math.max(0, level - 1));
+                // 点击禁用的加号不会把已有高等级附魔偷偷压低，也不会产生超限升级请求。
+                if (x >= 445 && x < 460 && level < maximum) level++;
                 selectedLevels.put(selectedId, level);
                 sendSelection();
             }

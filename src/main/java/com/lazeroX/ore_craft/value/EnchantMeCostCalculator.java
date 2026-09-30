@@ -6,7 +6,8 @@ import net.minecraft.world.item.enchantment.Enchantment;
 
 /**
  * 按附魔定义统一计算矿质消耗。价格只由等级、权重和 Treasure 标签决定，
- * 因此数据包或其他模组注册的附魔也遵循同一规则。
+ * 因此数据包或其他模组注册的附魔也遵循同一规则。已有附魔按实际等级估值，
+ * 即使神化等模组产生了高于附魔定义上限的等级，也可以正常降级或移除并回收 ME。
  */
 public final class EnchantMeCostCalculator {
     /** 一级普通常见附魔的基础价格，单位为 ME。 */
@@ -21,12 +22,13 @@ public final class EnchantMeCostCalculator {
      * 不会绕回负数或意外变成低价。
      *
      * @param enchantment 当前世界注册表中的附魔 Holder
-     * @param level 目标附魔等级，必须位于定义允许范围内
+     * @param level 实际附魔等级，必须为正数；允许超过附魔定义或附魔台制作上限
      * @return 所需 ME，最少为 1，溢出时为 {@link Long#MAX_VALUE}
-     * @throws IllegalArgumentException 等级低于 1 或高于附魔定义上限时抛出
+     * @throws IllegalArgumentException 等级低于 1 时抛出
      */
     public static long calculateCost(Holder<Enchantment> enchantment, int level) {
-        if (level < 1 || level > enchantment.value().getMaxLevel()) {
+        // 估值不负责制作权限；读取超限附魔时不能因定义上限而使界面或交易崩溃。
+        if (level < 1) {
             throw new IllegalArgumentException("Invalid enchantment level: " + level);
         }
         long cost = saturatedMultiply(BASE_ENCHANT_ME, getLevelMultiplier(level));
@@ -39,8 +41,8 @@ public final class EnchantMeCostCalculator {
      * 正数需支付，负数可存储，未变化时为零。两项价格均为非负 long，差值不会溢出。
      *
      * @param enchantment 要修改的附魔
-     * @param originalLevel 物品当前等级，允许为零
-     * @param targetLevel 玩家选定等级，允许为零
+     * @param originalLevel 物品实际等级，允许为零或高于附魔定义上限
+     * @param targetLevel 玩家选定等级，允许为零；制作权限由菜单单独验证
      * @return 目标价格与当前价格的差额，单位为 ME
      */
     public static long calculateDifference(Holder<Enchantment> enchantment, int originalLevel, int targetLevel) {

@@ -1,0 +1,12 @@
+Tool: built-in image_gen (transparent_background=true).
+Reference: user-supplied golden illumination core image.
+Generated source: mineral_illumination_core_source.png.
+Deployment: nearest-neighbor resize to 64x64 RGBA; preserve generated transparency.
+Item texture: ../src/main/resources/assets/ore_craft/textures/item/mineral_illumination_core.png.
+
+Use case: style-transfer
+Asset type: production Minecraft inventory item sprite, named 矿质照明核心 (Mineral Illumination Core), transparent PNG.
+Input image: reference for the object design only.
+Primary request: Convert the supplied intricate golden luminous cube into a clean authentic Minecraft pixel-art item icon. Preserve its bright yellow-white central cubic light core, thick dark charcoal-brown cubic cage rails, gold corner lamp housings with tiny white-yellow square lights, and glowing square halo frames above and below and at the sides. Isometric three-quarter view, a single object centered filling 88% of a square canvas, all parts entirely visible, connected silhouette, balanced symmetry.
+Style: crisp hand-crafted low-resolution pixel art equivalent to a 64x64 pixel sprite, each logical pixel enlarged uniformly, hard stair-step edges, limited Minecraft-like gold/amber/cream/charcoal palette, discrete pixel clusters for shading. Main central core must remain large and readable at inventory size. Simplify tiny details.
+Backdrop: true transparent alpha background including the holes through the square halo frames. No floor, no scene, no shadow, no text, no labels, no border, no floating particles. Confine brightness to solid pixel colors inside the object, no external bloom, no blur, no smooth gradients, no photographic rendering. Preserve the reference identity while making a practical inventory sprite.

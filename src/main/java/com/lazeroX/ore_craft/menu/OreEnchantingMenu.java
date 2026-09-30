@@ -8,6 +8,7 @@ import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.EnchantMeCostCalculator;
+import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -241,19 +242,21 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
 
     /**
      * 更新一条附魔的目标等级并刷新服务端预览，此时不发生 ME 交易。
+     * 已有超限等级可以原样保留，降级或移除时按真实原等级回收 ME。
      *
      * @param player 发起请求的玩家
      * @param enchantmentId 附魔注册 ID
-     * @param requestedLevel 目标等级
+     * @param requestedLevel 目标等级；变更后的等级必须在零至附魔台制作上限之间
      */
     public void select(ServerPlayer player, ResourceLocation enchantmentId, int requestedLevel) {
         if (player.containerMenu != this || !stillValid(player)) return;
         resetSelectionsIfTargetChanged();
         var lookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         var found = lookup.get(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
-        if (found.isEmpty() || requestedLevel < 0
-                || requestedLevel > Math.min(255, found.get().value().getMaxLevel())) return;
+        if (found.isEmpty()) return;
         int currentLevel = EnchantmentHelper.getEnchantmentsForCrafting(target()).getLevel(found.get());
+        // 同时验证界面请求和伪造载荷，不能借神化提高的定义上限制造超限附魔。
+        if (!EnchantLevelLimits.canSelectLevel(found.get(), currentLevel, requestedLevel)) return;
         // 恢复原等级时删除变更记录，避免空操作产生可复制的结果预览。
         if (requestedLevel == currentLevel) selectedLevels.remove(enchantmentId);
         else selectedLevels.put(enchantmentId, requestedLevel);
@@ -289,7 +292,8 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
             Holder<Enchantment> enchantment = found.get();
             int selectedLevel = choice.getValue();
             int currentLevel = current.getLevel(enchantment);
-            if (selectedLevel < 0 || selectedLevel > Math.min(255, enchantment.value().getMaxLevel())
+            // 领取前再次验证制作上限，但保留真实原等级用于计算超限附魔的回收价值。
+            if (!EnchantLevelLimits.canSelectLevel(enchantment, currentLevel, selectedLevel)
                     || selectedLevel == currentLevel || effective.getLevel(enchantment) > currentLevel) return null;
             if (selectedLevel > currentLevel && !isBookTarget(target)
                     && !target.supportsEnchantment(enchantment)) return null;

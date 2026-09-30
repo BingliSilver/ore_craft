@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
+import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
@@ -67,10 +68,18 @@ public final class ModItems {
     public static final DeferredItem<MinerBadgeItem> MINER_BADGE =
             ITEMS.register("miner_badge", () -> new MinerBadgeItem(new Item.Properties().stacksTo(1)));
 
-    /** 使用后给予玩家急迫 IV 的辉耀钻石之心。 */
+    /** 使用后给予玩家持续 1 分钟的急迫 IV 和速度 II 的辉耀钻石之心。 */
     public static final DeferredItem<RadiantDiamondHeartItem> RADIANT_DIAMOND_HEART =
             ITEMS.register("radiant_diamond_heart", () ->
                     new RadiantDiamondHeartItem(new Item.Properties().durability(6).stacksTo(1)));
+
+    /**
+     * 不可堆叠的矿质照明核心：背包中携带时自动照明，右键用矿质容器中的 ME 制造火把。
+     * 每件核心单独保存自动照明开关；同一玩家携带多件时不会重复放置。
+     */
+    public static final DeferredItem<MineralIlluminationCoreItem> MINERAL_ILLUMINATION_CORE =
+            ITEMS.register("mineral_illumination_core", () ->
+                    new MineralIlluminationCoreItem(new Item.Properties().stacksTo(1)));
 
     /** 矿质时间权杖：右键设置倍率和时长，主手潜行右键为目标方块付费加速。 */
     public static final DeferredItem<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =
@@ -104,6 +113,7 @@ public final class ModItems {
                     new Item.Properties().stacksTo(64)
             ));
 
+    /** 阻止实例化；物品注册项由模组生命周期中的静态延迟注册器统一管理。 */
     private ModItems() {}
 
     /**
