@@ -48,6 +48,8 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     public static final int CONTAINER_SLOT = 1;
     /** 仅展示结果的输出槽，不参与关闭菜单时的输入物归还。 */
     public static final int OUTPUT_SLOT = 2;
+    /** 原版菜单按钮包中的一键清空操作编号；只调整选择，不直接修改输入物。 */
+    public static final int CLEAR_ENCHANTMENTS_BUTTON = 0;
     /** 玩家背包槽起始索引。 */
     private static final int INVENTORY_START = 3;
     /** 两个输入槽、一个输出槽加 36 个玩家背包槽。 */
@@ -261,6 +263,35 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         if (requestedLevel == currentLevel) selectedLevels.remove(enchantmentId);
         else selectedLevels.put(enchantmentId, requestedLevel);
         refreshPreview();
+    }
+
+    /**
+     * 一次性撤销待选附魔并把全部可编辑的已有附魔设为无，只刷新输出预览。
+     * 服务端从真实输入重建选择，不受客户端搜索、滚动位置或附魔清单影响。
+     * 附魔移除及 ME 回收仍由领取输出时的交易流程执行；关闭界面会返还原物品。
+     *
+     * @param player 点击按钮的玩家，必须是正在使用本菜单的服务端玩家
+     * @param buttonId 操作编号，仅接受一键清空按钮
+     * @return 操作合法并已刷新预览时为 true，否则为 false
+     */
+    @Override
+    public boolean clickMenuButton(Player player, int buttonId) {
+        if (buttonId != CLEAR_ENCHANTMENTS_BUTTON || !(player instanceof ServerPlayer)
+                || player.containerMenu != this || !stillValid(player) || !canPlaceTarget(target())) return false;
+        resetSelectionsIfTargetChanged();
+        // 撤销包括尚未应用的新增附魔在内的全部选择，避免它们残留在清空后的预览中。
+        selectedLevels.clear();
+        var lookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(target());
+        ItemEnchantments effective = target().getAllEnchantments(lookup);
+        for (Holder<Enchantment> enchantment : current.keySet()) {
+            // 与右侧列表保持一致：外部机制增强的附魔不能通过本附魔台移除或回收 ME。
+            if (effective.getLevel(enchantment) > current.getLevel(enchantment)) continue;
+            enchantment.unwrapKey().ifPresent(key -> selectedLevels.put(key.location(), 0));
+        }
+        // 没有原有附魔时只撤销新增选择，结果槽自然清空，不生成无变更的可领取副本。
+        refreshPreview();
+        return true;
     }
 
     /** 换入新目标物品时清空上一件物品尚未领取的所有等级选择。 */

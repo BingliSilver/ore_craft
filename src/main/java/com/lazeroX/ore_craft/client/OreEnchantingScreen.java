@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
 import com.lazeroX.ore_craft.value.EnchantMeCostCalculator;
 import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Holder;
@@ -55,13 +56,15 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
 
     /** 附魔搜索框，只改变客户端列表。 */
     private EditBox search;
+    /** 一键清空右侧全部等级选择；只生成预览，领取输出时才确认交易。 */
+    private Button clearEnchantmentsButton;
     /** 当前目标物品的上一次完整快照，用于检测组件及附魔变化。 */
     private ItemStack seenTarget = ItemStack.EMPTY;
     /** 与目标物品兼容且符合搜索条件的附魔。 */
     private List<Holder.Reference<Enchantment>> filtered = List.of();
     /** 每条附魔当前选择的目标等级；零代表移除，未记录时沿用输入物等级。 */
     private final Map<ResourceLocation, Integer> selectedLevels = new HashMap<>();
-    /** 当前高亮附魔的注册 ID。 */
+    /** 用户主动选中的附魔注册 ID；初始或选择失效时为 null，不自动高亮首项。 */
     private ResourceLocation selectedId;
     /** 附魔列表的首条可见记录。 */
     private int scroll;
@@ -83,7 +86,7 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         imageHeight = HEIGHT;
     }
 
-    /** 初始化真正可输入的附魔搜索框，并根据当前目标重建列表。 */
+    /** 初始化附魔搜索框与一键清空按钮，并根据当前目标重建列表。 */
     @Override
     protected void init() {
         String previousSearch = search == null ? "" : search.getValue();
@@ -102,15 +105,20 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         search.setValue(previousSearch);
         search.setResponder(value -> { scroll = 0; refresh(); });
         addRenderableWidget(search);
+        // 按钮置于法阵右下方，位于输出槽下方、背包上方，方便在取物前清空选择。
+        clearEnchantmentsButton = addRenderableWidget(Button.builder(
+                Component.translatable("gui.ore_craft.enchanting.clear_all"), button -> clearEnchantments())
+                .bounds(leftPos + 210, topPos + 172, 54, 22).build());
         refresh();
     }
 
-    /** 目标物品组件更新后重建候选列表；容器余额由每帧直接读取。 */
+    /** 目标物品组件更新后清除旧选择并重建候选列表；容器余额由每帧直接读取。 */
     @Override
     protected void containerTick() {
         super.containerTick();
         if (!ItemStack.matches(seenTarget, menu.target())) {
             selectedLevels.clear();
+            selectedId = null;
             scroll = 0;
             refresh();
         }
@@ -119,10 +127,12 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     /**
      * 用当前世界的附魔注册表构建候选项，已有附魔也保留以供降级或移除。
      * 书可以接受所有附魔；普通装备遵守 NeoForge 的物品扩展规则。
+     * 刷新仅保留仍可选择的用户高亮项，不自动选择首项，也不提交新的等级选择。
      */
     private void refresh() {
         ItemStack target = menu.target();
         seenTarget = target.copy();
+        clearEnchantmentsButton.active = !target.isEmpty();
         if (target.isEmpty()) {
             filtered = List.of();
             selectedId = null;
@@ -142,12 +152,35 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                     || holder.value().description().getString().toLowerCase(Locale.ROOT).contains(query);
         }).sorted(Comparator.comparing(holder -> holder.value().description().getString())).toList();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, filtered.size() - VISIBLE_ROWS)));
-        if (selectedId == null || filtered.stream().noneMatch(holder ->
+        if (selectedId != null && filtered.stream().noneMatch(holder ->
                 holder.key().location().equals(selectedId) && !isConflictLocked(holder))) {
-            selectedId = filtered.stream().filter(holder -> !isConflictLocked(holder))
-                    .map(holder -> holder.key().location()).findFirst().orElse(null);
+            // 搜索隐藏或冲突导致原选择失效时取消高亮，等待用户下一次主动点击。
+            selectedId = null;
         }
-        sendSelection();
+    }
+
+    /**
+     * 把全部可编辑附魔设为无，并请求服务端一次性重建结果预览。
+     * 操作覆盖搜索隐藏和未滚动到的条目，同时撤销尚未领取的新增附魔。
+     * 输入物与 ME 保持原状，玩家仍需领取输出物品才能确认清空。
+     */
+    private void clearEnchantments() {
+        if (minecraft == null || minecraft.gameMode == null || menu.target().isEmpty()) return;
+        var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(menu.target());
+        ItemEnchantments effective = menu.target().getAllEnchantments(registry);
+        // 未记录的条目默认沿用原等级；先撤销所有旧选择，再显式将已有附魔置零。
+        selectedLevels.clear();
+        registry.listElements().forEach(holder -> {
+            int currentLevel = current.getLevel(holder);
+            // 外部机制提供或增强的附魔不属于右侧可编辑列表，继续遵守原有编辑限制。
+            if (currentLevel > 0 && effective.getLevel(holder) <= currentLevel) {
+                selectedLevels.put(holder.key().location(), 0);
+            }
+        });
+        // 使用原版菜单按钮包提交整体操作，服务端不依赖搜索结果或客户端提交的附魔清单。
+        minecraft.gameMode.handleInventoryButtonClick(menu.containerId, OreEnchantingMenu.CLEAR_ENCHANTMENTS_BUTTON);
+        refresh();
     }
 
     /** 将选中的附魔发送给服务端以刷新结果预览。 */
@@ -172,14 +205,25 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     }
 
     /**
-     * 根据输入物已有附魔与右侧暂存的等级选择，判断候选项是否和生效附魔冲突。
-     * 等级为零的已选附魔会从集合移除，因此玩家移除冲突源后候选项可立即解锁。
+     * 判断候选项是否和当前生效附魔冲突，与悬停提示共用冲突来源计算。
      *
      * @param candidate 待检查的右侧附魔项
      * @return 存在其他生效且不兼容的附魔时为 true
      */
     private boolean isConflictLocked(Holder.Reference<Enchantment> candidate) {
+        return !conflictingEnchantments(candidate).isEmpty();
+    }
+
+    /**
+     * 根据输入物已有附魔与暂存等级选择，列出阻止候选项被选中的全部附魔。
+     * 等级为零的选择会移除冲突源，新增或升级选择也会即时纳入检查。
+     *
+     * @param candidate 待检查的右侧附魔项
+     * @return 按当前语言名称排序的冲突附魔列表；没有冲突时为空
+     */
+    private List<Holder<Enchantment>> conflictingEnchantments(Holder.Reference<Enchantment> candidate) {
         var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        // 保留物品扩展机制提供的有效附魔，再合并用户尚未领取的等级调整。
         Set<Holder<Enchantment>> active = new HashSet<>(menu.target().getAllEnchantments(registry).keySet());
         for (Map.Entry<ResourceLocation, Integer> choice : selectedLevels.entrySet()) {
             var found = registry.get(ResourceKey.create(Registries.ENCHANTMENT, choice.getKey()));
@@ -187,10 +231,10 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
             if (choice.getValue() > 0) active.add(found.get());
             else active.remove(found.get());
         }
-        for (Holder<Enchantment> applied : active) {
-            if (!applied.equals(candidate) && !Enchantment.areCompatible(applied, candidate)) return true;
-        }
-        return false;
+        // 排除自身，并稳定提示顺序，避免 HashSet 的遍历顺序导致多条提示跳动。
+        return active.stream().filter(applied -> !applied.equals(candidate)
+                        && !Enchantment.areCompatible(applied, candidate))
+                .sorted(Comparator.comparing(applied -> applied.value().description().getString())).toList();
     }
 
     /** 当前支付容器中的 ME；末影容器显示最近同步的账户余额。 */
@@ -246,10 +290,13 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                 ? OreEnchantingMenu.RESULT_INSUFFICIENT : OreEnchantingMenu.RESULT_FULL;
     }
 
+    /** 覆盖贴图内固定的列表边框，再根据用户选择动态绘制附魔行及其高亮。 */
     @Override
     protected void renderBg(GuiGraphics graphics, float partialTick, int mouseX, int mouseY) {
         graphics.blit(BACKGROUND, leftPos, topPos, WIDTH, HEIGHT, 0, 0,
                 TEXTURE_WIDTH, TEXTURE_HEIGHT, TEXTURE_WIDTH, TEXTURE_HEIGHT);
+        // 原贴图首行自带发光边框，范围超过动态行框；覆盖整个列表底层以统一各行外观。
+        graphics.fill(leftPos + 283, topPos + 76, leftPos + 468, topPos + 316, 0xFF101C28);
         // 底图的金框按整幅插画制作，远大于 16×16 物品图标；覆盖旧框后重画紧凑槽。
         compactSlot(graphics, leftPos + 64, topPos + 79, 48, 44,
                 leftPos + 77, topPos + 89);
@@ -286,15 +333,15 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
             graphics.fill(x, topPos + 297, x + 20, topPos + 317, 0xFF192635);
             outline(graphics, x, topPos + 297, 20, 20, 0xFF556D7C);
         }
-        // 法阵下方沿用原本的空白区域展示结果，避免弹出聊天提示。
+        // 交易反馈收窄到清空按钮左侧，避免状态面板与按钮重叠。
         if (feedbackStatus() != OreEnchantingMenu.RESULT_NONE) {
-            graphics.fill(leftPos + 111, topPos + 176, leftPos + 273, topPos + 207, 0xE31B2D3C);
-            outline(graphics, leftPos + 111, topPos + 176, 162, 31,
+            graphics.fill(leftPos + 111, topPos + 176, leftPos + 205, topPos + 207, 0xE31B2D3C);
+            outline(graphics, leftPos + 111, topPos + 176, 94, 31,
                     feedbackStatus() >= OreEnchantingMenu.RESULT_INSUFFICIENT ? 0xFFFF8E88 : CYAN);
         }
     }
 
-    /** 绘制输入物当前等级、目标等级和对应的 ME 变动；附魔行不显示图标。 */
+    /** 绘制附魔等级与 ME 变动；交易反馈文字限制在清空按钮左侧的面板内。 */
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
         ItemStack target = menu.target();
@@ -311,13 +358,13 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
             };
             int color = status >= OreEnchantingMenu.RESULT_INSUFFICIENT ? 0xFFFF8E88 : CYAN;
             Component title = Component.translatable("gui.ore_craft.enchanting.result." + key);
-            graphics.drawCenteredString(font, font.plainSubstrByWidth(title.getString(), 150), 192,
+            graphics.drawCenteredString(font, font.plainSubstrByWidth(title.getString(), 82), 158,
                     status == OreEnchantingMenu.RESULT_SPENT || status == OreEnchantingMenu.RESULT_STORED ? 180 : 187,
                     color);
             if (status == OreEnchantingMenu.RESULT_SPENT || status == OreEnchantingMenu.RESULT_STORED) {
                 Component amount = Component.translatable("gui.ore_craft.enchanting.result.amount",
                         compactBalance(menu.resultAmount()));
-                graphics.drawCenteredString(font, amount, 192, 193, TEXT);
+                graphics.drawCenteredString(font, amount, 158, 193, TEXT);
             }
         }
         for (int index = 0; index < VISIBLE_ROWS && scroll + index < filtered.size(); index++) {
@@ -352,7 +399,7 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         }
     }
 
-    /** 渲染输入槽提示及 ME 不足时的输出槽提示。 */
+    /** 渲染输入槽、交易反馈、清空确认及具体冲突附魔提示，悬停坐标随界面缩放。 */
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         // 暗化背景使用真实窗口坐标；其余内容和物品悬停区域一起缩放。
@@ -365,7 +412,10 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         renderTooltip(graphics, logicalMouseX, logicalMouseY);
         int x = logicalMouseX - leftPos;
         int y = logicalMouseY - topPos;
-        if (hoveredSlot != null && !hoveredSlot.hasItem()) {
+        if (clearEnchantmentsButton.isMouseOver(logicalMouseX, logicalMouseY)) {
+            graphics.renderTooltip(font, Component.translatable("gui.ore_craft.enchanting.clear_all_hint"),
+                    logicalMouseX, logicalMouseY);
+        } else if (hoveredSlot != null && !hoveredSlot.hasItem()) {
             String key = hoveredSlot.index == OreEnchantingMenu.TARGET_SLOT ? "target"
                     : hoveredSlot.index == OreEnchantingMenu.CONTAINER_SLOT ? "container" : null;
             if (key != null) graphics.renderTooltip(font,
@@ -374,7 +424,7 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
             graphics.renderTooltip(font,
                     Component.translatable("gui.ore_craft.enchanting.balance_full", format(availableMe())),
                     logicalMouseX, logicalMouseY);
-        } else if (x >= 111 && x < 273 && y >= 176 && y < 207
+        } else if (x >= 111 && x < 205 && y >= 176 && y < 207
                 && (menu.resultStatus() == OreEnchantingMenu.RESULT_SPENT
                 || menu.resultStatus() == OreEnchantingMenu.RESULT_STORED)) {
             graphics.renderTooltip(font,
@@ -382,9 +432,14 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                     logicalMouseX, logicalMouseY);
         } else if (x >= 288 && x < 464 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
             int index = scroll + (y - ROW_Y) / ROW_STEP;
-            if (index < filtered.size() && isConflictLocked(filtered.get(index))) {
-                graphics.renderTooltip(font, Component.translatable("gui.ore_craft.enchanting.conflict"),
-                        logicalMouseX, logicalMouseY);
+            if (index < filtered.size()) {
+                List<Holder<Enchantment>> conflicts = conflictingEnchantments(filtered.get(index));
+                if (!conflicts.isEmpty()) {
+                    // 每个冲突来源独占一行，完整显示本地化名称，便于玩家逐项调整为无。
+                    List<Component> hints = conflicts.stream().<Component>map(enchantment -> Component.translatable(
+                            "gui.ore_craft.enchanting.conflict", enchantment.value().description())).toList();
+                    graphics.renderComponentTooltip(font, hints, logicalMouseX, logicalMouseY);
+                }
             }
         }
         graphics.pose().popPose();
