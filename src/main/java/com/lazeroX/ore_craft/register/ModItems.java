@@ -27,6 +27,10 @@ public final class ModItems {
     public static final DeferredItem<?> ORE_CONVERSION_TABLE_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_TABLE);
 
+    /** 新版容器矿质转化桌的可放置物品；自动加入模组创造模式选项卡。 */
+    public static final DeferredItem<?> ORE_CONTAINER_CONVERSION_TABLE_ITEM =
+            ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONTAINER_CONVERSION_TABLE);
+
     /** 便携式矿质学习宝典：无损学习物品，与转化桌共享记录，不提供提取或 ME 交易。 */
     public static final DeferredItem<OreLearningBookItem> ORE_LEARNING_BOOK =
             ITEMS.register("ore_learning_book", () -> new OreLearningBookItem(new Item.Properties().stacksTo(1)));

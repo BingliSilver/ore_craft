@@ -23,6 +23,12 @@ public final class ModBlocks {
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
 
+    /** 容器矿质转化桌：保留原有充值、提现口，额外通过第三槽结算物品交易。 */
+    public static final DeferredBlock<OreConversionTableBlock> ORE_CONTAINER_CONVERSION_TABLE =
+            BLOCKS.register("ore_container_conversion_table", () -> new OreConversionTableBlock(
+                    BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
+                            .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8), true));
+
     /** 矿质附魔台：可以打开预览界面，暂不承载附魔交易。 */
     public static final DeferredBlock<OreEnchantingTableBlock> ORE_ENCHANTING_TABLE =
             BLOCKS.register("ore_enchanting_table", () -> new OreEnchantingTableBlock(

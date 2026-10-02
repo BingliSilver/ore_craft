@@ -139,6 +139,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         };
         statusMessage = switch (key) {
             case "special_state", "unpriced", "overflow", "learn_limit", "not_learned",
+                    "missing_trade_container", "container_full",
                     "insufficient_me", "inventory_full", "learned", "already_learned" ->
                     Component.translatable("message.ore_craft.conversion." + key);
             case "converted_learned", "converted_known" ->
@@ -194,14 +195,20 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         outline(graphics, x + sx(35), y + sy(101), sx(155), sy(53), 0xFF586674);
         graphics.fill(x + sx(35), y + sy(154), x + sx(190), y + sy(155), 0xFF53616E);
         if (statusTicks > 0) {
-            graphics.fill(x + sx(45), y + sy(78), x + sx(136), y + sy(92),
+            // 容器版在状态提示右侧增加交易槽，缩短提示区域以免覆盖槽位。
+            int statusRight = menu.containerBacked() ? 110 : 136;
+            graphics.fill(x + sx(45), y + sy(78), x + sx(statusRight), y + sy(92),
                     statusSuccess ? 0xDB183438 : 0xDB3D2927);
-            outline(graphics, x + sx(45), y + sy(78), sx(91), sy(14),
+            outline(graphics, x + sx(45), y + sy(78), sx(statusRight - 45), sy(14),
                     statusSuccess ? 0xFF70D6D1 : 0xFFE99C80);
         }
 
         slotBackground(graphics, x + sx(142), y + sy(75));
         slotBackground(graphics, x + sx(168), y + sy(75));
+        if (menu.containerBacked()) {
+            slotBackground(graphics, x + sx(OreConversionMenu.TRADE_CONTAINER_X),
+                    y + sy(OreConversionMenu.TRADE_CONTAINER_Y));
+        }
 
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
@@ -265,20 +272,32 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
     /** 绘制标题、余额、状态提示和目录图标及价格。 */
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        graphics.drawString(font, title, sx(47), sy(30), TEXT, true);
+        // 与状态提示背景保持相同可用宽度；被截断的内容仍可悬停查看全文。
+        int statusWidth = statusTextWidth();
+        // 新版的英文标题较长，限制在左侧面板内，避免侵入右侧搜索框。
+        if (menu.containerBacked()) {
+            graphics.drawString(font, font.plainSubstrByWidth(title.getString(), sx(145)), sx(47), sy(30), TEXT, true);
+        } else {
+            graphics.drawString(font, title, sx(47), sy(30), TEXT, true);
+        }
         graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.subtitle_short"), sx(48), sy(46), MUTED, false);
         graphics.drawString(font, Component.translatable("gui.ore_craft.conversion.balance"), sx(46), sy(59), MUTED, false);
         graphics.drawString(font, MeNumberFormat.compact(menu.clientBalance()) + " ME", sx(46), sy(69), CYAN, true);
         if (statusTicks > 0 && statusMessage != null) {
             String message = statusMessage.getString();
-            String visible = font.plainSubstrByWidth(message, sx(86));
+            String visible = font.plainSubstrByWidth(message, statusWidth);
             if (visible.length() < message.length()) {
-                visible = font.plainSubstrByWidth(message, sx(86) - font.width("...")) + "...";
+                visible = font.plainSubstrByWidth(message, statusWidth - font.width("...")) + "...";
             }
             graphics.drawString(font, visible, sx(46), sy(81), statusSuccess ? CYAN : 0xFFFFB09B, false);
         } else {
             String hint = Component.translatable("gui.ore_craft.conversion.inventory_hint").getString();
-            graphics.drawString(font, font.plainSubstrByWidth(hint, sx(87)), sx(46), sy(81), MUTED, false);
+            graphics.drawString(font, font.plainSubstrByWidth(hint, sx(menu.containerBacked() ? 60 : 87)),
+                    sx(46), sy(81), MUTED, false);
+        }
+        if (menu.containerBacked()) {
+            graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.trade_container"),
+                    sx(OreConversionMenu.TRADE_CONTAINER_X + 8), sy(63), CYAN);
         }
         graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.me_input"), sx(150), sy(63), CYAN);
         graphics.drawCenteredString(font, Component.translatable("gui.ore_craft.conversion.me_output"), sx(176), sy(63), CYAN);
@@ -389,6 +408,12 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
             lines.add(Component.translatable("gui.ore_craft.conversion.extract_hint")
                     .withStyle(style -> style.withColor(0xA9A6B0)));
             graphics.renderTooltip(font, lines, Optional.empty(), mouseX, mouseY);
+        } else if (menu.containerBacked() && localX >= sx(OreConversionMenu.TRADE_CONTAINER_X - 1)
+                && localX < sx(OreConversionMenu.TRADE_CONTAINER_X + 19)
+                && localY >= sy(62) && localY < sy(94)
+                && (menu.getSlot(OreConversionMenu.TRADE_CONTAINER_SLOT).getItem().isEmpty() || localY < sy(75))) {
+            // 空槽或“交易”标签显示用途；已有容器的槽位保留物品自身的存储量提示。
+            graphics.renderTooltip(font, Component.translatable("gui.ore_craft.conversion.trade_container_hint"), mouseX, mouseY);
         } else if (localY >= sy(62) && localY < sy(94)
                 && ((localX >= sx(141) && localX < sx(161)) || (localX >= sx(167) && localX < sx(187)))) {
             int slot = localX < sx(161) ? OreConversionMenu.ME_INPUT_SLOT : OreConversionMenu.ME_OUTPUT_SLOT;
@@ -396,15 +421,21 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
                 String key = slot == OreConversionMenu.ME_INPUT_SLOT ? "me_input_hint" : "me_output_hint";
                 graphics.renderTooltip(font, Component.translatable("gui.ore_craft.conversion." + key), mouseX, mouseY);
             }
-        } else if (statusTicks > 0 && statusMessage != null && font.width(statusMessage) > sx(86)
-                && localX >= sx(45) && localX < sx(136) && localY >= sy(78) && localY < sy(92)) {
+        } else if (statusTicks > 0 && statusMessage != null && font.width(statusMessage) > statusTextWidth()
+                && localX >= sx(45) && localX < sx(menu.containerBacked() ? 110 : 136)
+                && localY >= sy(78) && localY < sy(92)) {
             graphics.renderTooltip(font, statusMessage, mouseX, mouseY);
-        } else if (statusTicks == 0 && localX >= sx(45) && localX < sx(136)
+        } else if (statusTicks == 0 && localX >= sx(45) && localX < sx(menu.containerBacked() ? 110 : 136)
                 && localY >= sy(78) && localY < sy(92)) {
             graphics.renderTooltip(font, Component.translatable("gui.ore_craft.conversion.inventory_hint"), mouseX, mouseY);
         } else if (localX >= sx(45) && localX < sx(190) && localY >= sy(57) && localY < sy(79)) {
             graphics.renderTooltip(font, Component.literal(formatNumber(menu.clientBalance()) + " ME"), mouseX, mouseY);
         }
+    }
+
+    /** 返回状态提示可用的像素宽度；容器版预留第三槽的位置。 */
+    private int statusTextWidth() {
+        return sx(menu.containerBacked() ? 60 : 86);
     }
 
     /** 按当前界面固定使用的区域设置格式化完整整数。 */

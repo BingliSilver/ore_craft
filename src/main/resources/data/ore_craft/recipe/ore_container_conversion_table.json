@@ -7,12 +7,12 @@
     "XEX"
   ],
   "key": {
-    "X": { "item": "minecraft:amethyst_shard" },
+    "X": { "item": "minecraft:copper_ingot" },
     "A": { "item": "minecraft:coal" },
     "B": { "item": "minecraft:gold_ingot" },
     "C": { "item": "minecraft:obsidian" },
     "D": { "item": "minecraft:iron_ingot" },
     "E": { "item": "minecraft:diamond" }
   },
-  "result": { "id": "ore_craft:ore_conversion_table", "count": 1 }
+  "result": { "id": "ore_craft:ore_container_conversion_table", "count": 1 }
 }

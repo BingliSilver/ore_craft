@@ -23,6 +23,11 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMenu>> ORE_CONVERSION_MENU =
             MENU_TYPES.register("ore_conversion_table", () -> IMenuTypeExtension.create(OreConversionMenu::new));
 
+    /** 容器版转化桌菜单；独立类型确保客户端也创建第三槽，共用原有交易网络处理。 */
+    public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMenu>> ORE_CONTAINER_CONVERSION_MENU =
+            MENU_TYPES.register("ore_container_conversion_table", () -> IMenuTypeExtension.create(
+                    (id, inventory, extra) -> new OreConversionMenu(id, inventory, extra.readBlockPos(), true)));
+
     /** 学习宝典的独立菜单类型，避免进入转化桌的提取网络处理分支。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreLearningMenu>> ORE_LEARNING_MENU =
             MENU_TYPES.register("ore_learning_book", () -> IMenuTypeExtension.create(OreLearningMenu::new));

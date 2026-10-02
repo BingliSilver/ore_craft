@@ -1,0 +1,9 @@
+{
+  "parent": "ore_craft:block/ore_conversion_table",
+  "textures": {
+    "ore_gold": "minecraft:block/iron_ore",
+    "ore_redstone": "minecraft:block/iron_ore",
+    "ore_diamond": "minecraft:block/iron_ore",
+    "ore_emerald": "minecraft:block/iron_ore"
+  }
+}

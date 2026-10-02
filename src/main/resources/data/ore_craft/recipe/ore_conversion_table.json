@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "ore_craft:ore_container_conversion_table" },
+    { "item": "ore_craft:ender_ore_container" }
+  ],
+  "result": { "id": "ore_craft:ore_conversion_table", "count": 1 }
+}

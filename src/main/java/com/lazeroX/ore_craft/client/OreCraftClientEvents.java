@@ -39,6 +39,8 @@ public final class OreCraftClientEvents {
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
+        // 两种转化桌共用界面，容器版由菜单标记显示额外的交易槽。
+        event.register(ModMenus.ORE_CONTAINER_CONVERSION_MENU.get(), OreConversionScreen::new);
         event.register(ModMenus.ORE_LEARNING_MENU.get(), OreLearningScreen::new);
         event.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
         event.register(ModMenus.ORE_CONVERTER_MENU.get(), OreConverterScreen::new);

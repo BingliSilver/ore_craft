@@ -19,12 +19,19 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.BlockHitResult;
 
-/** 玩家交互后打开矿质转化菜单的转化桌方块。 */
+/** 打开矿质转化菜单的两种转化桌；容器版本沿用外形和交互流程，使用独立菜单类型。 */
 public final class OreConversionTableBlock extends Block {
     /** 用于编码转化桌方块属性的 MapCodec。 */
     public static final MapCodec<OreConversionTableBlock> CODEC = simpleCodec(OreConversionTableBlock::new);
+    /** 容器版本使用固定开启第三槽的构造方式，保证方块序列化后仍保留用途。 */
+    public static final MapCodec<OreConversionTableBlock> CONTAINER_CODEC =
+            simpleCodec(properties -> new OreConversionTableBlock(properties, true));
     /** 转化桌菜单标题。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_conversion_table");
+    /** 新版转化桌的本地化菜单标题。 */
+    private static final Component CONTAINER_TITLE = Component.translatable("container.ore_craft.ore_container_conversion_table");
+    /** 是否打开带交易容器槽的新版菜单；由方块注册时固定。 */
+    private final boolean containerBacked;
     /** 转化桌模型对应的碰撞与选择形状。 */
     private static final VoxelShape SHAPE = Shapes.or(
             Block.box(2, 9, 2, 14, 14, 14),
@@ -44,13 +51,24 @@ public final class OreConversionTableBlock extends Block {
      * @param properties 方块的基础属性
      */
     public OreConversionTableBlock(Properties properties) {
+        this(properties, false);
+    }
+
+    /**
+     * 创建指定版本的转化桌，共用碰撞形状和基础交互。
+     *
+     * @param properties 方块属性
+     * @param containerBacked 为 true 时交易 ME 必须由第三槽的容器结算
+     */
+    public OreConversionTableBlock(Properties properties, boolean containerBacked) {
         super(properties);
+        this.containerBacked = containerBacked;
     }
 
     /** 返回该方块的序列化编解码器。 */
     @Override
     protected MapCodec<? extends Block> codec() {
-        return CODEC;
+        return containerBacked ? CONTAINER_CODEC : CODEC;
     }
 
     /** 返回转化桌自定义的外形。 */
@@ -92,6 +110,7 @@ public final class OreConversionTableBlock extends Block {
      */
     @Override
     protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
-        return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMenu(id, inventory, pos), TITLE);
+        return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMenu(id, inventory, pos, containerBacked),
+                containerBacked ? CONTAINER_TITLE : TITLE);
     }
 }

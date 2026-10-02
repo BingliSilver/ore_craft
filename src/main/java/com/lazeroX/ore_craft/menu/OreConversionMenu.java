@@ -6,6 +6,7 @@ import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
+import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -22,20 +23,31 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.OptionalLong;
 
-/** 管理转化桌交易，并通过原版快速移动操作处理背包输入。 */
+/** 管理两种转化桌的交易；容器版仅用第三槽结算 ME，学习记录仍属于当前玩家。 */
 public class OreConversionMenu extends AbstractContainerMenu {
-    /** 背包槽位后的两个容器交互口索引。 */
+    /** 普通容器向全局账户充值的槽位索引，紧接 36 个玩家物品栏槽。 */
     public static final int ME_INPUT_SLOT = 36;
+    /** 从全局账户提取 ME 到普通容器的槽位索引。 */
     public static final int ME_OUTPUT_SLOT = 37;
+    /** 容器版独有的交易槽；不参与另外两个槽位的全局账户充值、提现。 */
+    public static final int TRADE_CONTAINER_SLOT = 38;
+    /** 交易槽在原界面设计稿中的横坐标，供菜单与背景绘制共用。 */
+    public static final int TRADE_CONTAINER_X = 116;
+    /** 交易槽在原界面设计稿中的纵坐标，与充值、提现槽同高。 */
+    public static final int TRADE_CONTAINER_Y = 75;
+    /** 是否强制通过交易槽中的矿质容器结算。 */
+    private final boolean containerBacked;
     /** 该菜单绑定的转化桌坐标。 */
     private final BlockPos pos;
     /** 转化桌所在世界，用于校验菜单有效性。 */
     private final Level level;
     /** 转化口内暂存的容器，关闭界面时归还玩家。 */
-    private final SimpleContainer oreContainers = new SimpleContainer(2);
+    private final SimpleContainer oreContainers;
+    /** 当前打开菜单的玩家；末影交易容器连接此玩家而非方块放置者。 */
     private final Player owner;
+    /** 防止交互口更新物品组件时递归触发 ME 转移。 */
     private boolean transferring;
-    /** 最近同步给客户端显示的 ME 余额。 */
+    /** 最近同步的全局 ME 余额；普通交易容器的独立余额直接从槽位组件读取。 */
     private long clientBalance;
     /** 最近同步给客户端显示的可提取物品目录。 */
     private List<OreConversionNetwork.PriceEntry> clientCatalog = List.of();
@@ -61,7 +73,21 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param pos 转化桌方块坐标
      */
     public OreConversionMenu(int id, Inventory inventory, BlockPos pos) {
-        super(ModMenus.ORE_CONVERSION_MENU.get(), id);
+        this(id, inventory, pos, false);
+    }
+
+    /**
+     * 创建指定版本的转化桌菜单；容器仅在本次打开期间暂存，关闭时返还玩家。
+     *
+     * @param id 菜单容器 ID
+     * @param inventory 玩家物品栏
+     * @param pos 转化桌坐标
+     * @param containerBacked 为 true 时增加交易槽，并禁止交易直接回退到全局余额
+     */
+    public OreConversionMenu(int id, Inventory inventory, BlockPos pos, boolean containerBacked) {
+        super(containerBacked ? ModMenus.ORE_CONTAINER_CONVERSION_MENU.get() : ModMenus.ORE_CONVERSION_MENU.get(), id);
+        this.containerBacked = containerBacked;
+        this.oreContainers = new SimpleContainer(containerBacked ? 3 : 2);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
         this.owner = inventory.player;
@@ -73,20 +99,33 @@ public class OreConversionMenu extends AbstractContainerMenu {
         for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 41 + column * 19, 174));
         addContainerSlot(0, 142, 75);
         addContainerSlot(1, 168, 75);
+        if (containerBacked) addContainerSlot(2, TRADE_CONTAINER_X, TRADE_CONTAINER_Y);
     }
 
-    /** 创建只接受可存储 ME 容器的输入或输出槽。 */
+    /**
+     * 创建容器槽；原有两槽仅接受普通容器，交易槽同时接受普通和末影容器。
+     *
+     * @param portIndex 临时库存索引，0 为充值、1 为提现、2 为交易
+     * @param x 设计稿横坐标
+     * @param y 设计稿纵坐标
+     */
     private void addContainerSlot(int portIndex, int x, int y) {
+        // 槽位对象在菜单整个生命周期中校验物品；交易槽不自动搬运 ME。
         addSlot(new Slot(oreContainers, portIndex, Math.round(x * 432 / 390.0F), Math.round(y * 228 / 206.0F)) {
+            /** 按槽位用途校验矿质容器类型。 */
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return stack.getItem() instanceof OreContainerItem;
+                return portIndex == 2 ? OreMachineEnergy.isContainer(stack) : stack.getItem() instanceof OreContainerItem;
             }
 
+            /** 物品变化时更新交互口；交易槽只同步新的结算余额。 */
             @Override
             public void setChanged() {
                 super.setChanged();
-                if (owner instanceof ServerPlayer player && !transferring) transferContainer(player, portIndex);
+                if (owner instanceof ServerPlayer player && !transferring) {
+                    if (portIndex == 2) sync(player);
+                    else transferContainer(player, portIndex);
+                }
             }
         });
     }
@@ -124,7 +163,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
     /** 检查转化桌仍存在且玩家仍在交互距离内。 */
     @Override
     public boolean stillValid(Player player) {
-        return level.getBlockState(pos).is(ModBlocks.ORE_CONVERSION_TABLE.get()) && player.canInteractWithBlock(pos, 4.0);
+        return level.getBlockState(pos).is(containerBacked
+                ? ModBlocks.ORE_CONTAINER_CONVERSION_TABLE.get() : ModBlocks.ORE_CONVERSION_TABLE.get())
+                && player.canInteractWithBlock(pos, 4.0);
     }
 
     /**
@@ -137,7 +178,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player player, int slot) {
         if (!(player instanceof ServerPlayer serverPlayer)) return ItemStack.EMPTY;
-        if (slot == ME_INPUT_SLOT || slot == ME_OUTPUT_SLOT) {
+        if (slot >= ME_INPUT_SLOT && slot < slots.size()) {
             ItemStack stack = getSlot(slot).getItem();
             if (stack.isEmpty()) return ItemStack.EMPTY;
             ItemStack original = stack.copy();
@@ -149,7 +190,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return useInventorySlot(serverPlayer, slot);
     }
 
-    /** 关闭界面时将两侧交互口内的容器返还给玩家。 */
+    /** 关闭界面时返还所有暂存容器，普通交易容器保留交易后的 ME 组件。 */
     @Override
     public void removed(Player player) {
         super.removed(player);
@@ -159,6 +200,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     /**
      * 从背包物品的默认状态学习类型；只有原物品本身满足兑换规则时才消耗并转入 ME。
      * 普通矿质容器回收本体和内部存储量；末影容器只回收本体，不把既有账户余额重复计价。
+     * 容器版把回收所得写入第三槽的容器，容量不足时不消耗原物品。
      * 附魔、耐久等不允许输入的特殊组件不会被转化，原物品保留在背包。
      *
      * @param player 操作转化桌的服务端玩家
@@ -189,10 +231,15 @@ public class OreConversionMenu extends AbstractContainerMenu {
             return ItemStack.EMPTY;
         }
         if (unit.isPresent()) {
+            // 容器版必须明确提供结算容器；未放入时保留原物品，避免误存入全局账户。
+            if (!requireTradeContainer(player)) return ItemStack.EMPTY;
             long amount;
             try { amount = Math.multiplyExact(unit.getAsLong(), stack.getCount()); }
             catch (ArithmeticException ex) { status(player, "overflow"); return ItemStack.EMPTY; }
-            if (!data.credit(player, amount)) { status(player, "overflow"); return ItemStack.EMPTY; }
+            if (!creditTrade(player, amount)) {
+                status(player, containerBacked ? "container_full" : "overflow");
+                return ItemStack.EMPTY;
+            }
             converted = amount;
             moved = stack.copy();
             slot.set(ItemStack.EMPTY);
@@ -207,7 +254,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 从账户提取指定数量的物品到鼠标指针，并扣除对应 ME。
+     * 从已学习目录提取物品到鼠标指针，并从当前结算来源扣除 ME。
      *
      * @param player 发起提取的服务端玩家
      * @param id 目标物品注册 ID
@@ -215,6 +262,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      */
     public void extract(ServerPlayer player, ResourceLocation id, int count) {
         if (!validRequest(player) || count != 1 || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return;
+        if (!requireTradeContainer(player)) return;
         Item item = BuiltInRegistries.ITEM.get(id);
         // 只有已学习且仍可提取的物品才能购买，所有条件都在服务端重新核验。
         if (!OreConversionPrices.canExtract(item) || !OreConversionSavedData.get(player).account(player).knows(id)) {
@@ -232,23 +280,23 @@ public class OreConversionMenu extends AbstractContainerMenu {
         long total;
         try { total = Math.multiplyExact(unit.getAsLong(), count); }
         catch (ArithmeticException ex) { status(player, "overflow"); return; }
-        OreConversionSavedData data = OreConversionSavedData.get(player);
         // 先校验余额并成功扣款后才更新鼠标指针，确保交易不会免费生成物品。
-        if (data.account(player).balance() < total) { status(player, "insufficient_me"); return; }
-        if (!data.debit(player, total)) return;
+        if (tradeBalance(player) < total) { status(player, "insufficient_me"); return; }
+        if (!debitTrade(player, total)) return;
         setCarried(new ItemStack(item, carried.getCount() + count));
         broadcastChanges();
         sync(player);
     }
 
     /**
-     * 将账户允许购买的最多一组物品插入玩家物品栏，并按实际插入数量扣款。
+     * 按当前结算余额购买最多一组物品放入背包，仅对实际可插入的数量扣款。
      *
      * @param player 发起提取的服务端玩家
      * @param id 目标物品注册 ID
      */
     public void extractStackToInventory(ServerPlayer player, ResourceLocation id) {
         if (!validRequest(player) || id == null || !BuiltInRegistries.ITEM.containsKey(id)) return;
+        if (!requireTradeContainer(player)) return;
         Item item = BuiltInRegistries.ITEM.get(id);
         if (!OreConversionPrices.canExtract(item) || !OreConversionSavedData.get(player).account(player).knows(id)) {
             status(player, "not_learned"); return;
@@ -257,10 +305,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
         if (!OreConversionPrices.isPlain(output)) return;
         OptionalLong unit = OreConversionPrices.price(item);
         if (unit.isEmpty()) return;
-        OreConversionSavedData data = OreConversionSavedData.get(player);
-        // 同时受标准一组上限、物品自身堆叠上限和账户余额约束。
+        // 同时受标准一组上限、物品自身堆叠上限和结算来源余额约束。
         int affordable = (int) Math.min(Math.min(64, output.getMaxStackSize()),
-                data.account(player).balance() / unit.getAsLong());
+                tradeBalance(player) / unit.getAsLong());
         if (affordable == 0) { status(player, "insufficient_me"); return; }
         Inventory inventory = player.getInventory();
         // 先规划所有槽位的变更并计算真实可放数量，再扣款，避免背包放不下时多扣 ME。
@@ -269,7 +316,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         for (int addition : additions) count += addition;
         if (count == 0) { status(player, "inventory_full"); return; }
         long total = unit.getAsLong() * count;
-        if (!data.debit(player, total)) return;
+        if (!debitTrade(player, total)) return;
         ItemStack stack = output.copyWithCount(count);
         // 按之前规划的数量写入各槽位，保证实际插入量与扣款金额一致。
         for (int slot = 0; slot < additions.length; slot++) {
@@ -313,7 +360,64 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return additions;
     }
 
-    /** 向玩家同步当前账户状态；菜单无效时忽略请求。 */
+    /**
+     * 检查结算容器是否存在；普通桌不受此限制，容器版缺槽时发送提示。
+     *
+     * @param player 请求交易的玩家
+     * @return 当前菜单是否具有有效的 ME 结算来源
+     */
+    private boolean requireTradeContainer(ServerPlayer player) {
+        if (!containerBacked || OreMachineEnergy.isContainer(oreContainers.getItem(2))) return true;
+        status(player, "missing_trade_container");
+        return false;
+    }
+
+    /**
+     * 服务端读取结算余额，普通容器的余额不会与玩家全局余额相加。
+     *
+     * @param player 当前交易玩家，也是末影容器连接的账户所有者
+     * @return 当前可支付的 ME；空交易槽为零
+     */
+    private long tradeBalance(ServerPlayer player) {
+        return containerBacked
+                ? OreMachineEnergy.stored(player.getServer(), player.getUUID(), oreContainers.getItem(2))
+                : OreConversionSavedData.get(player).account(player).balance();
+    }
+
+    /**
+     * 将回收所得存入结算来源；容量不足时完整拒绝，调用方不得消耗原物品。
+     *
+     * @param player 交易玩家
+     * @param amount 要存入的正数 ME
+     * @return 存入成功时为 true
+     */
+    private boolean creditTrade(ServerPlayer player, long amount) {
+        if (!containerBacked) return OreConversionSavedData.get(player).credit(player, amount);
+        ItemStack updated = OreMachineEnergy.credit(player.getServer(), player.getUUID(), oreContainers.getItem(2), amount);
+        if (updated == null) return false;
+        getSlot(TRADE_CONTAINER_SLOT).set(updated);
+        return true;
+    }
+
+    /**
+     * 从结算来源扣除购买费用，成功后写回普通容器的物品组件。
+     *
+     * @param player 交易玩家
+     * @param amount 要支付的正数 ME
+     * @return 扣款成功时为 true
+     */
+    private boolean debitTrade(ServerPlayer player, long amount) {
+        if (!containerBacked) return OreConversionSavedData.get(player).debit(player, amount);
+        ItemStack updated = OreMachineEnergy.debit(player.getServer(), player.getUUID(), oreContainers.getItem(2), amount);
+        if (updated == null) return false;
+        getSlot(TRADE_CONTAINER_SLOT).set(updated);
+        return true;
+    }
+
+    /** 返回是否为具有独立交易容器槽的新版转化桌，供客户端选择界面布局。 */
+    public boolean containerBacked() { return containerBacked; }
+
+    /** 向玩家同步全局账户与学习目录；普通容器余额通过槽位组件同步，避免污染全局提示缓存。 */
     public void sync(ServerPlayer player) {
         if (!validRequest(player)) return;
         OreConversionNetwork.sendState(player, containerId);
@@ -341,8 +445,13 @@ public class OreConversionMenu extends AbstractContainerMenu {
         revision++;
     }
 
-    /** 返回最近一次同步到客户端的余额。 */
-    public long clientBalance() { return clientBalance; }
+    /** 返回客户端当前结算余额：普通容器读槽位组件，末影容器与原版桌读全局快照。 */
+    public long clientBalance() {
+        if (!containerBacked) return clientBalance;
+        ItemStack stack = oreContainers.getItem(2);
+        if (stack.getItem() instanceof OreContainerItem normal) return normal.storedMe(stack);
+        return OreMachineEnergy.isContainer(stack) ? clientBalance : 0;
+    }
     /** 返回最近一次同步到客户端的已学习物品目录。 */
     public List<OreConversionNetwork.PriceEntry> clientCatalog() { return clientCatalog; }
     /** 返回服务端快照修订号，供界面检测变化。 */
