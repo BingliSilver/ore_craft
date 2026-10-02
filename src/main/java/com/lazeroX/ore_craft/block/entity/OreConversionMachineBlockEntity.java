@@ -152,8 +152,10 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     }
 
     /**
-     * 每服务端刻核对学习记录、实时价格、ME 余额和完整批次的输出空间。
+     * 每服务端刻核对学习记录、实时价格、ME 余额和当前可用的输出空间。
      * 普通版满五秒最多产出 16 件，升级版满一秒最多产出 32 件；先扣费再写入输出。
+     * 输出空间或余额不足整批时减少本轮数量，只能生成一件时也继续生产。
+     * 不可堆叠物品或仅余一个输出位置时，仍允许支付一件的价格后生产一件。
      *
      * @param level 当前服务端世界
      * @param pos 当前方块坐标
@@ -179,18 +181,19 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
             machine.resetProgress();
             return;
         }
-        // 单格输出必须容得下一整个批次；不可堆叠物品每轮只生产一件。
-        int count = Math.min(machine.itemsPerCycle(), target.getMaxStackSize());
+        // 输出槽已有同类物品时只填充剩余位置；设备的 16/32 件上限不是最小生产数量。
+        int outputSpace = target.getMaxStackSize() - output.getCount();
+        int requestedCount = Math.min(machine.itemsPerCycle(), outputSpace);
         long unitPrice = unit.getAsLong();
-        if (output.getCount() > target.getMaxStackSize() - count || unitPrice > Long.MAX_VALUE / count) {
+        // 余额只够 1～15 件（升级版 1～31 件）时按实际数量结算，不再等待整批 ME。
+        int count = OreMachineEnergy.conversionCount(requestedCount, unitPrice,
+                OreMachineEnergy.stored(level.getServer(), machine.owner, container));
+        if (count == 0) {
             machine.resetProgress();
             return;
         }
+        // 除法限制保证乘积不超过当前余额，因此无需先按整批乘法判定溢出。
         long amount = unitPrice * count;
-        if (OreMachineEnergy.stored(level.getServer(), machine.owner, container) < amount) {
-            machine.resetProgress();
-            return;
-        }
         machine.progressTicks++;
         if (machine.progressTicks < machine.intervalTicks()) {
             machine.setChanged();

@@ -139,15 +139,25 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     /**
      * 每服务端刻检查输入物和收款容器；普通版五秒最多 16 件，升级版一秒最多 32 件。
      * 普通矿质容器作为输入时按本体加存储量回收，末影容器只按本体价值回收。
-     * 容量不足时按可容纳的整件数量结算，存入成功后才消耗输入物。
+     * 容量不足整批时按可容纳的整件数量结算，只能容纳一件时也继续回收。
+     * 实际存入的 ME 与消耗数量严格对应，存入失败时保持输入物不变。
+     *
+     * @param level 当前服务端世界
+     * @param pos 传输接口所在坐标
+     * @param state 当前方块状态
+     * @param converter 本次推进的传输接口实体
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, OreConverterBlockEntity converter) {
         if (level.isClientSide() || converter.owner == null || level.getServer() == null) return;
         ItemStack stack = converter.inventory.getItem(INPUT_SLOT);
         ItemStack container = converter.inventory.getItem(CONTAINER_SLOT);
         OptionalLong unit = OreConversionPrices.depositValue(stack);
-        if (!OreMachineEnergy.isContainer(container)
-                || unit.isEmpty() || OreMachineEnergy.remaining(level.getServer(), converter.owner, container) < unit.getAsLong()) {
+        // 设备上限只是每轮最大值；先按现有原料确定请求，再用容器剩余空间减少本轮数量。
+        int requestedCount = Math.min(converter.itemsPerCycle(), stack.getCount());
+        int count = !OreMachineEnergy.isContainer(container) || unit.isEmpty() ? 0
+                : OreMachineEnergy.conversionCount(requestedCount, unit.getAsLong(),
+                        OreMachineEnergy.remaining(level.getServer(), converter.owner, container));
+        if (count == 0) {
             if (converter.progressTicks != 0) {
                 converter.progressTicks = 0;
                 converter.setChanged();
@@ -162,10 +172,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         converter.progressTicks = 0;
         converter.setChanged();
 
-        // 按当前数据包价格重新计算本轮可转化数量，容量不足一整件时保持输入不变。
-        int count = (int) Math.min(Math.min(converter.itemsPerCycle(), stack.getCount()),
-                OreMachineEnergy.remaining(level.getServer(), converter.owner, container) / unit.getAsLong());
-        if (count <= 0) return;
+        // 数量已按本刻的实时价格和剩余容量核定，乘积不会超过容器可接收的 ME 上限。
         long amount = unit.getAsLong() * count;
         ItemStack updated = OreMachineEnergy.credit(level.getServer(), converter.owner, container, amount);
         if (updated == null) return;

@@ -55,6 +55,22 @@ public final class OreMachineEnergy {
     }
 
     /**
+     * 按当前 ME 限额计算一轮实际可处理的整件数量，不要求容器能支持整批。
+     * 传输接口传入剩余容量，转化器传入可支付余额，两者使用相同的计算规则。
+     * 只要限额还能支持至少一件就允许转换，单件原料、不可堆叠物品和最后一个输出位置均可处理。
+     *
+     * @param requestedCount 已按设备上限及原料数量或输出空间限制的本轮请求数量
+     * @param unitMe 每件物品对应的正数 ME
+     * @param meLimit 本轮可存入或可支付的非负 ME 上限
+     * @return 实际可处理数量；参数无效或限额不足一件时返回零
+     */
+    public static int conversionCount(int requestedCount, long unitMe, long meLimit) {
+        if (requestedCount <= 0 || unitMe <= 0 || meLimit <= 0) return 0;
+        // 先除单价再限制数量，既舍弃不足一件的余量，也避免先乘整批价格造成 long 溢出。
+        return (int) Math.min(requestedCount, meLimit / unitMe);
+    }
+
+    /**
      * 存入正数 ME 并返回需要写回槽位的容器副本；失败返回 null。
      * 末影容器本身不变，记账成功后返回原物品栈。
      *
