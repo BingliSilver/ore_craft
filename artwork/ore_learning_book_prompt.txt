@@ -1,0 +1,12 @@
+Tool: built-in image_gen (transparent_background=true).
+Generated source: ore_learning_book_source.png.
+Deployment: nearest-neighbor resize to 64x64 RGBA; preserve generated alpha.
+Item texture: ../src/main/resources/assets/ore_craft/textures/item/ore_learning_book.png.
+Preview: ore_learning_book_preview.png (512x512 nearest-neighbor enlargement).
+
+Use case: stylized-concept
+Asset type: Minecraft mod inventory item texture, a single Mineral Learning Tome pixel-art sprite on transparent background.
+Primary request: Design a beautiful, clean and recognizable small book item icon to replace a crude block-textured book model. A closed dark charcoal leather learning tome, fine antique gold edging and corner guards, a bright cyan faceted diamond-shaped mineral sigil centered on the cover, a subtle purple bookmark peeking from the bottom, warm ivory page edges visible along the right and bottom. No writing on the cover.
+Style/medium: authentic Minecraft-compatible low-resolution pixel art; 32 by 32 logical pixel grid enlarged with perfectly sharp nearest-neighbor pixel edges. Minimal palette, bold dark outline, stepped diagonal edges, chunky manually shaded pixel clusters, no antialiasing, no gradients, no photorealism. Balanced and attractive at tiny inventory size.
+Composition/framing: exactly ONE closed book filling about 85 percent of a square canvas, slightly tilted clockwise and shown in a shallow three-quarter view so its cover dominates and the slim page block is visible at right and bottom. Centered, clearly legible silhouette. Transparent surrounding pixels, no ground shadow, no floating effects outside the book.
+Constraints: actual transparent background; no text, no letters, no runes, no watermark, no border around the canvas, no UI, no additional objects, no sheet of variants. All visible details drawn with crisp square pixels.

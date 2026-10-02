@@ -59,10 +59,11 @@ public final class OreConversionClient {
         }
     }
 
-    /** 将操作结果转交给当前转化桌界面显示。 */
+    /** 将操作结果转交给当前转化桌或学习宝典界面，由界面校验菜单编号。 */
     public static void receiveStatus(OreConversionNetwork.StatusPayload packet) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof OreConversionScreen screen) screen.receiveStatus(packet);
+        else if (minecraft.screen instanceof OreLearningScreen screen) screen.receiveStatus(packet);
     }
 
     /** 玩家退出服务器时清理所有服务端同步缓存。 */

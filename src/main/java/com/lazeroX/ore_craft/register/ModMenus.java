@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.register;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
+import com.lazeroX.ore_craft.menu.OreLearningMenu;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
@@ -21,6 +22,10 @@ public final class ModMenus {
     /** 矿质转化桌菜单类型。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMenu>> ORE_CONVERSION_MENU =
             MENU_TYPES.register("ore_conversion_table", () -> IMenuTypeExtension.create(OreConversionMenu::new));
+
+    /** 学习宝典的独立菜单类型，避免进入转化桌的提取网络处理分支。 */
+    public static final DeferredHolder<MenuType<?>, MenuType<OreLearningMenu>> ORE_LEARNING_MENU =
+            MENU_TYPES.register("ore_learning_book", () -> IMenuTypeExtension.create(OreLearningMenu::new));
 
     /** 矿质附魔台的外观预览菜单类型。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreEnchantingMenu>> ORE_ENCHANTING_MENU =

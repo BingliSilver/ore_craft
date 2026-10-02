@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "BCD",
+    "XAX"
+  ],
+  "key": {
+    "X": { "item": "minecraft:coal" },
+    "A": { "item": "minecraft:iron_ingot" },
+    "B": { "item": "minecraft:gold_ingot" },
+    "C": { "item": "minecraft:book" },
+    "D": { "item": "minecraft:diamond" }
+  },
+  "result": { "id": "ore_craft:ore_learning_book", "count": 1 }
+}

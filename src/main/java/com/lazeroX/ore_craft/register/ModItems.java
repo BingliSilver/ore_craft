@@ -11,6 +11,7 @@ import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
+import com.lazeroX.ore_craft.item.OreLearningBookItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
@@ -25,6 +26,10 @@ public final class ModItems {
     /** 矿质转化桌对应的可放置物品。 */
     public static final DeferredItem<?> ORE_CONVERSION_TABLE_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_TABLE);
+
+    /** 便携式矿质学习宝典：无损学习物品，与转化桌共享记录，不提供提取或 ME 交易。 */
+    public static final DeferredItem<OreLearningBookItem> ORE_LEARNING_BOOK =
+            ITEMS.register("ore_learning_book", () -> new OreLearningBookItem(new Item.Properties().stacksTo(1)));
 
     /** 矿质附魔台的可放置方块物品，暂时没有额外使用效果。 */
     public static final DeferredItem<?> ORE_ENCHANTING_TABLE_ITEM =

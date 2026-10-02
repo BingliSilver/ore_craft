@@ -1,0 +1,12 @@
+Tool: built-in image_gen (transparent_background=true).
+Generated source: ore_learning_ui_source.png.
+Deployment: nearest-neighbor resize to 432x248 RGBA; preserve generated alpha.
+GUI background: ../src/main/resources/assets/ore_craft/textures/gui/ore_learning_book.png.
+Static layout preview: ore_learning_ui_preview.png; game renders text and slots dynamically.
+
+Use case: ui-mockup
+Asset type: final background-only texture for an interactive Minecraft Mineral Learning Tome GUI.
+Primary request: a beautiful open book lying flat, viewed perfectly straight from above, two large blank parchment pages side by side, on an actual transparent background. Match a dark charcoal leather tome with tasteful antique gold corners, fine copper-gold binding, and a tiny cyan diamond-shaped mineral stud at the very top center of its spine. Cream ivory parchment with subtle warm paper texture, stepped page edge layers, softly shaded center gutter, elegant restrained gold-brown corner flourishes. A short purple ribbon bookmark emerges below the central spine. This is the open form of a learning spellbook, simple, refined, and readable.
+Composition/framing: horizontal wide canvas, aspect ratio 400:228 (approximately 1.75:1). Book spreads across about 96% of the canvas with small equal transparent margins. Center gutter precisely at horizontal 50%; left and right pages equal width. Covers and pages have mostly rectangular horizontal and vertical edges with slight stepped corner curves; no perspective rotation, no tilted camera, no curved page waves through usable content. Page interiors flat and nearly solid light ivory, large unobstructed writing areas. Spine narrow, less than 5% canvas width. Usable left page approximately x=6% to 45%, right page x=54% to 95%, y=13% to 88%. Decorative flourishes confined to outer corners and borders.
+Style/medium: polished Minecraft-inspired pixel art UI; crisp pixel edges, carefully shaded clusters, warm neutral parchment, clear subtle shading, dark leather cover visible as a thin outline. Readable behind dark brown text and inventory slots. Not photorealistic.
+Constraints: NO text, NO letters, NO symbols on pages, NO icons on pages, NO inventory slots, NO grids, NO buttons, NO example contents. Both pages genuinely blank. Decoration only at edges. Transparent exterior and corners, no tabletop, no scene background, no cast shadow outside silhouette, no watermark. Exactly one open book, no item variants.

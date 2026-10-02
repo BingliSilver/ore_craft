@@ -1,4 +1,13 @@
 {
+  "item.ore_craft.ore_learning_book": "Mineral Learning Tome",
+  "container.ore_craft.ore_learning_book": "Mineral Learning Tome",
+  "tooltip.ore_craft.learning.purpose": "Learns items; cannot extract them.",
+  "gui.ore_craft.learning.action": "Shift-click an item to learn it.",
+  "gui.ore_craft.learning.rules": "Keeps items and ME; no extraction.",
+  "gui.ore_craft.learning.shared": "Shares Transmutation Table knowledge.",
+  "gui.ore_craft.learning.inventory_hint": "Choose an item to learn",
+  "gui.ore_craft.learning.hotbar": "Hotbar",
+  "gui.ore_craft.learning.idle": "Learning results appear here",
   "creativetab.ore_craft.ore_craft": "Ore Craft",
   "item.ore_craft.emerald_coal": "Emerald Coal",
   "item.ore_craft.eternal_emerald_coal": "Eternal Emerald Coal",

@@ -1,4 +1,13 @@
 {
+  "item.ore_craft.ore_learning_book": "矿质学习宝典",
+  "container.ore_craft.ore_learning_book": "矿质学习宝典",
+  "tooltip.ore_craft.learning.purpose": "用于学习物品，无法提取。",
+  "gui.ore_craft.learning.action": "Shift 点击右页物品，即可学习。",
+  "gui.ore_craft.learning.rules": "保留物品与 ME，无法提取物品。",
+  "gui.ore_craft.learning.shared": "学习记录与矿质转化桌共用",
+  "gui.ore_craft.learning.inventory_hint": "选择需要学习的物品",
+  "gui.ore_craft.learning.hotbar": "快捷栏",
+  "gui.ore_craft.learning.idle": "学习结果会显示在这里",
   "creativetab.ore_craft.ore_craft": "矿石工艺",
   "item.ore_craft.emerald_coal": "绿宝石煤炭",
   "item.ore_craft.eternal_emerald_coal": "永恒绿宝石煤炭",
