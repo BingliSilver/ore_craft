@@ -24,8 +24,6 @@ import java.util.OptionalLong;
 
 /** 管理转化桌交易，并通过原版快速移动操作处理背包输入。 */
 public class OreConversionMenu extends AbstractContainerMenu {
-    /** 单个账户最多允许记录的已学习物品数量。 */
-    private static final int MAX_LEARNED = 2048;
     /** 背包槽位后的两个容器交互口索引。 */
     public static final int ME_INPUT_SLOT = 36;
     public static final int ME_OUTPUT_SLOT = 37;
@@ -179,7 +177,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
         OreConversionSavedData data = OreConversionSavedData.get(player);
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (data.account(player).learned().size() >= MAX_LEARNED && !data.account(player).knows(id)) {
+        if (data.account(player).learned().size() >= OreConversionSavedData.MAX_LEARNED && !data.account(player).knows(id)) {
             status(player, "learn_limit"); return ItemStack.EMPTY;
         }
         long converted = 0;

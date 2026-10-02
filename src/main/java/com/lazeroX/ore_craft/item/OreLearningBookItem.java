@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.item;
 
 import com.lazeroX.ore_craft.menu.OreLearningMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
+import com.lazeroX.ore_craft.value.OreContainerLearning;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -19,7 +20,8 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * 转化桌的便携学习工具，使用期间只向持有者的共享账户登记物品类型。
+ * 转化桌的便携学习工具，支持菜单单件学习及潜行右键容器的整箱学习。
+ * 使用期间只向持有者的共享账户登记物品类型，不消耗学习样本。
  * 学习记录属于玩家存档，宝典本身不保存目录、储存 ME 或提供提取功能。
  */
 public final class OreLearningBookItem extends Item {
@@ -50,7 +52,8 @@ public final class OreLearningBookItem extends Item {
     }
 
     /**
-     * 优先处理对方块的右键，保证面向箱子或转化桌时仍能打开宝典。
+     * 优先处理方块右键：潜行对容器时批量学习，其他情况仍打开宝典菜单。
+     * 客户端仅消费交互，库存读取与学习记录变更全部由服务端执行。
      *
      * @param stack 正在使用的宝典
      * @param context 方块交互上下文
@@ -59,7 +62,13 @@ public final class OreLearningBookItem extends Item {
     @Override
     public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
         if (context.getPlayer() == null) return InteractionResult.PASS;
-        if (context.getPlayer() instanceof ServerPlayer player) openLearning(player, context.getHand());
+        if (context.getPlayer() instanceof ServerPlayer player) {
+            // 整箱学习不打开箱子或宝典，也不修改其中的任何物品栈。
+            if (player.isShiftKeyDown() && OreContainerLearning.tryLearn(player, context)) {
+                return InteractionResult.CONSUME;
+            }
+            openLearning(player, context.getHand());
+        }
         return InteractionResult.sidedSuccess(context.getLevel().isClientSide());
     }
 

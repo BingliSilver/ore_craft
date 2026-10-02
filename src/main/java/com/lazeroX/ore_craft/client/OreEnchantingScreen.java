@@ -9,7 +9,6 @@ import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -36,7 +35,7 @@ import java.util.Set;
  * 矿质附魔台界面。附魔列表和等级控件由注册表绘制，输出槽显示服务端生成的结果预览。
  * 客户端计算仅供实时预览，最终价格及物品状态由服务端重新验证。
  */
-public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchantingMenu> {
+public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnchantingMenu> {
     /** 参考图按三分之一比例映射后的画布尺寸。 */
     private static final int WIDTH = 512;
     private static final int HEIGHT = 341;
@@ -68,10 +67,8 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     private ResourceLocation selectedId;
     /** 附魔列表的首条可见记录。 */
     private int scroll;
-    /** 界面按设计尺寸的 85% 显示；仍保留物品和文字的可读性。 */
+    /** 保留设计尺寸 85% 的紧凑布局，再由 Minecraft 的界面尺寸设置决定实际显示大小。 */
     private static final float MAX_UI_SCALE = 0.85F;
-    /** 当前窗口对应的界面绘制倍率；鼠标事件使用其逆变换。 */
-    private float uiScale = 1.0F;
 
     /**
      * 创建附魔界面并采用参考图画布大小。
@@ -81,9 +78,19 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
      * @param title 菜单标题
      */
     public OreEnchantingScreen(OreEnchantingMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        imageWidth = WIDTH;
-        imageHeight = HEIGHT;
+        super(menu, inventory, title, WIDTH, HEIGHT);
+    }
+
+    /** 返回附魔台既有的紧凑布局倍率，窗口适配与坐标换算仍由公共父类处理。 */
+    @Override
+    protected float maximumMenuScale() {
+        return MAX_UI_SCALE;
+    }
+
+    /** 保留附魔台原有的深色暗幕，突出法阵与附魔列表。 */
+    @Override
+    protected int backgroundColor() {
+        return 0xB0000000;
     }
 
     /** 初始化附魔搜索框与一键清空按钮，并根据当前目标重建列表。 */
@@ -91,11 +98,7 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
     protected void init() {
         String previousSearch = search == null ? "" : search.getValue();
         super.init();
-        // 四周至少预留 12 像素；窗口较小时再缩小，避免右侧附魔列表被裁掉。
-        uiScale = Math.min(MAX_UI_SCALE,
-                Math.min((width - 24.0F) / WIDTH, (height - 24.0F) / HEIGHT));
-        leftPos = Math.round((width / uiScale - WIDTH) / 2.0F);
-        topPos = Math.round((height / uiScale - HEIGHT) / 2.0F);
+        // 父类先按游戏 GUI 设置居中画布，再用统一的逻辑位置创建搜索框与按钮。
         search = new EditBox(font, leftPos + 310, topPos + 57, 125, 14,
                 Component.translatable("gui.ore_craft.enchanting.search"));
         search.setBordered(false);
@@ -399,37 +402,31 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
         }
     }
 
-    /** 渲染输入槽、交易反馈、清空确认及具体冲突附魔提示，悬停坐标随界面缩放。 */
+    /** 按逻辑坐标识别输入槽、交易反馈及附魔冲突，在原 GUI 坐标中显示提示。 */
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        // 暗化背景使用真实窗口坐标；其余内容和物品悬停区域一起缩放。
-        graphics.fill(0, 0, width, height, 0xB0000000);
-        int logicalMouseX = Math.round(mouseX / uiScale);
-        int logicalMouseY = Math.round(mouseY / uiScale);
-        graphics.pose().pushPose();
-        graphics.pose().scale(uiScale, uiScale, 1.0F);
-        super.render(graphics, logicalMouseX, logicalMouseY, partialTick);
-        renderTooltip(graphics, logicalMouseX, logicalMouseY);
+    protected void renderExtraTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int logicalMouseX = (int) menuCoordinate(mouseX);
+        int logicalMouseY = (int) menuCoordinate(mouseY);
         int x = logicalMouseX - leftPos;
         int y = logicalMouseY - topPos;
         if (clearEnchantmentsButton.isMouseOver(logicalMouseX, logicalMouseY)) {
             graphics.renderTooltip(font, Component.translatable("gui.ore_craft.enchanting.clear_all_hint"),
-                    logicalMouseX, logicalMouseY);
+                    mouseX, mouseY);
         } else if (hoveredSlot != null && !hoveredSlot.hasItem()) {
             String key = hoveredSlot.index == OreEnchantingMenu.TARGET_SLOT ? "target"
                     : hoveredSlot.index == OreEnchantingMenu.CONTAINER_SLOT ? "container" : null;
             if (key != null) graphics.renderTooltip(font,
-                    Component.translatable("gui.ore_craft.enchanting.slot." + key), logicalMouseX, logicalMouseY);
+                    Component.translatable("gui.ore_craft.enchanting.slot." + key), mouseX, mouseY);
         } else if (x >= 215 && x < 271 && y >= 84 && y < 101) {
             graphics.renderTooltip(font,
                     Component.translatable("gui.ore_craft.enchanting.balance_full", format(availableMe())),
-                    logicalMouseX, logicalMouseY);
+                    mouseX, mouseY);
         } else if (x >= 111 && x < 205 && y >= 176 && y < 207
                 && (menu.resultStatus() == OreEnchantingMenu.RESULT_SPENT
                 || menu.resultStatus() == OreEnchantingMenu.RESULT_STORED)) {
             graphics.renderTooltip(font,
                     Component.translatable("gui.ore_craft.enchanting.result.amount", format(menu.resultAmount())),
-                    logicalMouseX, logicalMouseY);
+                    mouseX, mouseY);
         } else if (x >= 288 && x < 464 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
             int index = scroll + (y - ROW_Y) / ROW_STEP;
             if (index < filtered.size()) {
@@ -438,24 +435,17 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                     // 每个冲突来源独占一行，完整显示本地化名称，便于玩家逐项调整为无。
                     List<Component> hints = conflicts.stream().<Component>map(enchantment -> Component.translatable(
                             "gui.ore_craft.enchanting.conflict", enchantment.value().description())).toList();
-                    graphics.renderComponentTooltip(font, hints, logicalMouseX, logicalMouseY);
+                    graphics.renderComponentTooltip(font, hints, mouseX, mouseY);
                 }
             }
         }
-        graphics.pose().popPose();
-    }
-
-    /** 避免容器基类在已缩放坐标系内再次铺满窗口背景。 */
-    @Override
-    public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBg(graphics, partialTick, mouseX, mouseY);
     }
 
     /** 选择附魔或调整等级后刷新服务端预览；输入与输出槽由菜单处理。 */
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        double logicalX = mouseX / uiScale;
-        double logicalY = mouseY / uiScale;
+        double logicalX = menuCoordinate(mouseX);
+        double logicalY = menuCoordinate(mouseY);
         int x = (int) logicalX - leftPos;
         int y = (int) logicalY - topPos;
         if (button == 0 && x >= 288 && x < 464 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
@@ -476,33 +466,15 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
             }
             return true;
         }
-        return super.mouseClicked(logicalX, logicalY, button);
-    }
-
-    /** 把松开鼠标事件换算回未缩放的菜单坐标，保证拖拽物品落到正确槽位。 */
-    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return super.mouseReleased(mouseX / uiScale, mouseY / uiScale, button);
-    }
-
-    /** 拖拽物品及组件时同步换算位置与位移。 */
-    @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        return super.mouseDragged(mouseX / uiScale, mouseY / uiScale, button,
-                dragX / uiScale, dragY / uiScale);
-    }
-
-    /** 搜索框的鼠标悬停状态也使用与绘制一致的逻辑坐标。 */
-    @Override
-    public void mouseMoved(double mouseX, double mouseY) {
-        super.mouseMoved(mouseX / uiScale, mouseY / uiScale);
+        // 父类只转换一次槽位及组件坐标，此处回退时保留原 GUI 鼠标位置。
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     /** 鼠标滚轮翻阅已过滤的附魔目录。 */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        double logicalX = mouseX / uiScale;
-        double logicalY = mouseY / uiScale;
+        double logicalX = menuCoordinate(mouseX);
+        double logicalY = menuCoordinate(mouseY);
         int x = (int) logicalX - leftPos;
         int y = (int) logicalY - topPos;
         if (x >= 286 && x < 466 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
@@ -510,7 +482,7 @@ public final class OreEnchantingScreen extends AbstractContainerScreen<OreEnchan
                     scroll - (int) Math.signum(scrollY)));
             return true;
         }
-        return super.mouseScrolled(logicalX, logicalY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     /** 用四条一像素线绘制统一方框。 */

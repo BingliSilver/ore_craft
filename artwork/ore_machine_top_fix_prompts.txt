@@ -1,0 +1,15 @@
+普通版独立顶面（imagegen 内置工具）
+
+Use case: precise-object-edit.
+Asset type: ONE standalone square Minecraft machine TOP-face texture, NORMAL tier, 64x64 source pixel art displayed large.
+Input image 1 current top texture: fix missing/clipped corners. Input image 2 side texture: match dark slate, gold, cyan aesthetic.
+Design: a complete centered cyan faceted diamond surrounded by a cyan octagonal circuit ring, dark blue-gray slate stone background.
+CRITICAL FOUR CORNERS: Each corner contains a COMPLETE square GOLD METAL CAP covering a full 16x16 source-pixel square, exactly the outer quarter of each edge: upper-left x0..15,y0..15; upper-right x48..63,y0..15; lower-left x0..15,y48..63; lower-right x48..63,y48..63. Each gold square extends ALL THE WAY to BOTH outer edges of its corner. Absolutely no stone gap between a gold cap and either image edge. Each cap has a small inset CYAN gemstone bolt, warm gold pixel shading and a fine dark-gold outline. The four cap squares are the same size and geometrically symmetric. Gold shading continues right to image edges so these tiles can wrap onto side faces. Entire intended corner squares must be visible, never a partial square stolen from a neighboring atlas cell.
+Central energy ring fits between these four gold caps, clearly separated from their inner corners. Center motif centered at source pixel 31.5,31.5. All four side midpoints have balanced dark stone/cyan circuits. Complete standalone square with exact 90-degree rotational symmetry in layout.
+Style: crisp 64x64 Minecraft pixel art, nearest-neighbor enlarged hard square pixels, similar source pixel density to references. No antialiasing, no bloom, no perspective, no cube render, no atlas, no labels/text, no blank margins, no transparency. Square image.
+
+Plus 版独立顶面（imagegen 内置工具）
+
+Use case: precise-object-edit. Asset type: standalone square Minecraft machine TOP texture, PLUS tier.
+Use input image 1 as exact edit target. Change ONLY central diamond and the octagonal cyan energy ring (including its circuit nodes) to violet/amethyst with light purple highlights. Keep all four large gold corner caps, their small CYAN gemstone bolts, every stone pixel, framing, gold shape, edge positions, complete corner geometry, pixel scale and canvas size unchanged.
+The gold caps must still reach the outer image edges and remain fully complete. Keep the cyan bolts IN THE FOUR GOLD CORNER CAPS cyan, not purple. No missing sections. One square flat orthographic 64x64-style Minecraft pixel texture shown enlarged. No text, no atlas, no perspective, no blur or transparency.

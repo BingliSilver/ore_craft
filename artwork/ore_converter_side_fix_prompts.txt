@@ -1,0 +1,19 @@
+普通版侧面修复（imagegen 内置工具）
+
+Use case: precise-object-edit.
+Asset type: one standalone square Minecraft ore interface block SIDE texture, normal tier.
+Edit target: reference image 1 is current ore_converter_side.png, reference image 2 is the atlas showing the same style.
+Fix: the original atlas split cut the right-edge circuitry and brackets. Reconstruct ONE complete, perfectly centered square face with no cropped border components.
+Composition: square 1024x1024 image showing a single flat square block face, orthographic front view. Treat the image as exactly 64x64 pixel art magnified 16x with nearest-neighbor hard square pixels. Keep four source pixels of dark slate stone margin along ALL FOUR image edges. Entire gold/metal outer border must be fully INSIDE that margin: from source pixel 4 to 59. Both left and right cyan vertical circuit strips must be COMPLETE and mirrored, neither touches any image edge. Four gold corner brackets each identical in size, fully visible, symmetrically inset. Central faceted CYAN diamond and surrounding golden geometric ring exactly centered at (31.5,31.5) on the source grid. Equal left/right and top/bottom clearances. No shared corners, half motifs, or continuation into any neighbouring image.
+Preserve existing aesthetic: dark charcoal-blue textured stone, warm gold stepped mechanical brackets, bright cyan edge circuit strips, large faceted cyan diamond core. Strict bilateral symmetry in geometry and silhouette (lighting can have normal top-left highlights). Similar detail density to the current 64x64 textures.
+Constraints: ONLY ONE complete square texture, fills image edge to edge with stone margin, NO atlas, NO neighbouring blocks, NO perspective, NO cube render, NO text, NO labels, NO watermark, NO transparent pixels, NO soft edges or smooth painting. All ornaments safely contained inside image.
+
+Plus 版侧面修复（imagegen 内置工具）
+
+Use case: precise-object-edit.
+Asset type: one standalone square Minecraft ore interface Plus block SIDE texture.
+Edit target: input image 1 is the corrected normal interface side; input image 2 is old Plus tier color reference only.
+Primary request: make the PLUS color variant of image 1. Preserve EXACT image 1 framing, complete edge margins, all gold corner brackets, cyan vertical circuit strips, stone pattern, ring geometry, resolution and centered diamond position. Change ONLY central cyan diamond crystal to violet/amethyst shades with lilac highlights and purple shadows. Add four very small purple rune accents around the crystal inside the inner gold ring, without moving or resizing anything else.
+Composition constraints: ONE complete square face, perfectly front-on, keep equal dark stone safety margins at all four edges. All four corner brackets must remain fully visible and INSIDE the canvas. No cropped or continuing ornaments, no atlas, no outer blank padding.
+Style: crisp Minecraft 64x64 pixel art displayed enlarged, exactly matching image 1 pixel scale, dark slate stone, golden brackets, bright CYAN left and right edge circuits. Only the central core and tiny internal rune accents purple.
+No text, no perspective, no cube render, no transparency, no blur, no smooth gradients. Keep layout aligned with normal tier.

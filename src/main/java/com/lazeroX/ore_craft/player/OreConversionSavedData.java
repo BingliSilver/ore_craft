@@ -22,6 +22,8 @@ import java.util.UUID;
 
 /** 将每名玩家的 ME 余额和已学习物品保存在主世界存档数据中。 */
 public final class OreConversionSavedData extends SavedData {
+    /** 单个账户最多学习 2048 种物品；单件与批量学习共用此网络目录容量限制。 */
+    public static final int MAX_LEARNED = 2048;
     private static final Logger LOGGER = LogUtils.getLogger();
     /** 主世界存档中保存玩家转化账户的文件名。 */
     private static final String FILE_ID = Ore_craft.MODID + "_conversion_players";
@@ -112,6 +114,24 @@ public final class OreConversionSavedData extends SavedData {
         boolean added = account(player).learned.add(id);
         if (added) setDirty();
         return added;
+    }
+
+    /**
+     * 清空指定玩家的全部学习记录，供服务端管理命令重置共享学习目录。
+     * 只修改学习集合，不修改账户余额；没有账户或目录已空时不创建账户、不标记存档。
+     * 调用方负责校验权限，并在需要时同步在线玩家的客户端状态。
+     *
+     * @param playerId 需要重置的玩家 UUID
+     * @return 本次删除的学习记录条数，没有记录时为 0
+     */
+    public int clearLearned(UUID playerId) {
+        Account account = accounts.get(playerId);
+        if (account == null || account.learned.isEmpty()) return 0;
+        int removed = account.learned.size();
+        account.learned.clear();
+        // 标记持久数据变更，保证保存世界和重新登录后不会恢复已清除的目录。
+        setDirty();
+        return removed;
     }
 
     /**

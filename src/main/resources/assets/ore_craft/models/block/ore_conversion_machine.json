@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:block/cube_bottom_top",
+  "parent": "ore_craft:block/ore_machine_capped_cube",
   "textures": {
     "top": "ore_craft:block/ore_converter_top",
     "bottom": "minecraft:block/polished_blackstone",

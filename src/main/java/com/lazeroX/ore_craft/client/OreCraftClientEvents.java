@@ -30,7 +30,12 @@ public final class OreCraftClientEvents {
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
-    /** 注册转化桌、学习宝典、矿质附魔台、传输接口、矿质转化器和时间权杖的客户端屏幕。 */
+    /**
+     * 注册六种客户端菜单界面，普通及 Plus 机器共用相应屏幕实现。
+     * 所有屏幕继承公共缩放层，统一响应玩家的 GUI 界面尺寸设置与窗口变化。
+     *
+     * @param event 客户端菜单屏幕注册事件
+     */
     @SubscribeEvent
     public static void registerMenuScreens(RegisterMenuScreensEvent event) {
         event.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);

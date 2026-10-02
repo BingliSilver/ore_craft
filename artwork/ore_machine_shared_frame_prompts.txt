@@ -1,0 +1,15 @@
+普通版转化器中心标识（imagegen 内置工具）
+
+Use case: precise-object-edit.
+Asset type: Minecraft ore conversion machine SIDE, matching existing ore interface exactly.
+Input image 1 is the exact normal interface side to edit.
+Change ONLY the large central CYAN DIAMOND crystal into a crisp CYAN FOUR-POINT STAR crystal, a recognizable conversion-machine identifier. Keep the star centered at the same location as the diamond and within its original bounding box. It has four elongated cardinal points, a small faceted cyan center and light icy-blue highlights.
+Preserve ALL other pixels and geometry: gold inner ring, dark slate stone, both cyan vertical pillars, corner brackets, upper and lower trim. Do not move the ring or pillars. No added circular gear or rings. All changes must be strictly confined to the central 32x32 source-pixel square (x16..47,y16..47 of a 64x64 source texture).
+ONE square flat front-on side texture, hard Minecraft pixel art, 64 source pixels per edge displayed enlarged with nearest-neighbor style. No atlas, labels, perspective, transparency, blur or soft gradients.
+
+Plus 版转化器中心标识（imagegen 内置工具）
+
+Use case: precise-object-edit.
+Asset type: PLUS variant of Minecraft conversion machine side.
+Edit input image 1: change ONLY the central cyan FOUR-POINT STAR crystal to violet/amethyst with lilac highlights and purple shadows. Add four tiny violet rune accents around the star inside its gold ring like the Plus interface in image 2. Keep the star shape, center position, and dimensions identical to image 1. Preserve all other pixels: complete gold inner ring, outer stone frame, cyan columns, golden corner blocks. Changes are restricted to the central 32x32 pixel square (source x16..47,y16..47).
+One square flat orthographic 64x64 Minecraft-style pixel texture displayed enlarged. No atlas, labels, perspective, transparency, blur.

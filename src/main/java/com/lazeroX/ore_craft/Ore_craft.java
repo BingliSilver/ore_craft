@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft;
 
+import com.lazeroX.ore_craft.command.OreConversionCommands;
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
 import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
@@ -59,6 +60,8 @@ public class Ore_craft {
         NeoForge.EVENT_BUS.addListener(OreConversionPrices::onDatapackSync);
         NeoForge.EVENT_BUS.addListener(OreConversionNetwork::onLogin);
         NeoForge.EVENT_BUS.addListener(OreConversionNetwork::onRespawn);
+        // 服务端管理命令使用全局事件总线，单人世界与专用服务器共用同一注册入口。
+        NeoForge.EVENT_BUS.addListener(OreConversionCommands::register);
 
         // 酿造与方块掉落属于游戏运行期事件，因此监听 NeoForge 全局事件总线。
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::registerBrewingRecipes);

@@ -4,7 +4,6 @@ import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 
@@ -16,7 +15,7 @@ import java.util.Locale;
  * <p>按钮通过原版菜单操作包发送预设编号；客户端预览会立即变化，
  * 服务端仍会检查菜单和主手物品后才写入权杖设置。</p>
  */
-public final class MineralTimeScepterScreen extends AbstractContainerScreen<MineralTimeScepterMenu> {
+public final class MineralTimeScepterScreen extends AbstractOreContainerScreen<MineralTimeScepterMenu> {
     /** 设置面板宽度，容纳六枚倍率按钮。 */
     private static final int PANEL_WIDTH = 260;
     /** 设置面板高度，容纳倍率、时长和总价。 */
@@ -37,9 +36,7 @@ public final class MineralTimeScepterScreen extends AbstractContainerScreen<Mine
      * @param title 菜单标题
      */
     public MineralTimeScepterScreen(MineralTimeScepterMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        imageWidth = PANEL_WIDTH;
-        imageHeight = PANEL_HEIGHT;
+        super(menu, inventory, title, PANEL_WIDTH, PANEL_HEIGHT);
     }
 
     /** 生成六枚倍率按钮和五枚时间按钮；窗口缩放后由此方法重新定位。 */
@@ -70,14 +67,6 @@ public final class MineralTimeScepterScreen extends AbstractContainerScreen<Mine
         if (menu.clickMenuButton(minecraft.player, buttonId)) {
             minecraft.gameMode.handleInventoryButtonClick(menu.containerId, buttonId);
         }
-    }
-
-    /** 渲染标准背景、面板和控件；本菜单没有物品槽。 */
-    @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
-        super.render(graphics, mouseX, mouseY, partialTick);
-        renderTooltip(graphics, mouseX, mouseY);
     }
 
     /** 绘制深色面板、分隔线以及当前选项下方的紫色标记。 */

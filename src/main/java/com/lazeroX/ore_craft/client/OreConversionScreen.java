@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -29,7 +28,7 @@ import java.util.Locale;
 import java.util.Optional;
 
 /** 展示转化桌余额、玩家背包和可提取的已学习物品目录。 */
-public final class OreConversionScreen extends AbstractContainerScreen<OreConversionMenu> {
+public final class OreConversionScreen extends AbstractOreContainerScreen<OreConversionMenu> {
     private static final int WIDTH = 432;
     private static final int HEIGHT = 228;
     private static final float X_LAYOUT_SCALE = WIDTH / 390.0F;
@@ -71,17 +70,13 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
      * @param title 菜单标题
      */
     public OreConversionScreen(OreConversionMenu menu, Inventory inventory, Component title) {
-        super(menu, inventory, title);
-        imageWidth = WIDTH;
-        imageHeight = HEIGHT;
+        super(menu, inventory, title, WIDTH, HEIGHT);
     }
 
     /** 初始化搜索框、分类按钮和目录分页控件。 */
     @Override
     protected void init() {
         String previousSearch = search == null ? "" : search.getValue();
-        imageWidth = WIDTH;
-        imageHeight = HEIGHT;
         super.init();
         categoryButtons.clear();
         previous = null;
@@ -309,8 +304,8 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0) {
-            int localX = (int) mouseX - leftPos;
-            int localY = (int) mouseY - topPos;
+            int localX = (int) menuCoordinate(mouseX) - leftPos;
+            int localY = (int) menuCoordinate(mouseY) - topPos;
             int index = catalogIndexAt(localX, localY);
             if (index >= 0 && index < filtered.size()) {
                 OreConversionNetwork.PriceEntry entry = filtered.get(index);
@@ -359,8 +354,8 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
     /** 在鼠标位于目录区域时用滚轮切换页面。 */
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        int localX = (int) mouseX - leftPos;
-        int localY = (int) mouseY - topPos;
+        int localX = (int) menuCoordinate(mouseX) - leftPos;
+        int localY = (int) menuCoordinate(mouseY) - topPos;
         if (localX >= sx(204) && localX < sx(352) && localY >= sy(66) && localY < sy(177) && scrollY != 0) {
             int lastPage = Math.max(0, (filtered.size() - 1) / PAGE_SIZE);
             page = Math.max(0, Math.min(lastPage, page + (scrollY > 0 ? -1 : 1)));
@@ -370,13 +365,11 @@ public final class OreConversionScreen extends AbstractContainerScreen<OreConver
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
-    /** 渲染界面和物品提示，并显示余额、目录物品或状态详情。 */
+    /** 用逻辑坐标判断悬停区域，再按游戏界面尺寸绘制余额、目录物品或状态详情。 */
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        renderTooltip(graphics, mouseX, mouseY);
-        int localX = mouseX - leftPos;
-        int localY = mouseY - topPos;
+    protected void renderExtraTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+        int localX = (int) menuCoordinate(mouseX) - leftPos;
+        int localY = (int) menuCoordinate(mouseY) - topPos;
         int index = catalogIndexAt(localX, localY);
         if (index >= 0 && index < filtered.size()) {
             OreConversionNetwork.PriceEntry entry = filtered.get(index);

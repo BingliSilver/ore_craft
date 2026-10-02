@@ -30,8 +30,6 @@ public final class OreLearningMenu extends AbstractContainerMenu {
     /** 快捷栏与背包三排分开绘制，留出纸面上的小标题空间。 */
     public static final int HOTBAR_Y = 158;
     public static final int SLOT_SPACING = 18;
-    /** 与转化桌一致的学习记录上限，避免共享目录超过既有网络容量设计。 */
-    private static final int MAX_LEARNED = 2048;
     /** 背包三排与快捷栏共 36 格，不包含防具和副手。 */
     private static final int INVENTORY_SLOTS = 36;
     /** 打开界面时持有宝典的手；切换或取走宝典后菜单失效。 */
@@ -121,7 +119,7 @@ public final class OreLearningMenu extends AbstractContainerMenu {
         ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(sample.getItem());
         // 已学习物品即使在目录满额时也能查询；只有新增记录受上限约束。
         if (!data.account(serverPlayer).knows(itemId)
-                && data.account(serverPlayer).learned().size() >= MAX_LEARNED) {
+                && data.account(serverPlayer).learned().size() >= OreConversionSavedData.MAX_LEARNED) {
             status(serverPlayer, "learn_limit");
             return ItemStack.EMPTY;
         }

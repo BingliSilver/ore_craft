@@ -32,6 +32,8 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
     public static final int CONTAINER_SLOT = 0;
     public static final int SELECTION_SLOT = 1;
     public static final int OUTPUT_SLOT = 2;
+    /** 原版菜单按钮协议中的清空操作编号，与目录选择请求独立。 */
+    public static final int CLEAR_SELECTION_BUTTON = 0;
     /** 玩家背包起点及末尾的半开区间索引。 */
     private static final int INVENTORY_START = 3;
     private static final int INVENTORY_END = 39;
@@ -70,25 +72,29 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
         if (machine != null && machine.selected() != null) {
             selection.setItem(0, new ItemStack(BuiltInRegistries.ITEM.get(machine.selected())));
         }
-        addSlot(new Slot(storage, OreConversionMachineBlockEntity.CONTAINER_SLOT, 26, 35) {
+        addSlot(new Slot(storage, OreConversionMachineBlockEntity.CONTAINER_SLOT, 34, 76) {
             /** 普通和末影矿质容器都可作为支付来源。 */
             @Override public boolean mayPlace(ItemStack stack) { return OreMachineEnergy.isContainer(stack); }
         });
-        addSlot(new Slot(selection, 0, 80, 35) {
+        addSlot(new Slot(selection, 0, 102, 76) {
             /** 选择框的图标由服务端目录选择更新，不能放入或拿走真实物品。 */
             @Override public boolean mayPlace(ItemStack stack) { return false; }
             @Override public boolean mayPickup(Player player) { return false; }
         });
-        addSlot(new Slot(storage, OreConversionMachineBlockEntity.OUTPUT_SLOT, 134, 35) {
+        addSlot(new Slot(storage, OreConversionMachineBlockEntity.OUTPUT_SLOT, 170, 76) {
             /** 产物只能由机器生成，玩家可以正常取走。 */
             @Override public boolean mayPlace(ItemStack stack) { return false; }
         });
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 8 + column * 18, 84 + row * 18));
+                // 两种机器共用背包布局，仅上方的操作流程不同。
+                addSlot(new Slot(inventory, column + row * 9 + 9,
+                        OreConverterMenu.INVENTORY_X + column * 18, OreConverterMenu.INVENTORY_Y + row * 18));
             }
         }
-        for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 8 + column * 18, 142));
+        for (int column = 0; column < 9; column++) {
+            addSlot(new Slot(inventory, column, OreConverterMenu.INVENTORY_X + column * 18, OreConverterMenu.HOTBAR_Y));
+        }
         // 原版数据槽同步短整数进度；选择图标经真实菜单槽位单独同步。
         addDataSlot(new DataSlot() {
             @Override public int get() { return machine == null ? clientProgress : machine.progressTicks(); }
@@ -143,6 +149,25 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
         machine.select(id);
         selection.setItem(0, template);
         broadcastChanges();
+    }
+
+    /**
+     * 通过原版菜单按钮协议取消生产选择，拒绝过期菜单、越权操作和未知按钮编号。
+     * 只清除虚拟图标与生产进度，真实库存由机器保留并照常同步。
+     *
+     * @param player 发起按钮操作的玩家
+     * @param buttonId 按钮编号，目前仅接受清空选择
+     * @return 服务端完成清空时为 true，其余情况为 false
+     */
+    @Override
+    public boolean clickMenuButton(Player player, int buttonId) {
+        if (!(player instanceof ServerPlayer) || player.containerMenu != this
+                || buttonId != CLEAR_SELECTION_BUTTON || !stillValid(player) || machine == null) return false;
+        machine.clearSelection();
+        selection.setItem(0, ItemStack.EMPTY);
+        // 同一轮同步同时更新目标槽与进度条，避免客户端残留旧图标。
+        broadcastChanges();
+        return true;
     }
 
     /** 返回当前轮次进度，供客户端绘制进度条。 */

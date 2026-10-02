@@ -137,6 +137,18 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         setChanged();
     }
 
+    /**
+     * 取消当前生产目标并清零轮次进度，供通过权限验证的服务端菜单调用。
+     * 保留支付容器、其中的 ME 以及已经生成的产物；未完成的轮次尚未扣费。
+     */
+    public void clearSelection() {
+        if (selected == null && progressTicks == 0) return;
+        selected = null;
+        progressTicks = 0;
+        // 将空选择写入持久状态，保证重载世界后不会恢复上一次的生产目标。
+        setChanged();
+    }
+
     /** 返回需要同步到界面的轮次进度。 */
     public int progressTicks() { return progressTicks; }
 

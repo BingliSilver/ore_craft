@@ -24,6 +24,10 @@ import net.minecraft.world.level.Level;
  * 客户端仅显示同步来的物品与进度；所有放入条件在服务端槽位重新核验。
  */
 public final class OreConverterMenu extends AbstractContainerMenu {
+    /** 新机器界面共用的背包坐标，客户端与服务端槽位保持相同布局。 */
+    public static final int INVENTORY_X = 29;
+    public static final int INVENTORY_Y = 148;
+    public static final int HOTBAR_Y = 206;
     /** 原料格和矿质容器格位于所有玩家背包格之前。 */
     public static final int INPUT_SLOT = 0;
     public static final int CONTAINER_SLOT = 1;
@@ -62,7 +66,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
                 ? blockEntity : null;
         this.storage = converter == null ? new SimpleContainer(2) : converter.inventory();
         checkContainerSize(storage, 2);
-        addSlot(new Slot(storage, OreConverterBlockEntity.INPUT_SLOT, 46, 35) {
+        addSlot(new Slot(storage, OreConverterBlockEntity.INPUT_SLOT, 54, 76) {
             /** 价格来源和普通物品状态都由服务端的可转换规则决定。 */
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -71,7 +75,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
                         : OreConversionPrices.canDeposit(stack);
             }
         });
-        addSlot(new Slot(storage, OreConverterBlockEntity.CONTAINER_SLOT, 110, 35) {
+        addSlot(new Slot(storage, OreConverterBlockEntity.CONTAINER_SLOT, 150, 76) {
             /** 两种矿质容器都可接收 ME；末影容器实际写入放置者的全局账户。 */
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -80,11 +84,12 @@ public final class OreConverterMenu extends AbstractContainerMenu {
         });
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 8 + column * 18, 84 + row * 18));
+                addSlot(new Slot(inventory, column + row * 9 + 9,
+                        INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 8 + column * 18, 142));
+            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y));
         }
         // 数据槽同步短整数进度；服务端拥有真实计时，客户端只接收展示值。
         addDataSlot(new DataSlot() {
