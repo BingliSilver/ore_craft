@@ -19,13 +19,10 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.BlockHitResult;
 
-/** 打开矿质转化菜单的两种转化桌；容器版本沿用外形和交互流程，使用独立菜单类型。 */
-public final class OreConversionTableBlock extends Block {
+/** 转化桌共用的外形和交互；容器版子类额外保存交易容器，矿质转化桌+使用全局账户。 */
+public class OreConversionTableBlock extends Block {
     /** 用于编码转化桌方块属性的 MapCodec。 */
     public static final MapCodec<OreConversionTableBlock> CODEC = simpleCodec(OreConversionTableBlock::new);
-    /** 容器版本使用固定开启第三槽的构造方式，保证方块序列化后仍保留用途。 */
-    public static final MapCodec<OreConversionTableBlock> CONTAINER_CODEC =
-            simpleCodec(properties -> new OreConversionTableBlock(properties, true));
     /** 转化桌菜单标题。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_conversion_table");
     /** 新版转化桌的本地化菜单标题。 */
@@ -58,7 +55,7 @@ public final class OreConversionTableBlock extends Block {
      * 创建指定版本的转化桌，共用碰撞形状和基础交互。
      *
      * @param properties 方块属性
-     * @param containerBacked 为 true 时交易 ME 必须由第三槽的容器结算
+     * @param containerBacked 为 true 时只提供持久交易槽，交易 ME 必须由槽内的容器结算
      */
     public OreConversionTableBlock(Properties properties, boolean containerBacked) {
         super(properties);
@@ -68,7 +65,7 @@ public final class OreConversionTableBlock extends Block {
     /** 返回该方块的序列化编解码器。 */
     @Override
     protected MapCodec<? extends Block> codec() {
-        return containerBacked ? CONTAINER_CODEC : CODEC;
+        return CODEC;
     }
 
     /** 返回转化桌自定义的外形。 */

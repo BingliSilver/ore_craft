@@ -101,7 +101,7 @@
   "block.ore_craft.ore_container_conversion_table": "Ore Conversion Table",
   "container.ore_craft.ore_container_conversion_table": "Ore Conversion Table",
   "gui.ore_craft.conversion.trade_container": "Trade",
-  "gui.ore_craft.conversion.trade_container_hint": "Trade container: recycling credits and extraction costs use this container's ME. Ender containers link to your global account. The other two slots still deposit to and withdraw from the global account.",
+  "gui.ore_craft.conversion.trade_container_hint": "Trade container: recycling credits and extraction costs use this container's ME. Ender containers link to your global account. The container stays in the table when you close the screen.",
   "message.ore_craft.conversion.missing_trade_container": "Insert a trade ore container first",
   "message.ore_craft.conversion.container_full": "Trade container capacity exceeded; items kept",
   "gui.ore_craft.conversion.source": "Input",

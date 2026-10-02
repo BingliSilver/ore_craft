@@ -101,7 +101,7 @@
   "block.ore_craft.ore_container_conversion_table": "矿质转化桌",
   "container.ore_craft.ore_container_conversion_table": "矿质转化桌",
   "gui.ore_craft.conversion.trade_container": "交易",
-  "gui.ore_craft.conversion.trade_container_hint": "交易容器：回收所得和提取消耗均存取此容器的 ME；末影容器连接你的全局账户。旁边两槽仍用于全局账户充值、提现。",
+  "gui.ore_craft.conversion.trade_container_hint": "交易容器：回收所得和提取消耗均存取此容器的 ME；末影容器连接你的全局账户。关闭界面后容器保留在桌内。",
   "message.ore_craft.conversion.missing_trade_container": "请先放入交易矿质容器",
   "message.ore_craft.conversion.container_full": "交易容器容量不足，物品已保留",
   "gui.ore_craft.conversion.source": "投入",

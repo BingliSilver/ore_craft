@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.MiningTntBlock;
 import com.lazeroX.ore_craft.block.OreConversionTableBlock;
+import com.lazeroX.ore_craft.block.OreContainerConversionTableBlock;
 import com.lazeroX.ore_craft.block.OreConversionMachineBlock;
 import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
 import com.lazeroX.ore_craft.block.OreConverterBlock;
@@ -23,11 +24,11 @@ public final class ModBlocks {
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
 
-    /** 容器矿质转化桌：保留原有充值、提现口，额外通过第三槽结算物品交易。 */
-    public static final DeferredBlock<OreConversionTableBlock> ORE_CONTAINER_CONVERSION_TABLE =
-            BLOCKS.register("ore_container_conversion_table", () -> new OreConversionTableBlock(
+    /** 矿质转化桌：仅提供一个持久交易容器槽，不提供全局账户充值、提现口。 */
+    public static final DeferredBlock<OreContainerConversionTableBlock> ORE_CONTAINER_CONVERSION_TABLE =
+            BLOCKS.register("ore_container_conversion_table", () -> new OreContainerConversionTableBlock(
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
-                            .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8), true));
+                            .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
 
     /** 矿质附魔台：可以打开预览界面，暂不承载附魔交易。 */
     public static final DeferredBlock<OreEnchantingTableBlock> ORE_ENCHANTING_TABLE =

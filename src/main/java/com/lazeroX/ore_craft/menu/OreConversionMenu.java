@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
+import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -15,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.SimpleContainer;
+import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.Item;
@@ -23,26 +25,36 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.OptionalLong;
 
-/** 管理两种转化桌的交易；容器版仅用第三槽结算 ME，学习记录仍属于当前玩家。 */
+/** 管理两种转化桌的交易；基础版只提供持久交易槽，升级版保留全局账户充值、提现口。 */
 public class OreConversionMenu extends AbstractContainerMenu {
-    /** 普通容器向全局账户充值的槽位索引，紧接 36 个玩家物品栏槽。 */
-    public static final int ME_INPUT_SLOT = 36;
-    /** 从全局账户提取 ME 到普通容器的槽位索引。 */
+    /** 玩家背包和快捷栏的槽位总数，也是方块容器槽的起始索引。 */
+    private static final int PLAYER_SLOT_COUNT = 36;
+    /** 升级版独有的全局账户充值槽，紧接玩家物品栏。 */
+    public static final int ME_INPUT_SLOT = PLAYER_SLOT_COUNT;
+    /** 升级版独有的全局账户提现槽。 */
     public static final int ME_OUTPUT_SLOT = 37;
-    /** 容器版独有的交易槽；不参与另外两个槽位的全局账户充值、提现。 */
-    public static final int TRADE_CONTAINER_SLOT = 38;
-    /** 交易槽在原界面设计稿中的横坐标，供菜单与背景绘制共用。 */
-    public static final int TRADE_CONTAINER_X = 116;
-    /** 交易槽在原界面设计稿中的纵坐标，与充值、提现槽同高。 */
+    /** 基础版唯一的交易容器槽；与升级版充值槽共用索引，两者不会出现在同一个菜单中。 */
+    public static final int TRADE_CONTAINER_SLOT = PLAYER_SLOT_COUNT;
+    /** 交易槽放在原三槽布局最右侧的第三格，即原输出口的设计稿横坐标。 */
+    public static final int TRADE_CONTAINER_X = 168;
+    /** 交易槽在原界面设计稿中的纵坐标。 */
     public static final int TRADE_CONTAINER_Y = 75;
+    /** 槽位背景框在设计稿中的边长；菜单定位和客户端绘制共用此尺寸。 */
+    public static final int SLOT_FRAME_DESIGN_SIZE = 17;
+    /** 原版物品图标在菜单逻辑坐标中的边长，不受设计稿到画布的坐标换算影响。 */
+    private static final int ITEM_ICON_SIZE = 16;
     /** 是否强制通过交易槽中的矿质容器结算。 */
     private final boolean containerBacked;
     /** 该菜单绑定的转化桌坐标。 */
     private final BlockPos pos;
     /** 转化桌所在世界，用于校验菜单有效性。 */
     private final Level level;
-    /** 转化口内暂存的容器，关闭界面时归还玩家。 */
+    /** 升级版充值、提现口的临时库存；基础版为空，关闭升级版界面时返还玩家。 */
     private final SimpleContainer oreContainers;
+    /** 服务端的交易槽方块实体；矿质转化桌+和客户端菜单均为空。 */
+    private final OreContainerConversionTableBlockEntity table;
+    /** 交易槽库存；服务端共用方块库存，客户端只接收菜单槽位同步。 */
+    private final Container tradeContainer;
     /** 当前打开菜单的玩家；末影交易容器连接此玩家而非方块放置者。 */
     private final Player owner;
     /** 防止交互口更新物品组件时递归触发 ME 转移。 */
@@ -77,41 +89,59 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 创建指定版本的转化桌菜单；容器仅在本次打开期间暂存，关闭时返还玩家。
+     * 创建指定版本的转化桌菜单；基础版仅绑定交易库存，升级版仅创建临时充值、提现槽。
      *
      * @param id 菜单容器 ID
      * @param inventory 玩家物品栏
      * @param pos 转化桌坐标
-     * @param containerBacked 为 true 时增加交易槽，并禁止交易直接回退到全局余额
+     * @param containerBacked 为 true 时只提供交易容器槽，交易不得回退到全局余额
      */
     public OreConversionMenu(int id, Inventory inventory, BlockPos pos, boolean containerBacked) {
         super(containerBacked ? ModMenus.ORE_CONTAINER_CONVERSION_MENU.get() : ModMenus.ORE_CONVERSION_MENU.get(), id);
         this.containerBacked = containerBacked;
-        this.oreContainers = new SimpleContainer(containerBacked ? 3 : 2);
+        this.oreContainers = new SimpleContainer(containerBacked ? 0 : 2);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
         this.owner = inventory.player;
+        // 客户端以独立空库存接收物品同步；服务端必须操作当前方块实体的同一份库存。
+        this.table = containerBacked && !level.isClientSide()
+                && level.getBlockEntity(pos) instanceof OreContainerConversionTableBlockEntity blockEntity
+                ? blockEntity : null;
+        this.tradeContainer = table == null ? new SimpleContainer(1) : table.inventory();
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
                 addSlot(new Slot(inventory, column + row * 9 + 9, 41 + column * 19, 114 + row * 19));
             }
         }
         for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 41 + column * 19, 174));
-        addContainerSlot(0, 142, 75);
-        addContainerSlot(1, 168, 75);
-        if (containerBacked) addContainerSlot(2, TRADE_CONTAINER_X, TRADE_CONTAINER_Y);
+        // 同时移除客户端和服务端的无用端口，而非仅隐藏画面，避免出现不可见的可操作槽位。
+        if (containerBacked) {
+            addContainerSlot(2, TRADE_CONTAINER_X, TRADE_CONTAINER_Y);
+        } else {
+            addContainerSlot(0, 142, 75);
+            addContainerSlot(1, 168, 75);
+        }
     }
 
     /**
-     * 创建容器槽；原有两槽仅接受普通容器，交易槽同时接受普通和末影容器。
+     * 创建对应版本的容器槽；升级版端口仅接受普通容器，基础版交易槽也接受末影容器。
      *
-     * @param portIndex 临时库存索引，0 为充值、1 为提现、2 为交易
-     * @param x 设计稿横坐标
-     * @param y 设计稿纵坐标
+     * @param portIndex 槽位用途编号，0 为充值、1 为提现、2 为持久交易槽
+     * @param x 背景框左上角的设计稿横坐标
+     * @param y 背景框左上角的设计稿纵坐标
      */
     private void addContainerSlot(int portIndex, int x, int y) {
+        // 基础版交易槽使用持久库存的第零格，升级版两端口使用菜单自身的临时库存。
+        Container storage = portIndex == 2 ? tradeContainer : oreContainers;
+        int storageIndex = portIndex == 2 ? OreContainerConversionTableBlockEntity.CONTAINER_SLOT : portIndex;
+        // 背景框随设计稿换算约为 19×19，而原版图标仍是 16×16，不能共用左上角坐标。
+        int frameWidth = Math.round(SLOT_FRAME_DESIGN_SIZE * 432 / 390.0F);
+        int frameHeight = Math.round(SLOT_FRAME_DESIGN_SIZE * 228 / 206.0F);
+        // 两轴各补上剩余空间的一半；槽位使用整数坐标，半像素按最近像素取整。
+        int itemX = Math.round(x * 432 / 390.0F) + Math.round((frameWidth - ITEM_ICON_SIZE) / 2.0F);
+        int itemY = Math.round(y * 228 / 206.0F) + Math.round((frameHeight - ITEM_ICON_SIZE) / 2.0F);
         // 槽位对象在菜单整个生命周期中校验物品；交易槽不自动搬运 ME。
-        addSlot(new Slot(oreContainers, portIndex, Math.round(x * 432 / 390.0F), Math.round(y * 228 / 206.0F)) {
+        addSlot(new Slot(storage, storageIndex, itemX, itemY) {
             /** 按槽位用途校验矿质容器类型。 */
             @Override
             public boolean mayPlace(ItemStack stack) {
@@ -160,12 +190,14 @@ public class OreConversionMenu extends AbstractContainerMenu {
         sync(player);
     }
 
-    /** 检查转化桌仍存在且玩家仍在交互距离内。 */
+    /** 检查方块、交互距离及服务端持久库存身份，避免旧菜单操作被替换桌子的库存。 */
     @Override
     public boolean stillValid(Player player) {
-        return level.getBlockState(pos).is(containerBacked
+        if (!level.getBlockState(pos).is(containerBacked
                 ? ModBlocks.ORE_CONTAINER_CONVERSION_TABLE.get() : ModBlocks.ORE_CONVERSION_TABLE.get())
-                && player.canInteractWithBlock(pos, 4.0);
+                || !player.canInteractWithBlock(pos, 4.0)) return false;
+        // 客户端没有绑定方块库存，无需验证实体身份；服务端不能回退到临时交易库存。
+        return !containerBacked || level.isClientSide() || table != null && level.getBlockEntity(pos) == table;
     }
 
     /**
@@ -178,11 +210,11 @@ public class OreConversionMenu extends AbstractContainerMenu {
     @Override
     public ItemStack quickMoveStack(Player player, int slot) {
         if (!(player instanceof ServerPlayer serverPlayer)) return ItemStack.EMPTY;
-        if (slot >= ME_INPUT_SLOT && slot < slots.size()) {
+        if (slot >= PLAYER_SLOT_COUNT && slot < slots.size()) {
             ItemStack stack = getSlot(slot).getItem();
             if (stack.isEmpty()) return ItemStack.EMPTY;
             ItemStack original = stack.copy();
-            if (!moveItemStackTo(stack, 0, ME_INPUT_SLOT, false)) return ItemStack.EMPTY;
+            if (!moveItemStackTo(stack, 0, PLAYER_SLOT_COUNT, false)) return ItemStack.EMPTY;
             getSlot(slot).set(ItemStack.EMPTY);
             return original;
         }
@@ -190,17 +222,17 @@ public class OreConversionMenu extends AbstractContainerMenu {
         return useInventorySlot(serverPlayer, slot);
     }
 
-    /** 关闭界面时返还所有暂存容器，普通交易容器保留交易后的 ME 组件。 */
+    /** 基础版关闭后保留交易容器；升级版关闭时返还充值、提现口中的临时容器。 */
     @Override
     public void removed(Player player) {
         super.removed(player);
-        if (!player.level().isClientSide()) clearContainer(player, oreContainers);
+        if (!player.level().isClientSide() && !containerBacked) clearContainer(player, oreContainers);
     }
 
     /**
      * 从背包物品的默认状态学习类型；只有原物品本身满足兑换规则时才消耗并转入 ME。
      * 普通矿质容器回收本体和内部存储量；末影容器只回收本体，不把既有账户余额重复计价。
-     * 容器版把回收所得写入第三槽的容器，容量不足时不消耗原物品。
+     * 基础版把回收所得写入交易槽的容器，容量不足时不消耗原物品。
      * 附魔、耐久等不允许输入的特殊组件不会被转化，原物品保留在背包。
      *
      * @param player 操作转化桌的服务端玩家
@@ -208,7 +240,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @return 已输入的原物品栈；未消耗物品时返回空栈，以结束原版快速移动循环
      */
     private ItemStack useInventorySlot(ServerPlayer player, int slotIndex) {
-        if (!validRequest(player) || slotIndex < 0 || slotIndex >= 36 || !getCarried().isEmpty()) return ItemStack.EMPTY;
+        if (!validRequest(player) || slotIndex < 0 || slotIndex >= PLAYER_SLOT_COUNT || !getCarried().isEmpty()) return ItemStack.EMPTY;
         Slot slot = getSlot(slotIndex);
         ItemStack stack = slot.getItem();
         if (stack.isEmpty()) return ItemStack.EMPTY;
@@ -361,13 +393,13 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 检查结算容器是否存在；普通桌不受此限制，容器版缺槽时发送提示。
+     * 检查结算容器是否存在；升级版直接使用全局账户，基础版缺少容器时发送提示。
      *
      * @param player 请求交易的玩家
      * @return 当前菜单是否具有有效的 ME 结算来源
      */
     private boolean requireTradeContainer(ServerPlayer player) {
-        if (!containerBacked || OreMachineEnergy.isContainer(oreContainers.getItem(2))) return true;
+        if (!containerBacked || OreMachineEnergy.isContainer(tradeContainer.getItem(0))) return true;
         status(player, "missing_trade_container");
         return false;
     }
@@ -380,7 +412,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      */
     private long tradeBalance(ServerPlayer player) {
         return containerBacked
-                ? OreMachineEnergy.stored(player.getServer(), player.getUUID(), oreContainers.getItem(2))
+                ? OreMachineEnergy.stored(player.getServer(), player.getUUID(), tradeContainer.getItem(0))
                 : OreConversionSavedData.get(player).account(player).balance();
     }
 
@@ -393,7 +425,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      */
     private boolean creditTrade(ServerPlayer player, long amount) {
         if (!containerBacked) return OreConversionSavedData.get(player).credit(player, amount);
-        ItemStack updated = OreMachineEnergy.credit(player.getServer(), player.getUUID(), oreContainers.getItem(2), amount);
+        ItemStack updated = OreMachineEnergy.credit(player.getServer(), player.getUUID(), tradeContainer.getItem(0), amount);
         if (updated == null) return false;
         getSlot(TRADE_CONTAINER_SLOT).set(updated);
         return true;
@@ -408,7 +440,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      */
     private boolean debitTrade(ServerPlayer player, long amount) {
         if (!containerBacked) return OreConversionSavedData.get(player).debit(player, amount);
-        ItemStack updated = OreMachineEnergy.debit(player.getServer(), player.getUUID(), oreContainers.getItem(2), amount);
+        ItemStack updated = OreMachineEnergy.debit(player.getServer(), player.getUUID(), tradeContainer.getItem(0), amount);
         if (updated == null) return false;
         getSlot(TRADE_CONTAINER_SLOT).set(updated);
         return true;
@@ -448,7 +480,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     /** 返回客户端当前结算余额：普通容器读槽位组件，末影容器与原版桌读全局快照。 */
     public long clientBalance() {
         if (!containerBacked) return clientBalance;
-        ItemStack stack = oreContainers.getItem(2);
+        ItemStack stack = tradeContainer.getItem(0);
         if (stack.getItem() instanceof OreContainerItem normal) return normal.storedMe(stack);
         return OreMachineEnergy.isContainer(stack) ? clientBalance : 0;
     }

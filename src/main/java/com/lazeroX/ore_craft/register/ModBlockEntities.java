@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
+import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
@@ -15,6 +16,11 @@ public final class ModBlockEntities {
     /** 方块实体延迟注册器。 */
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Ore_craft.MODID);
+
+    /** 仅基础矿质转化桌保存交易槽，矿质转化桌+继续不创建方块实体。 */
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreContainerConversionTableBlockEntity>> ORE_CONTAINER_CONVERSION_TABLE =
+            BLOCK_ENTITY_TYPES.register("ore_container_conversion_table", () -> BlockEntityType.Builder.of(
+                    OreContainerConversionTableBlockEntity::new, ModBlocks.ORE_CONTAINER_CONVERSION_TABLE.get()).build(null));
 
     /** 矿质附魔台的书本动画状态，不保存附魔输入物品。 */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreEnchantingBlockEntity>> ORE_ENCHANTING_TABLE =
