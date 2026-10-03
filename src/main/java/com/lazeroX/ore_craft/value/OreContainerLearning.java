@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 学习宝典的服务端容器扫描流程，读取可访问库存并将可学习的物品类型登记到共享账户。
+ * 学习宝典的服务端批量扫描流程，读取目标容器或玩家背包并将可学习的物品类型登记到共享账户。
  * 支持原版容器、双箱、玩家自己的末影箱及暴露物品能力的模组容器；不转移或消耗样本。
  */
 public final class OreContainerLearning {
@@ -99,8 +99,25 @@ public final class OreContainerLearning {
                 }
             }
         }
-        learn(player, candidates);
+        learn(player, candidates, "message.ore_craft.learning.container_empty");
         return true;
+    }
+
+    /**
+     * 潜行右键空气时扫描玩家自己的主背包和快捷栏，按容器批量学习规则登记物品类型。
+     * 与宝典菜单一致只读取背包 36 格，不扫描防具、副手、鼠标持有物或物品内部库存。
+     * 样本数量、附魔、耐久、ME 等组件均保持原样，仅学习对应物品的默认类型。
+     *
+     * @param player 学习记录所属的服务端玩家，调用方须确认其正在潜行使用宝典
+     */
+    public static void learnInventory(ServerPlayer player) {
+        // items 是主背包及快捷栏的真实物品集合，按槽位顺序去重，不移动或改写原始物品栈。
+        Set<ResourceLocation> candidates = new LinkedHashSet<>();
+        for (ItemStack sample : player.getInventory().items) {
+            collect(sample, candidates);
+        }
+        // 复用登记、容量限制、一次性网络同步及结果统计，仅按扫描来源区分空库存提示。
+        learn(player, candidates, "message.ore_craft.learning.inventory_empty");
     }
 
     /**
@@ -159,14 +176,15 @@ public final class OreContainerLearning {
 
     /**
      * 一次性登记所有新增类型，达到共享上限后继续统计重复和未能新增的类型。
-     * 最后仅同步一次完整状态，避免容器的每个槽位分别触发网络刷新。
+     * 容器与背包扫描共用此流程，最后仅同步一次完整状态，避免逐槽触发网络刷新。
      *
      * @param player 学习记录所属玩家
      * @param candidates 已校验且去重的可学习物品 ID
+     * @param emptyMessage 没有可学习物品时的翻译键，按容器或玩家背包区分提示来源
      */
-    private static void learn(ServerPlayer player, Set<ResourceLocation> candidates) {
+    private static void learn(ServerPlayer player, Set<ResourceLocation> candidates, String emptyMessage) {
         if (candidates.isEmpty()) {
-            player.displayClientMessage(Component.translatable("message.ore_craft.learning.container_empty"), true);
+            player.displayClientMessage(Component.translatable(emptyMessage), true);
             return;
         }
         OreConversionSavedData data = OreConversionSavedData.get(player);

@@ -20,7 +20,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * 转化桌的便携学习工具，支持菜单单件学习及潜行右键容器的整箱学习。
+ * 转化桌的便携学习工具，支持菜单单件学习、潜行右键容器整箱学习及潜行右键空气学习背包。
  * 使用期间只向持有者的共享账户登记物品类型，不消耗学习样本。
  * 学习记录属于玩家存档，宝典本身不保存目录、储存 ME 或提供提取功能。
  */
@@ -38,7 +38,8 @@ public final class OreLearningBookItem extends Item {
     }
 
     /**
-     * 手持右键空气时打开学习菜单，主手与副手都可使用。
+     * 手持右键空气时，潜行则批量学习自身背包，否则打开学习菜单；主手与副手都可使用。
+     * 客户端只消费交互，真实背包扫描和共享目录登记均由服务端完成。
      *
      * @param level 玩家所在世界
      * @param player 使用者
@@ -47,7 +48,11 @@ public final class OreLearningBookItem extends Item {
      */
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (player instanceof ServerPlayer serverPlayer) openLearning(serverPlayer, hand);
+        if (player instanceof ServerPlayer serverPlayer) {
+            // 命中方块时由 onItemUseFirst 处理；右键空气的潜行操作直接扫描自己的真实背包。
+            if (player.isShiftKeyDown()) OreContainerLearning.learnInventory(serverPlayer);
+            else openLearning(serverPlayer, hand);
+        }
         return InteractionResultHolder.sidedSuccess(player.getItemInHand(hand), level.isClientSide());
     }
 
@@ -89,7 +94,8 @@ public final class OreLearningBookItem extends Item {
     }
 
     /**
-     * 用一句简短说明展示宝典用途，具体操作与学习规则由书本界面说明。
+     * 展示宝典用途及容器、空气两种批量学习操作，便于在不打开菜单时发现快捷功能。
+     * 更详细的单件学习规则仍由书本界面说明。
      *
      * @param stack 当前宝典
      * @param context 提示上下文
@@ -100,5 +106,7 @@ public final class OreLearningBookItem extends Item {
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.learning.purpose").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.ore_craft.learning.container_action").withStyle(ChatFormatting.GRAY));
+        tooltip.add(Component.translatable("tooltip.ore_craft.learning.inventory_action").withStyle(ChatFormatting.GRAY));
     }
 }
