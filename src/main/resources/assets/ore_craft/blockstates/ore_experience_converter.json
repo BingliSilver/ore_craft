@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "enabled=false": { "model": "ore_craft:block/ore_experience_converter" },
+    "enabled=true": { "model": "ore_craft:block/ore_experience_converter_enabled" }
+  }
+}

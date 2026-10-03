@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft;
 import com.lazeroX.ore_craft.command.OreConversionCommands;
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
 import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
+import com.lazeroX.ore_craft.event.OreExperienceConverterInteraction;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
@@ -69,5 +70,7 @@ public class Ore_craft {
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::onBlockDrops);
         NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerTick);
         NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerStopped);
+        // 两端统一将经验转化器的潜行右键交给方块，确保手持物品时也能切换开关。
+        NeoForge.EVENT_BUS.addListener(OreExperienceConverterInteraction::onRightClickBlock);
     }
 }

@@ -1,0 +1,6 @@
+{
+  "parent": "ore_craft:block/ore_experience_converter",
+  "textures": {
+    "side": "minecraft:block/emerald_block"
+  }
+}

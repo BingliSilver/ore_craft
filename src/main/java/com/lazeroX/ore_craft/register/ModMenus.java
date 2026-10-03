@@ -5,6 +5,7 @@ import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.menu.OreLearningMenu;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
+import com.lazeroX.ore_craft.menu.OreExperienceConverterMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import net.minecraft.core.registries.Registries;
@@ -43,6 +44,10 @@ public final class ModMenus {
     /** 矿质转化器的容器、虚拟选择和产物菜单。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMachineMenu>> ORE_CONVERSION_MACHINE_MENU =
             MENU_TYPES.register("ore_conversion_machine", () -> IMenuTypeExtension.create(OreConversionMachineMenu::new));
+
+    /** 经验转化器的单个供能槽及开关、进度、完整 ME 余额同步菜单。 */
+    public static final DeferredHolder<MenuType<?>, MenuType<OreExperienceConverterMenu>> ORE_EXPERIENCE_CONVERTER_MENU =
+            MENU_TYPES.register("ore_experience_converter", () -> IMenuTypeExtension.create(OreExperienceConverterMenu::new));
 
     /** 权杖倍率与施加时间的无物品槽设置菜单。 */
     public static final DeferredHolder<MenuType<?>, MenuType<MineralTimeScepterMenu>> MINERAL_TIME_SCEPTER_MENU =

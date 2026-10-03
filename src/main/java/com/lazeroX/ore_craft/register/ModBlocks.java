@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.block.OreContainerConversionTableBlock;
 import com.lazeroX.ore_craft.block.OreConversionMachineBlock;
 import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
 import com.lazeroX.ore_craft.block.OreConverterBlock;
+import com.lazeroX.ore_craft.block.OreExperienceConverterBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -74,6 +75,14 @@ public final class ModBlocks {
                     .requiresCorrectToolForDrops()
                     .sound(SoundType.METAL)
                     .lightLevel(state -> 10), true));
+
+    /** 默认关闭的矿质经验转化器，按 UI 选择的 x1～x128 档位每秒整批扣费并喷出经验。 */
+    public static final DeferredBlock<OreExperienceConverterBlock> ORE_EXPERIENCE_CONVERTER =
+            BLOCKS.register("ore_experience_converter", () -> new OreExperienceConverterBlock(BlockBehaviour.Properties.of()
+                    .strength(5.0F, 6.0F)
+                    .requiresCorrectToolForDrops()
+                    .sound(SoundType.METAL)
+                    .lightLevel(state -> state.getValue(OreExperienceConverterBlock.ENABLED) ? 10 : 0)));
 
     /** 点燃后收集爆炸掉落物的采矿 TNT。 */
     public static final DeferredBlock<MiningTntBlock> MINING_TNT_BLOCK =

@@ -8,6 +8,7 @@
     "ore_craft:ore_converter",
     "ore_craft:ore_converter_plus",
     "ore_craft:ore_conversion_machine",
-    "ore_craft:ore_conversion_machine_plus"
+    "ore_craft:ore_conversion_machine_plus",
+    "ore_craft:ore_experience_converter"
   ]
 }

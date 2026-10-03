@@ -11,6 +11,7 @@ import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
+import com.lazeroX.ore_craft.item.OreExperienceConverterBlockItem;
 import com.lazeroX.ore_craft.item.OreLearningBookItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import net.minecraft.world.item.Item;
@@ -72,6 +73,11 @@ public final class ModItems {
     /** 可放置的下界合金升级版矿质转化器。 */
     public static final DeferredItem<?> ORE_CONVERSION_MACHINE_PLUS_ITEM =
             ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CONVERSION_MACHINE_PLUS);
+
+    /** 可放置的矿质经验转化器，显示经验单价和红色高消耗警示，自动加入创造模式选项卡。 */
+    public static final DeferredItem<OreExperienceConverterBlockItem> ORE_EXPERIENCE_CONVERTER_ITEM =
+            ITEMS.register("ore_experience_converter", () -> new OreExperienceConverterBlockItem(
+                    ModBlocks.ORE_EXPERIENCE_CONVERTER.get(), new Item.Properties()));
 
     /** 放在玩家物品栏中时定期修复装备的矿工徽章。 */
     public static final DeferredItem<MinerBadgeItem> MINER_BADGE =

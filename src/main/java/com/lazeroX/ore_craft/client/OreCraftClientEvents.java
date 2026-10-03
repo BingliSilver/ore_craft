@@ -31,7 +31,8 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册六种客户端菜单界面，普通及 Plus 机器共用相应屏幕实现。
+     * 注册转化桌、学习宝典、附魔台、各类机器和时间权杖的客户端菜单界面。
+     * 普通及 Plus 机器共用相应屏幕实现，经验转化器使用独立单槽界面。
      * 所有屏幕继承公共缩放层，统一响应玩家的 GUI 界面尺寸设置与窗口变化。
      *
      * @param event 客户端菜单屏幕注册事件
@@ -45,6 +46,7 @@ public final class OreCraftClientEvents {
         event.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
         event.register(ModMenus.ORE_CONVERTER_MENU.get(), OreConverterScreen::new);
         event.register(ModMenus.ORE_CONVERSION_MACHINE_MENU.get(), OreConversionMachineScreen::new);
+        event.register(ModMenus.ORE_EXPERIENCE_CONVERTER_MENU.get(), OreExperienceConverterScreen::new);
         event.register(ModMenus.MINERAL_TIME_SCEPTER_MENU.get(), MineralTimeScepterScreen::new);
     }
 }

@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
+import com.lazeroX.ore_craft.block.entity.OreExperienceConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
 import net.minecraft.core.registries.Registries;
@@ -38,6 +39,11 @@ public final class ModBlockEntities {
             BLOCK_ENTITY_TYPES.register("ore_conversion_machine", () -> BlockEntityType.Builder.of(
                     OreConversionMachineBlockEntity::new, ModBlocks.ORE_CONVERSION_MACHINE.get(),
                     ModBlocks.ORE_CONVERSION_MACHINE_PLUS.get()).build(null));
+
+    /** 经验转化器保存单个供能容器、固定账户归属和生产轮次。 */
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreExperienceConverterBlockEntity>> ORE_EXPERIENCE_CONVERTER =
+            BLOCK_ENTITY_TYPES.register("ore_experience_converter", () -> BlockEntityType.Builder.of(
+                    OreExperienceConverterBlockEntity::new, ModBlocks.ORE_EXPERIENCE_CONVERTER.get()).build(null));
 
     /** 工具类不允许创建实例。 */
     private ModBlockEntities() {
