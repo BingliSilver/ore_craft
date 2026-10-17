@@ -14,7 +14,7 @@
     "minecraft:netherite_scrap",
     "minecraft:amethyst_shard"
   ],
-  "blocked_tags": ["#c:ores", "#c:raw_materials"],
+  "blocked_tags": ["#forge:ores", "#forge:raw_materials"],
   "blocked": [
     "minecraft:raw_copper",
     "minecraft:raw_iron",

@@ -1,18 +1,20 @@
 package com.lazeroX.ore_craft.item;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.Level;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /** 可存储固定容量 ME 的矿质容器；进度条仅表示填充比例。 */
 public final class OreContainerItem extends Item {
+    /** 1.20.1 物品 NBT 中保存 ME 的专用键。 */
     private static final String STORED_ME = "OreCraftStoredMe";
     /** 单个容器可存储的最大 ME。 */
     private final long capacity;
@@ -41,25 +43,23 @@ public final class OreContainerItem extends Item {
      * @return 当前有效的 ME 数量
      */
     public long storedMe(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        if (data == null) return 0;
-        return Math.clamp(data.copyTag().getLong(STORED_ME), 0, capacity);
+        CompoundTag tag = stack.getTag();
+        if (tag == null) return 0;
+        return Math.max(0L, Math.min(tag.getLong(STORED_ME), capacity));
     }
 
     /**
-     * 写入 ME；值为零时移除专用数据，避免空容器留下无意义的组件。
+     * 写入 ME；值为零时移除专用键，保留物品上其他来源的 NBT。
      *
      * @param stack 要修改的容器物品栈
      * @param amount 新的 ME 数量，必须在零与容量之间
      */
     public void setStoredMe(ItemStack stack, long amount) {
         if (amount < 0 || amount > capacity) throw new IllegalArgumentException("Stored ME exceeds container capacity");
-        CustomData current = stack.get(DataComponents.CUSTOM_DATA);
-        CompoundTag tag = current == null ? new CompoundTag() : current.copyTag();
+        CompoundTag tag = stack.hasTag() ? stack.getTag().copy() : new CompoundTag();
         if (amount == 0) tag.remove(STORED_ME);
         else tag.putLong(STORED_ME, amount);
-        if (tag.isEmpty()) stack.remove(DataComponents.CUSTOM_DATA);
-        else stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        stack.setTag(tag.isEmpty() ? null : tag);
     }
 
     /** 始终显示用于表示 ME 填充率的物品进度条。 */
@@ -82,7 +82,7 @@ public final class OreContainerItem extends Item {
 
     /** 在提示中展示精确的存储量与容量。 */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.ore_container.storage", storedMe(stack), capacity)
                 .withStyle(ChatFormatting.AQUA));

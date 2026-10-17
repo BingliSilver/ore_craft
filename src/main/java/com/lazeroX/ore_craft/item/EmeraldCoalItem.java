@@ -5,13 +5,17 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.level.Level;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 /**
  * 绿宝石煤炭物品。
  *
- * <p>具体燃烧时间通过数据资源注册，本类负责物品实例及其说明文字。</p>
+ * <p>通过 Forge 燃料接口提供燃烧时长，同时显示物品用途。</p>
  */
 public class EmeraldCoalItem extends Item {
     /**
@@ -23,11 +27,17 @@ public class EmeraldCoalItem extends Item {
         super(properties);
     }
 
+    /** 每件燃烧 25,600 游戏刻，等于 16 件煤炭；1.20.1 不使用燃料数据映射。 */
+    @Override
+    public int getBurnTime(ItemStack stack, @Nullable RecipeType<?> recipeType) {
+        return 25_600;
+    }
+
     /** 为物品补充燃料倍率说明。 */
     @Override
     public void appendHoverText(
             ItemStack stack,
-            TooltipContext context,
+            @Nullable Level context,
             List<Component> tooltip,
             TooltipFlag flag
     ) {

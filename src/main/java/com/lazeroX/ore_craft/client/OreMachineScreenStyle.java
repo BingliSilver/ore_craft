@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.client;
 
+import net.minecraft.util.Mth;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -152,7 +153,7 @@ public final class OreMachineScreenStyle {
     public static void progress(GuiGraphics graphics, int x, int y, int width, int progress, int interval) {
         graphics.fill(x, y, x + width, y + 6, 0xFF09151C);
         outline(graphics, x, y, width, 6, BORDER);
-        int filled = (width - 2) * Math.clamp(progress, 0, interval) / Math.max(1, interval);
+        int filled = (width - 2) * Mth.clamp(progress, 0, interval) / Math.max(1, interval);
         if (filled > 0) {
             graphics.fillGradient(x + 1, y + 1, x + 1 + filled, y + 5, CYAN, 0xFF329B9A);
         }
@@ -173,7 +174,7 @@ public final class OreMachineScreenStyle {
      */
     public static void rate(GuiGraphics graphics, Font font, Component label, int x, int y, int width,
                             int progress, int interval) {
-        String percent = Math.clamp(progress, 0, interval) * 100 / interval + "%";
+        String percent = Mth.clamp(progress, 0, interval) * 100 / interval + "%";
         int percentX = x + width - font.width(percent);
         graphics.drawString(font, ellipsize(font, label.getString(), percentX - x - 8),
                 x, y, MUTED, false);

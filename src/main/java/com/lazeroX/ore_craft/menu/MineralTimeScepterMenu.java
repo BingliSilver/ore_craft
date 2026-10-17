@@ -2,7 +2,7 @@ package com.lazeroX.ore_craft.menu;
 
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.register.ModMenus;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -15,7 +15,7 @@ import net.minecraft.world.item.ItemStack;
  * 矿质时间权杖的无物品槽设置菜单。
  *
  * <p>原版菜单按钮包只发送预设编号，服务端以菜单编号和仍在主手中的原物品校验请求。
- * 选中的倍率和秒数通过数据槽同步给客户端，真实设置写入权杖数据组件。</p>
+ * 选中的倍率和秒数通过数据槽同步给客户端，真实设置写入权杖NBT 数据。</p>
  */
 public final class MineralTimeScepterMenu extends AbstractContainerMenu {
     /** 数据槽零保存倍率。 */
@@ -36,7 +36,7 @@ public final class MineralTimeScepterMenu extends AbstractContainerMenu {
      * @param inventory 玩家背包
      * @param extra 本菜单不需要额外打开数据
      */
-    public MineralTimeScepterMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public MineralTimeScepterMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory);
     }
 
@@ -69,7 +69,7 @@ public final class MineralTimeScepterMenu extends AbstractContainerMenu {
 
     /**
      * 处理固定倍率或时长按钮；网络包只能提交按钮编号，不能直接指定任意费用。
-     * 客户端先更新本地预览，服务端再校验并写入真实物品组件。
+     * 客户端先更新本地预览，服务端再校验并写入真实物品 NBT。
      *
      * @param player 操作玩家
      * @param buttonId 点击的预设按钮编号
@@ -86,7 +86,7 @@ public final class MineralTimeScepterMenu extends AbstractContainerMenu {
             settings.set(DURATION_DATA, MineralTimeScepterItem.DURATIONS.get(durationIndex));
         }
 
-        // 客户端选择仅改变界面预览；服务器确认后物品组件才成为权威设置。
+        // 客户端选择仅改变界面预览；服务器确认后物品 NBT才成为权威设置。
         if (player instanceof ServerPlayer serverPlayer) {
             MineralTimeScepterItem.saveConfiguration(openedStack, multiplier(), durationSeconds());
             // 本菜单没有背包槽；主动同步主手物品，避免设置完成后客户端仍显示旧提示。

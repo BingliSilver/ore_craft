@@ -15,9 +15,10 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.inventory.TransientCraftingContainer;
+import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.item.crafting.RecipeType;
-import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.util.List;
 
@@ -136,12 +137,15 @@ public final class OreConversionGameTests {
         OreContainerItem copper = ModItems.COPPER_ORE_CONTAINER.get();
         ItemStack center = new ItemStack(copper);
         copper.setStoredMe(center, 8_000);
-        CraftingInput input = CraftingInput.of(3, 3, List.of(
+        // 1.20.1 配方从工作台容器读取输入，使用临时容器避免影响玩家真实背包。
+        var input = new TransientCraftingContainer(new CraftingMenu(0, helper.makeMockServerPlayerInLevel().getInventory()), 3, 3);
+        List<ItemStack> ingredients = List.of(
                 new ItemStack(Items.IRON_BLOCK), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.IRON_BLOCK),
                 new ItemStack(Items.IRON_INGOT), center, new ItemStack(Items.IRON_INGOT),
-                new ItemStack(Items.IRON_BLOCK), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.IRON_BLOCK)));
+                new ItemStack(Items.IRON_BLOCK), new ItemStack(Items.IRON_INGOT), new ItemStack(Items.IRON_BLOCK));
+        for (int slot = 0; slot < ingredients.size(); slot++) input.setItem(slot, ingredients.get(slot));
         var recipe = helper.getLevel().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, input, helper.getLevel())
-                .map(holder -> holder.value()).orElse(null);
+                .orElse(null);
         helper.assertTrue(recipe instanceof OreContainerUpgradeRecipe, "Iron upgrade recipe must retain container data");
         ItemStack result = recipe.assemble(input, helper.getLevel().registryAccess());
         helper.assertTrue(result.is(ModItems.IRON_ORE_CONTAINER.get())

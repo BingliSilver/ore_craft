@@ -6,7 +6,6 @@ import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -20,7 +19,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -29,6 +27,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -64,14 +64,13 @@ public final class MineralIlluminationCoreItem extends Item {
     }
 
     /**
-     * 读取自动照明开关，不改变物品组件。
+     * 读取自动照明开关，不为尚无数据的物品创建空 NBT。
      *
      * @param stack 待读取的核心
      * @return 没有关闭标记或标记为 false 时返回 true
      */
     private static boolean isEnabled(ItemStack stack) {
-        return !stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                .copyTag().getBoolean(DISABLED_KEY);
+        return !stack.hasTag() || !stack.getTag().getBoolean(DISABLED_KEY);
     }
 
     /**
@@ -83,7 +82,7 @@ public final class MineralIlluminationCoreItem extends Item {
      * @param flag 提示显示选项
      */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.illumination.state",
                 Component.translatable(isEnabled(stack) ? "message.ore_craft.illumination.enabled"
@@ -136,7 +135,7 @@ public final class MineralIlluminationCoreItem extends Item {
         if (player.isShiftKeyDown()) {
             boolean enabled = !isEnabled(stack);
             // 仅修改专用键，保留其他模组或命令附加的自定义数据。
-            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putBoolean(DISABLED_KEY, !enabled));
+            stack.getOrCreateTag().putBoolean(DISABLED_KEY, !enabled);
             player.getInventory().setChanged();
             player.displayClientMessage(Component.translatable(enabled
                     ? "message.ore_craft.illumination.enabled" : "message.ore_craft.illumination.disabled"), true);
@@ -226,7 +225,7 @@ public final class MineralIlluminationCoreItem extends Item {
         EnergyPayment payment = withdraw(player, cost);
         if (payment == null) return false;
 
-        // 使用 ItemStack 的标准入口，保留 NeoForge 放置事件、领地取消与方块快照回滚。
+        // 使用 ItemStack 的标准入口，保留 MinecraftForge 放置事件、领地取消与方块快照回滚。
         boolean placed = false;
         try {
             InteractionResult result = torch.useOn(context);

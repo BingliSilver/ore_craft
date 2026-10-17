@@ -8,7 +8,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.UUID;
 
-/** 矿质机器的容器 ME 读写入口；普通容器存于物品组件，末影容器连接放置者账户。 */
+/** 矿质机器的容器 ME 读写入口；普通容器存于物品 NBT，末影容器连接放置者账户。 */
 public final class OreMachineEnergy {
     /** 工具类不允许创建实例。 */
     private OreMachineEnergy() {}

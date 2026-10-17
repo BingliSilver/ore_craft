@@ -10,11 +10,8 @@ import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.EnchantMeCostCalculator;
 import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
@@ -28,7 +25,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Level;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -94,7 +90,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     private final int[] resultData = new int[5];
 
     /** 从服务端附加数据创建客户端菜单。 */
-    public OreEnchantingMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreEnchantingMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
@@ -161,7 +157,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
 
     /** 判断物品能否保存附魔；已有附魔的装备也可以继续附魔。 */
     private static boolean canPlaceTarget(ItemStack stack) {
-        return !stack.isEmpty() && (isBookTarget(stack) || EnchantmentHelper.canStoreEnchantments(stack));
+        return !stack.isEmpty() && (isBookTarget(stack) || stack.getEnchantmentValue() > 0 || stack.isEnchanted());
     }
 
     /** 普通书和附魔书都允许记录任意已注册附魔。 */
@@ -213,7 +209,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         return level.getBlockState(pos).is(ModBlocks.ORE_ENCHANTING_TABLE.get())
-                && player.canInteractWithBlock(pos, 4.0);
+                && (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0);
     }
 
     /** Shift 点击时优先把容器送入支付槽，其他可附魔物品送入目标槽。 */
@@ -253,10 +249,10 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     public void select(ServerPlayer player, ResourceLocation enchantmentId, int requestedLevel) {
         if (player.containerMenu != this || !stillValid(player)) return;
         resetSelectionsIfTargetChanged();
-        var lookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        var found = lookup.get(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
+        var lookup = BuiltInRegistries.ENCHANTMENT;
+        var found = lookup.getOptional(enchantmentId);
         if (found.isEmpty()) return;
-        int currentLevel = EnchantmentHelper.getEnchantmentsForCrafting(target()).getLevel(found.get());
+        int currentLevel = EnchantmentHelper.getEnchantments(target()).getOrDefault(found.get(), 0);
         // 同时验证界面请求和伪造载荷，不能借神化提高的定义上限制造超限附魔。
         if (!EnchantLevelLimits.canSelectLevel(found.get(), currentLevel, requestedLevel)) return;
         // 恢复原等级时删除变更记录，避免空操作产生可复制的结果预览。
@@ -281,13 +277,14 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         resetSelectionsIfTargetChanged();
         // 撤销包括尚未应用的新增附魔在内的全部选择，避免它们残留在清空后的预览中。
         selectedLevels.clear();
-        var lookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(target());
-        ItemEnchantments effective = target().getAllEnchantments(lookup);
-        for (Holder<Enchantment> enchantment : current.keySet()) {
+        var lookup = BuiltInRegistries.ENCHANTMENT;
+        Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(target());
+        Map<Enchantment, Integer> effective = target().getAllEnchantments();
+        for (Enchantment enchantment : current.keySet()) {
             // 与右侧列表保持一致：外部机制增强的附魔不能通过本附魔台移除或回收 ME。
-            if (effective.getLevel(enchantment) > current.getLevel(enchantment)) continue;
-            enchantment.unwrapKey().ifPresent(key -> selectedLevels.put(key.location(), 0));
+            if (effective.getOrDefault(enchantment, 0) > current.getOrDefault(enchantment, 0)) continue;
+            ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(enchantment);
+            if (id != null) selectedLevels.put(id, 0);
         }
         // 没有原有附魔时只撤销新增选择，结果槽自然清空，不生成无变更的可领取副本。
         refreshPreview();
@@ -308,53 +305,55 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
      */
     private Prepared prepare() {
         if (selectedLevels.isEmpty()) return null;
-        var lookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var lookup = BuiltInRegistries.ENCHANTMENT;
         ItemStack target = target();
         ItemStack source = container();
         if (!canPlaceTarget(target) || !isMeContainer(source)
                 || target.getCount() != 1 || source.getCount() != 1) return null;
-        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(target);
-        ItemEnchantments effective = target.getAllEnchantments(lookup);
-        ItemEnchantments.Mutable updated = new ItemEnchantments.Mutable(current);
+        Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(target);
+        Map<Enchantment, Integer> effective = target.getAllEnchantments();
+        Map<Enchantment, Integer> updated = new HashMap<>(current);
         BigInteger difference = BigInteger.ZERO;
         for (Map.Entry<ResourceLocation, Integer> choice : selectedLevels.entrySet()) {
-            var found = lookup.get(ResourceKey.create(Registries.ENCHANTMENT, choice.getKey()));
+            var found = lookup.getOptional(choice.getKey());
             if (found.isEmpty()) return null;
-            Holder<Enchantment> enchantment = found.get();
+            Enchantment enchantment = found.get();
             int selectedLevel = choice.getValue();
-            int currentLevel = current.getLevel(enchantment);
+            int currentLevel = current.getOrDefault(enchantment, 0);
             // 领取前再次验证制作上限，但保留真实原等级用于计算超限附魔的回收价值。
             if (!EnchantLevelLimits.canSelectLevel(enchantment, currentLevel, selectedLevel)
-                    || selectedLevel == currentLevel || effective.getLevel(enchantment) > currentLevel) return null;
+                    || selectedLevel == currentLevel || effective.getOrDefault(enchantment, 0) > currentLevel) return null;
             if (selectedLevel > currentLevel && !isBookTarget(target)
-                    && !target.supportsEnchantment(enchantment)) return null;
+                    && !target.canApplyAtEnchantingTable(enchantment)) return null;
             // 先累计每条附魔的价格差，再整体结算，允许同时升级与降级。
             difference = difference.add(BigInteger.valueOf(
                     EnchantMeCostCalculator.calculateDifference(enchantment, currentLevel, selectedLevel)));
-            updated.set(enchantment, selectedLevel);
+            if (selectedLevel == 0) updated.remove(enchantment);
+            else updated.put(enchantment, selectedLevel);
         }
-        ItemEnchantments finalEnchantments = updated.toImmutable();
+        Map<Enchantment, Integer> finalEnchantments = Map.copyOf(updated);
         // 移除冲突附魔后才添加新附魔也被允许；最终组合必须整体兼容。
-        List<Holder<Enchantment>> finalHolders = new ArrayList<>(finalEnchantments.keySet());
-        for (Holder<Enchantment> external : effective.keySet()) {
-            if (current.getLevel(external) == 0 && !finalHolders.contains(external)) finalHolders.add(external);
+        List<Enchantment> finalHolders = new ArrayList<>(finalEnchantments.keySet());
+        for (Enchantment external : effective.keySet()) {
+            if (current.getOrDefault(external, 0) == 0 && !finalHolders.contains(external)) finalHolders.add(external);
         }
         for (int index = 0; index < finalHolders.size(); index++) {
             for (int other = index + 1; other < finalHolders.size(); other++) {
-                if (!Enchantment.areCompatible(finalHolders.get(index), finalHolders.get(other))) return null;
+                if (!finalHolders.get(index).isCompatibleWith(finalHolders.get(other))) return null;
             }
         }
         // 多条附魔的价格差可能超出 long；无法准确结算时拒绝预览。
         BigInteger maximum = BigInteger.valueOf(Long.MAX_VALUE);
         if (difference.abs().compareTo(maximum) > 0) return null;
         long amount = difference.longValue();
-        ItemStack result = target.is(Items.BOOK) && !finalEnchantments.isEmpty()
-                ? target.transmuteCopy(Items.ENCHANTED_BOOK, 1)
-                : target.is(Items.ENCHANTED_BOOK) && finalEnchantments.isEmpty()
-                ? target.transmuteCopy(Items.BOOK, 1) : target.copy();
-        // 附魔书还原普通书时移除旧存储组件，防止空书残留不可见附魔数据。
-        if (result.is(Items.BOOK)) result.remove(DataComponents.STORED_ENCHANTMENTS);
-        EnchantmentHelper.setEnchantments(result, finalEnchantments);
+        ItemStack result = target.copy();
+        if (isBookTarget(target)) {
+            // 1.20.1 的附魔书写入会合并旧条目；先清空旧列表才能正确降级和移除。
+            result = new ItemStack(finalEnchantments.isEmpty() ? Items.BOOK : Items.ENCHANTED_BOOK);
+            if (target.hasTag()) result.setTag(target.getTag().copy());
+            result.removeTagKey("StoredEnchantments");
+        }
+        EnchantmentHelper.setEnchantments(finalEnchantments, result);
         return new Prepared(result, amount);
     }
 

@@ -2,7 +2,6 @@ package com.lazeroX.ore_craft.block.entity;
 
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -18,6 +17,12 @@ import net.minecraft.world.level.block.state.BlockState;
  * 容器保存在世界中以便关闭菜单后继续使用；动画值仅影响显示，无需持久化。
  */
 public final class OreEnchantingBlockEntity extends BlockEntity {
+    /** Forge 1.20.1 从方块实体查询可见范围，为顶部漂浮的书本预留半格高度。 */
+    @Override
+    public net.minecraft.world.phys.AABB getRenderBoundingBox() {
+        return new net.minecraft.world.phys.AABB(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ(),
+                worldPosition.getX() + 1.0, worldPosition.getY() + 1.5, worldPosition.getZ() + 1.0);
+    }
     /** 支付槽最多保存一个矿质容器；库存变化时标记方块实体待保存。 */
     private final SimpleContainer paymentContainer = new SimpleContainer(1) {
         @Override
@@ -56,17 +61,17 @@ public final class OreEnchantingBlockEntity extends BlockEntity {
 
     /** 将支付容器写入区块存档，空槽不写入物品数据。 */
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         ItemStack stack = paymentContainer.getItem(0);
-        if (!stack.isEmpty()) tag.put("PaymentContainer", stack.save(registries));
+        if (!stack.isEmpty()) tag.put("PaymentContainer", stack.save(new CompoundTag()));
     }
 
     /** 恢复上次放入的支付容器；旧存档缺少此字段时保持空槽。 */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        paymentContainer.setItem(0, ItemStack.parseOptional(registries, tag.getCompound("PaymentContainer")));
+    public void load(CompoundTag tag) {
+        super.load(tag);
+        paymentContainer.setItem(0, ItemStack.of(tag.getCompound("PaymentContainer")));
     }
 
     /**

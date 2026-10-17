@@ -9,18 +9,15 @@ import com.lazeroX.ore_craft.value.EnchantLevelLimits;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.Registries;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.neoforged.neoforge.network.PacketDistributor;
+import com.lazeroX.ore_craft.network.OreConversionNetwork;
 
 import java.math.BigInteger;
 import java.util.Comparator;
@@ -46,6 +43,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
     private static final int VISIBLE_ROWS = 7;
     private static final int ROW_Y = 79;
     private static final int ROW_STEP = 34;
+    /** 附魔台背景纹理的资源标识，所有打开的附魔界面共用。 */
     private static final ResourceLocation BACKGROUND = ResourceLocation.fromNamespaceAndPath(
             "ore_craft", "textures/gui/ore_enchanting_table.png");
     /** 界面前景色。 */
@@ -57,10 +55,10 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
     private EditBox search;
     /** 一键清空右侧全部等级选择；只生成预览，领取输出时才确认交易。 */
     private Button clearEnchantmentsButton;
-    /** 当前目标物品的上一次完整快照，用于检测组件及附魔变化。 */
+    /** 当前目标物品的上一次完整快照，用于检测 NBT 及附魔变化。 */
     private ItemStack seenTarget = ItemStack.EMPTY;
     /** 与目标物品兼容且符合搜索条件的附魔。 */
-    private List<Holder.Reference<Enchantment>> filtered = List.of();
+    private List<Enchantment> filtered = List.of();
     /** 每条附魔当前选择的目标等级；零代表移除，未记录时沿用输入物等级。 */
     private final Map<ResourceLocation, Integer> selectedLevels = new HashMap<>();
     /** 用户主动选中的附魔注册 ID；初始或选择失效时为 null，不自动高亮首项。 */
@@ -115,7 +113,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
         refresh();
     }
 
-    /** 目标物品组件更新后清除旧选择并重建候选列表；容器余额由每帧直接读取。 */
+    /** 目标物品 NBT更新后清除旧选择并重建候选列表；容器余额由每帧直接读取。 */
     @Override
     protected void containerTick() {
         super.containerTick();
@@ -129,7 +127,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
 
     /**
      * 用当前世界的附魔注册表构建候选项，已有附魔也保留以供降级或移除。
-     * 书可以接受所有附魔；普通装备遵守 NeoForge 的物品扩展规则。
+     * 书可以接受所有附魔；普通装备遵守 MinecraftForge 的物品扩展规则。
      * 刷新仅保留仍可选择的用户高亮项，不自动选择首项，也不提交新的等级选择。
      */
     private void refresh() {
@@ -142,21 +140,21 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
             return;
         }
         String query = search == null ? "" : search.getValue().trim().toLowerCase(Locale.ROOT);
-        var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        ItemEnchantments existing = target.getAllEnchantments(registry);
-        ItemEnchantments stored = EnchantmentHelper.getEnchantmentsForCrafting(target);
-        filtered = registry.listElements().filter(holder -> {
+        var registry = BuiltInRegistries.ENCHANTMENT;
+        Map<Enchantment, Integer> existing = target.getAllEnchantments();
+        Map<Enchantment, Integer> stored = EnchantmentHelper.getEnchantments(target);
+        filtered = registry.stream().filter(holder -> {
             if (!target.is(Items.BOOK) && !target.is(Items.ENCHANTED_BOOK)
-                    && !target.supportsEnchantment(holder) && existing.getLevel(holder) == 0) return false;
-            if (existing.getLevel(holder) > stored.getLevel(holder)) return false;
+                    && !target.canApplyAtEnchantingTable(holder) && existing.getOrDefault(holder, 0) == 0) return false;
+            if (existing.getOrDefault(holder, 0) > stored.getOrDefault(holder, 0)) return false;
             // 冲突关系由服务端在所有选择合并后验证，以支持先移除旧附魔再加入新附魔。
-            ResourceLocation id = holder.key().location();
+            ResourceLocation id = BuiltInRegistries.ENCHANTMENT.getKey(holder);
             return query.isEmpty() || id.toString().contains(query)
-                    || holder.value().description().getString().toLowerCase(Locale.ROOT).contains(query);
-        }).sorted(Comparator.comparing(holder -> holder.value().description().getString())).toList();
+                    || Component.translatable(holder.getDescriptionId()).getString().toLowerCase(Locale.ROOT).contains(query);
+        }).sorted(Comparator.comparing(holder -> Component.translatable(holder.getDescriptionId()).getString())).toList();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, filtered.size() - VISIBLE_ROWS)));
         if (selectedId != null && filtered.stream().noneMatch(holder ->
-                holder.key().location().equals(selectedId) && !isConflictLocked(holder))) {
+                BuiltInRegistries.ENCHANTMENT.getKey(holder).equals(selectedId) && !isConflictLocked(holder))) {
             // 搜索隐藏或冲突导致原选择失效时取消高亮，等待用户下一次主动点击。
             selectedId = null;
         }
@@ -169,16 +167,16 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
      */
     private void clearEnchantments() {
         if (minecraft == null || minecraft.gameMode == null || menu.target().isEmpty()) return;
-        var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
-        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(menu.target());
-        ItemEnchantments effective = menu.target().getAllEnchantments(registry);
+        var registry = BuiltInRegistries.ENCHANTMENT;
+        Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(menu.target());
+        Map<Enchantment, Integer> effective = menu.target().getAllEnchantments();
         // 未记录的条目默认沿用原等级；先撤销所有旧选择，再显式将已有附魔置零。
         selectedLevels.clear();
-        registry.listElements().forEach(holder -> {
-            int currentLevel = current.getLevel(holder);
+        registry.stream().forEach(holder -> {
+            int currentLevel = current.getOrDefault(holder, 0);
             // 外部机制提供或增强的附魔不属于右侧可编辑列表，继续遵守原有编辑限制。
-            if (currentLevel > 0 && effective.getLevel(holder) <= currentLevel) {
-                selectedLevels.put(holder.key().location(), 0);
+            if (currentLevel > 0 && effective.getOrDefault(holder, 0) <= currentLevel) {
+                selectedLevels.put(BuiltInRegistries.ENCHANTMENT.getKey(holder), 0);
             }
         });
         // 使用原版菜单按钮包提交整体操作，服务端不依赖搜索结果或客户端提交的附魔清单。
@@ -188,23 +186,23 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
 
     /** 将选中的附魔发送给服务端以刷新结果预览。 */
     private void sendSelection() {
-        Holder.Reference<Enchantment> holder = selected();
-        if (holder != null) PacketDistributor.sendToServer(new OreEnchantingNetwork.EnchantPayload(
-                menu.containerId, holder.key().location(), selectedLevel(holder)));
+        Enchantment holder = selected();
+        if (holder != null) OreConversionNetwork.sendToServer(new OreEnchantingNetwork.EnchantPayload(
+                menu.containerId, BuiltInRegistries.ENCHANTMENT.getKey(holder), selectedLevel(holder)));
     }
 
-    /** 返回当前高亮的 Holder；列表更新后无选择时返回 null。 */
-    private Holder.Reference<Enchantment> selected() {
-        for (Holder.Reference<Enchantment> holder : filtered) {
-            if (holder.key().location().equals(selectedId)) return holder;
+    /** 返回当前高亮的附魔实例；列表更新后无选择时返回 null。 */
+    private Enchantment selected() {
+        for (Enchantment holder : filtered) {
+            if (BuiltInRegistries.ENCHANTMENT.getKey(holder).equals(selectedId)) return holder;
         }
         return null;
     }
 
     /** 返回目标等级；未手动调整时保留实际原等级，避免打开界面就自动降级超限附魔。 */
-    private int selectedLevel(Holder.Reference<Enchantment> holder) {
-        int current = EnchantmentHelper.getEnchantmentsForCrafting(menu.target()).getLevel(holder);
-        return selectedLevels.getOrDefault(holder.key().location(), current);
+    private int selectedLevel(Enchantment holder) {
+        int current = EnchantmentHelper.getEnchantments(menu.target()).getOrDefault(holder, 0);
+        return selectedLevels.getOrDefault(BuiltInRegistries.ENCHANTMENT.getKey(holder), current);
     }
 
     /**
@@ -213,7 +211,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
      * @param candidate 待检查的右侧附魔项
      * @return 存在其他生效且不兼容的附魔时为 true
      */
-    private boolean isConflictLocked(Holder.Reference<Enchantment> candidate) {
+    private boolean isConflictLocked(Enchantment candidate) {
         return !conflictingEnchantments(candidate).isEmpty();
     }
 
@@ -224,20 +222,20 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
      * @param candidate 待检查的右侧附魔项
      * @return 按当前语言名称排序的冲突附魔列表；没有冲突时为空
      */
-    private List<Holder<Enchantment>> conflictingEnchantments(Holder.Reference<Enchantment> candidate) {
-        var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+    private List<Enchantment> conflictingEnchantments(Enchantment candidate) {
+        var registry = BuiltInRegistries.ENCHANTMENT;
         // 保留物品扩展机制提供的有效附魔，再合并用户尚未领取的等级调整。
-        Set<Holder<Enchantment>> active = new HashSet<>(menu.target().getAllEnchantments(registry).keySet());
+        Set<Enchantment> active = new HashSet<>(menu.target().getAllEnchantments().keySet());
         for (Map.Entry<ResourceLocation, Integer> choice : selectedLevels.entrySet()) {
-            var found = registry.get(ResourceKey.create(Registries.ENCHANTMENT, choice.getKey()));
+            var found = registry.getOptional(choice.getKey());
             if (found.isEmpty()) continue;
             if (choice.getValue() > 0) active.add(found.get());
             else active.remove(found.get());
         }
         // 排除自身，并稳定提示顺序，避免 HashSet 的遍历顺序导致多条提示跳动。
         return active.stream().filter(applied -> !applied.equals(candidate)
-                        && !Enchantment.areCompatible(applied, candidate))
-                .sorted(Comparator.comparing(applied -> applied.value().description().getString())).toList();
+                        && !applied.isCompatibleWith(candidate))
+                .sorted(Comparator.comparing(applied -> Component.translatable(applied.getDescriptionId()).getString())).toList();
     }
 
     /** 当前支付容器中的 ME；末影容器显示最近同步的账户余额。 */
@@ -259,15 +257,15 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
     /** 将所有已选择附魔的价格差合并，供输出槽的提示判断使用。 */
     private BigInteger totalDifference() {
         ItemStack target = menu.target();
-        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(target);
+        Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(target);
         BigInteger total = BigInteger.ZERO;
-        var registry = minecraft.level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+        var registry = BuiltInRegistries.ENCHANTMENT;
         for (Map.Entry<ResourceLocation, Integer> choice : selectedLevels.entrySet()) {
-            var found = registry.get(ResourceKey.create(Registries.ENCHANTMENT, choice.getKey()));
+            var found = registry.getOptional(choice.getKey());
             if (found.isEmpty()) continue;
-            Holder.Reference<Enchantment> holder = found.get();
+            Enchantment holder = found.get();
             long difference = EnchantMeCostCalculator.calculateDifference(
-                    holder, current.getLevel(holder), choice.getValue());
+                    holder, current.getOrDefault(holder, 0), choice.getValue());
             total = total.add(BigInteger.valueOf(difference));
         }
         return total;
@@ -313,7 +311,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
         for (int index = 0; index < VISIBLE_ROWS; index++) {
             int y = topPos + ROW_Y + index * ROW_STEP;
             boolean selected = scroll + index < filtered.size()
-                    && filtered.get(scroll + index).key().location().equals(selectedId);
+                    && BuiltInRegistries.ENCHANTMENT.getKey(filtered.get(scroll + index)).equals(selectedId);
             boolean locked = scroll + index < filtered.size() && isConflictLocked(filtered.get(scroll + index));
             graphics.fill(leftPos + 288, y, leftPos + 464, y + 31,
                     locked ? 0xFF111A23 : selected ? 0xFF203E50 : 0xFF1A2938);
@@ -371,13 +369,13 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
             }
         }
         for (int index = 0; index < VISIBLE_ROWS && scroll + index < filtered.size(); index++) {
-            Holder.Reference<Enchantment> holder = filtered.get(scroll + index);
+            Enchantment holder = filtered.get(scroll + index);
             boolean locked = isConflictLocked(holder);
             int y = ROW_Y + index * ROW_STEP;
             int level = selectedLevel(holder);
-            int currentLevel = EnchantmentHelper.getEnchantmentsForCrafting(target).getLevel(holder);
+            int currentLevel = EnchantmentHelper.getEnchantments(target).getOrDefault(holder, 0);
             long difference = EnchantMeCostCalculator.calculateDifference(holder, currentLevel, level);
-            String name = holder.value().description().getString();
+            String name = Component.translatable(holder.getDescriptionId()).getString();
             graphics.drawString(font, font.plainSubstrByWidth(name, 72), 294, y + 4,
                     locked ? 0xFF677987 : TEXT, false);
             String key = difference > 0 ? "cost" : difference < 0 ? "store" : "unchanged";
@@ -430,11 +428,11 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
         } else if (x >= 288 && x < 464 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
             int index = scroll + (y - ROW_Y) / ROW_STEP;
             if (index < filtered.size()) {
-                List<Holder<Enchantment>> conflicts = conflictingEnchantments(filtered.get(index));
+                List<Enchantment> conflicts = conflictingEnchantments(filtered.get(index));
                 if (!conflicts.isEmpty()) {
                     // 每个冲突来源独占一行，完整显示本地化名称，便于玩家逐项调整为无。
                     List<Component> hints = conflicts.stream().<Component>map(enchantment -> Component.translatable(
-                            "gui.ore_craft.enchanting.conflict", enchantment.value().description())).toList();
+                            "gui.ore_craft.enchanting.conflict", Component.translatable(enchantment.getDescriptionId()))).toList();
                     graphics.renderComponentTooltip(font, hints, mouseX, mouseY);
                 }
             }
@@ -451,10 +449,10 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
         if (button == 0 && x >= 288 && x < 464 && y >= ROW_Y && y < ROW_Y + VISIBLE_ROWS * ROW_STEP) {
             int index = scroll + (y - ROW_Y) / ROW_STEP;
             if (index < filtered.size()) {
-                Holder.Reference<Enchantment> holder = filtered.get(index);
+                Enchantment holder = filtered.get(index);
                 // 整行（含等级加减按钮）不可交互，防止客户端发送冲突选择。
                 if (isConflictLocked(holder)) return true;
-                selectedId = holder.key().location();
+                selectedId = BuiltInRegistries.ENCHANTMENT.getKey(holder);
                 int level = selectedLevel(holder);
                 int maximum = EnchantLevelLimits.maxCraftableLevel(holder);
                 // 超限附魔第一次降级直接进入可制作范围，差额按实际高等级计算，不能重建中间超限等级。
@@ -472,7 +470,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
 
     /** 鼠标滚轮翻阅已过滤的附魔目录。 */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         double logicalX = menuCoordinate(mouseX);
         double logicalY = menuCoordinate(mouseY);
         int x = (int) logicalX - leftPos;
@@ -482,7 +480,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
                     scroll - (int) Math.signum(scrollY)));
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     /** 用四条一像素线绘制统一方框。 */

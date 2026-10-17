@@ -1,11 +1,9 @@
 package com.lazeroX.ore_craft.block;
 
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Containers;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,9 +13,6 @@ import net.minecraft.world.level.block.state.BlockState;
  * 关闭界面不会取走交易槽物品；方块被拆除或替换时掉落容器，避免丢失内部 ME。
  */
 public final class OreContainerConversionTableBlock extends OreConversionTableBlock implements EntityBlock {
-    /** 重建方块时保持容器版类型及其持久交易槽。 */
-    public static final MapCodec<OreContainerConversionTableBlock> CODEC =
-            simpleCodec(OreContainerConversionTableBlock::new);
 
     /**
      * 创建带持久交易槽的矿质转化桌。
@@ -28,11 +23,6 @@ public final class OreContainerConversionTableBlock extends OreConversionTableBl
         super(properties, true);
     }
 
-    /** 返回容器版专用编解码器，避免序列化后退回没有方块实体的基础类型。 */
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return CODEC;
-    }
 
     /**
      * 创建与此方块同生命周期的交易容器存储，无需服务端定时更新。
@@ -56,10 +46,10 @@ public final class OreContainerConversionTableBlock extends OreConversionTableBl
      * @param moved 是否由移动操作触发
      */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())
                 && level.getBlockEntity(pos) instanceof OreContainerConversionTableBlockEntity table) {
-            // 先掉落含最新 ME 组件的物品，再清空库存，防止仍打开的旧菜单重复取得容器。
+            // 先掉落含最新 ME 数据的物品，再清空库存，防止仍打开的旧菜单重复取得容器。
             Containers.dropContents(level, pos, table.inventory());
             table.inventory().clearContent();
         }

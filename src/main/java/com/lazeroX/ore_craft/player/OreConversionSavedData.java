@@ -2,7 +2,6 @@ package com.lazeroX.ore_craft.player;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -20,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** 将每名玩家的 ME 余额和已学习物品保存在主世界存档数据中。 */
+/** 将每名玩家的 ME 余额、已学习物品和全世界共用的转化开关保存在主世界存档数据中。 */
 public final class OreConversionSavedData extends SavedData {
     /** 单个账户最多学习 2048 种物品；单件与批量学习共用此网络目录容量限制。 */
     public static final int MAX_LEARNED = 2048;
@@ -29,6 +28,31 @@ public final class OreConversionSavedData extends SavedData {
     private static final String FILE_ID = Ore_craft.MODID + "_conversion_players";
     /** 按玩家 UUID 索引的账户数据。 */
     private final Map<UUID, Account> accounts = new HashMap<>();
+    /** 是否允许回收所有种类的物品；新世界和缺少此字段的旧存档均默认关闭。 */
+    private boolean convertAllItems;
+
+    /** 创建空账户存档；全物品回收必须由管理员显式开启。 */
+    public OreConversionSavedData() {}
+
+    /**
+     * 查询当前世界的全物品回收开关，所有维度和玩家共享同一设置。
+     *
+     * @return 开启全物品回收时为 true，默认 false
+     */
+    public boolean convertAllItems() {
+        return convertAllItems;
+    }
+
+    /**
+     * 修改世界的回收范围并标记存档待保存，调用方负责管理权限校验和客户端同步。
+     *
+     * @param enabled true 开启全物品回收，false 恢复原来的矿物来源规则
+     */
+    public void setConvertAllItems(boolean enabled) {
+        if (convertAllItems == enabled) return;
+        convertAllItems = enabled;
+        setDirty();
+    }
 
     /**
      * 取得当前存档的玩家转化数据；数据由主世界存储，因此玩家实体重建后仍可读取。
@@ -43,7 +67,7 @@ public final class OreConversionSavedData extends SavedData {
     /** 从服务器主世界取得共享账户存档，供玩家离线时运行的矿质机器使用。 */
     public static OreConversionSavedData get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(
-                new Factory<>(OreConversionSavedData::new, OreConversionSavedData::load), FILE_ID);
+                OreConversionSavedData::load, OreConversionSavedData::new, FILE_ID);
     }
 
     /** 取得玩家账户；首次访问时创建空账户。 */
@@ -135,14 +159,13 @@ public final class OreConversionSavedData extends SavedData {
     }
 
     /**
-     * 将所有玩家账户序列化到存档 NBT。
+     * 将所有玩家账户和世界转化开关序列化到存档 NBT。
      *
      * @param tag 接收账户数据的目标标签
-     * @param registries 当前存档的注册表访问器
      * @return 写入账户列表后的标签
      */
     @Override
-    public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+    public CompoundTag save(CompoundTag tag) {
         ListTag list = new ListTag();
         accounts.forEach((uuid, account) -> {
             CompoundTag entry = new CompoundTag();
@@ -155,6 +178,7 @@ public final class OreConversionSavedData extends SavedData {
             list.add(entry);
         });
         tag.put("Accounts", list);
+        tag.putBoolean("ConvertAllItems", convertAllItems);
         return tag;
     }
 
@@ -162,11 +186,12 @@ public final class OreConversionSavedData extends SavedData {
      * 从存档 NBT 加载账户，并跳过格式错误或注册表中不存在的物品 ID。
      *
      * @param tag 保存账户列表的根标签
-     * @param registries 当前存档的注册表访问器
      * @return 还原后的转化数据
      */
-    private static OreConversionSavedData load(CompoundTag tag, HolderLookup.Provider registries) {
+    private static OreConversionSavedData load(CompoundTag tag) {
         OreConversionSavedData data = new OreConversionSavedData();
+        // getBoolean 对缺失字段返回 false，确保旧存档升级后不会自动扩大回收范围。
+        data.convertAllItems = tag.getBoolean("ConvertAllItems");
         for (Tag raw : tag.getList("Accounts", Tag.TAG_COMPOUND)) {
             CompoundTag entry = (CompoundTag) raw;
             // 忽略缺少玩家 UUID 的损坏记录，避免无法归属到账户的数据进入缓存。

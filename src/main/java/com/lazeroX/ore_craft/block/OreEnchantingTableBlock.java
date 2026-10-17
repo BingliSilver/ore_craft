@@ -3,7 +3,6 @@ package com.lazeroX.ore_craft.block;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -30,8 +29,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * 方块实例由注册器创建；附魔交易由菜单在服务端处理，书本动画只在客户端更新。
  */
 public final class OreEnchantingTableBlock extends Block implements EntityBlock {
-    /** 方块属性的序列化编解码器。 */
-    public static final MapCodec<OreEnchantingTableBlock> CODEC = simpleCodec(OreEnchantingTableBlock::new);
     /** 菜单标题，供服务端创建菜单时使用。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_enchanting_table");
     /**
@@ -64,11 +61,6 @@ public final class OreEnchantingTableBlock extends Block implements EntityBlock 
         super(properties);
     }
 
-    /** 返回本方块的属性编解码器。 */
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return CODEC;
-    }
 
     /**
      * 返回静态台座的选择轮廓，默认碰撞形状也复用此结果。
@@ -80,7 +72,7 @@ public final class OreEnchantingTableBlock extends Block implements EntityBlock 
      * @return 缓存的台座形状，最高为 12/16 格
      */
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
@@ -105,22 +97,22 @@ public final class OreEnchantingTableBlock extends Block implements EntityBlock 
      * @return 已处理交互，客户端和服务端均无需继续执行其他方块行为
      */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (player instanceof ServerPlayer serverPlayer) {
-            serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+            net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
         }
         return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     /** 为当前方块位置创建执行服务端附魔校验的菜单提供器。 */
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreEnchantingMenu(id, inventory, pos), TITLE);
     }
 
     /** 方块被替换时掉落持久化的支付容器，避免其中的 ME 随方块实体一起丢失。 */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())
                 && level.getBlockEntity(pos) instanceof OreEnchantingBlockEntity table) {
             Containers.dropContents(level, pos, table.paymentContainer());

@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.client;
 
+import net.minecraft.util.Mth;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
@@ -11,7 +12,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.Comparator;
 import java.util.List;
@@ -141,7 +141,7 @@ public final class OreConversionMachineScreen extends AbstractOreMachineScreen<O
             }).sorted(Comparator.comparingLong(OreConversionNetwork.PriceEntry::price).reversed()
                     .thenComparing(entry -> entry.id().toString())).toList();
         }
-        firstRow = Math.clamp(firstRow, 0, Math.max(0, visibleEntries.size() - LIST_ROWS));
+        firstRow = Mth.clamp(firstRow, 0, Math.max(0, visibleEntries.size() - LIST_ROWS));
         return visibleEntries;
     }
 
@@ -185,7 +185,7 @@ public final class OreConversionMachineScreen extends AbstractOreMachineScreen<O
             OreConversionNetwork.PriceEntry entry = entries.get(firstRow + row);
             ItemStack shown = new ItemStack(BuiltInRegistries.ITEM.get(entry.id()));
             int rowY = y + LIST_Y + row * LIST_STEP;
-            boolean active = !selected.isEmpty() && ItemStack.isSameItemSameComponents(selected, shown);
+            boolean active = !selected.isEmpty() && ItemStack.isSameItemSameTags(selected, shown);
             boolean hovered = mouseX >= x + LIST_X && mouseX < x + LIST_X + LIST_WIDTH
                     && mouseY >= rowY && mouseY < rowY + ROW_HEIGHT;
             graphics.fill(x + LIST_X, rowY, x + LIST_X + LIST_WIDTH, rowY + ROW_HEIGHT,
@@ -286,7 +286,7 @@ public final class OreConversionMachineScreen extends AbstractOreMachineScreen<O
         }
         int index = button == 0 ? entryAt(logicalX, logicalY) : -1;
         if (index >= 0) {
-            PacketDistributor.sendToServer(new OreConversionNetwork.ActionPayload(menu.containerId,
+            OreConversionNetwork.sendToServer(new OreConversionNetwork.ActionPayload(menu.containerId,
                     OreConversionNetwork.SELECT_MACHINE_ITEM, filtered().get(index).id(), 0));
             suppressRelease = true;
             return true;
@@ -321,20 +321,20 @@ public final class OreConversionMachineScreen extends AbstractOreMachineScreen<O
         int thumb = thumbHeight(size);
         int max = Math.max(0, size - LIST_ROWS);
         double position = (logicalY - topPos - LIST_Y - thumb / 2.0) / Math.max(1, TRACK_HEIGHT - thumb);
-        firstRow = Math.clamp((int) Math.round(position * max), 0, max);
+        firstRow = Mth.clamp((int) Math.round(position * max), 0, max);
     }
 
     /** 鼠标位于目录面板时按行滚动，其他区域保留原版行为。 */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         double x = menuCoordinate(mouseX) - leftPos;
         double y = menuCoordinate(mouseY) - topPos;
         if (x >= LIST_X && x < SCROLL_X + SCROLL_WIDTH && y >= LIST_Y
                 && y < LIST_Y + TRACK_HEIGHT && scrollY != 0) {
-            firstRow = Math.clamp(firstRow + (scrollY > 0 ? -1 : 1), 0, Math.max(0, filtered().size() - LIST_ROWS));
+            firstRow = Mth.clamp(firstRow + (scrollY > 0 ? -1 : 1), 0, Math.max(0, filtered().size() - LIST_ROWS));
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     /** 按逻辑坐标识别目录行，以原版 GUI 倍率显示完整物品名、单价和已学习标记。 */

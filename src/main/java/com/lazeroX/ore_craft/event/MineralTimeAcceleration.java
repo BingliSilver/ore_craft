@@ -18,8 +18,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.neoforge.event.server.ServerStoppedEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -97,8 +97,9 @@ public final class MineralTimeAcceleration {
      *
      * @param event 当前服务端刻的结束事件
      */
-    public static void onServerTick(ServerTickEvent.Post event) {
-        if (EFFECTS.isEmpty()) return;
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        // Forge 每刻触发 START 和 END，仅在结束阶段追加更新，避免倍率翻倍。
+        if (event.phase != TickEvent.Phase.END || EFFECTS.isEmpty()) return;
         MinecraftServer server = event.getServer();
         Iterator<Map.Entry<Target, ActiveEffect>> iterator = EFFECTS.entrySet().iterator();
         while (iterator.hasNext()) {

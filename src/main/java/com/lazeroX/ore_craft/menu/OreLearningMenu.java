@@ -6,7 +6,7 @@ import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -46,7 +46,7 @@ public final class OreLearningMenu extends AbstractContainerMenu {
      * @param inventory 玩家背包
      * @param extra 包含主手或副手枚举的打开数据
      */
-    public OreLearningMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreLearningMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readEnum(InteractionHand.class));
     }
 

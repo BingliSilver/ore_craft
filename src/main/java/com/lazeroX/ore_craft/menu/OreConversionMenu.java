@@ -10,7 +10,7 @@ import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
@@ -57,7 +57,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     private final Container tradeContainer;
     /** 当前打开菜单的玩家；末影交易容器连接此玩家而非方块放置者。 */
     private final Player owner;
-    /** 防止交互口更新物品组件时递归触发 ME 转移。 */
+    /** 防止交互口更新物品 NBT时递归触发 ME 转移。 */
     private boolean transferring;
     /** 最近同步的全局 ME 余额；普通交易容器的独立余额直接从槽位组件读取。 */
     private long clientBalance;
@@ -73,7 +73,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param inventory 玩家物品栏
      * @param extra 服务端传入的菜单附加数据
      */
-    public OreConversionMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreConversionMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
@@ -195,7 +195,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     public boolean stillValid(Player player) {
         if (!level.getBlockState(pos).is(containerBacked
                 ? ModBlocks.ORE_CONTAINER_CONVERSION_TABLE.get() : ModBlocks.ORE_CONVERSION_TABLE.get())
-                || !player.canInteractWithBlock(pos, 4.0)) return false;
+                || !(player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0)) return false;
         // 客户端没有绑定方块库存，无需验证实体身份；服务端不能回退到临时交易库存。
         return !containerBacked || level.isClientSide() || table != null && level.getBlockEntity(pos) == table;
     }
@@ -231,9 +231,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
 
     /**
      * 从背包物品的默认状态学习类型；只有原物品本身满足兑换规则时才消耗并转入 ME。
-     * 普通矿质容器回收本体和内部存储量；末影容器只回收本体，不把既有账户余额重复计价。
+     * 默认模式下普通矿质容器回收本体和内部存储量，末影容器只回收本体。
      * 基础版把回收所得写入交易槽的容器，容量不足时不消耗原物品。
-     * 附魔、耐久等不允许输入的特殊组件不会被转化，原物品保留在背包。
+     * 全物品模式允许特殊状态物品按基础价回收，附魔、损伤和容器内容不额外计价。
      *
      * @param player 操作转化桌的服务端玩家
      * @param slotIndex 容器中的背包格子索引
@@ -247,18 +247,28 @@ public class OreConversionMenu extends AbstractContainerMenu {
         // 学习目录按物品 ID 保存，提取时生成该物品的默认状态；用同样的默认栈校验可学习性。
         // 这里不修改原栈，附魔、损伤、容器 ME 和其他数据都不会被写进学习记录。
         ItemStack learningStack = new ItemStack(stack.getItem());
-        if (!OreConversionPrices.isPlain(learningStack)) { status(player, "special_state"); return ItemStack.EMPTY; }
-        if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
+        boolean canLearn = OreConversionPrices.canLearn(learningStack);
+        boolean canDeposit = OreConversionPrices.canDeposit(stack);
+        // 某些模组物品没有可提取的默认状态，但仍可在全物品模式下按已有价格回收。
+        if (!canLearn && !canDeposit) {
+            status(player, OreConversionPrices.isPlain(learningStack) ? "unpriced" : "special_state");
+            return ItemStack.EMPTY;
+        }
         OreConversionSavedData data = OreConversionSavedData.get(player);
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (data.account(player).learned().size() >= OreConversionSavedData.MAX_LEARNED && !data.account(player).knows(id)) {
-            status(player, "learn_limit"); return ItemStack.EMPTY;
+        boolean known = data.account(player).knows(id);
+        if (data.account(player).learned().size() >= OreConversionSavedData.MAX_LEARNED && !known) {
+            // 全物品模式下目录容量只限制新增学习，不能阻止已定价物品回收为 ME。
+            if (!data.convertAllItems() || !canDeposit) {
+                status(player, "learn_limit"); return ItemStack.EMPTY;
+            }
+            canLearn = false;
         }
         long converted = 0;
         ItemStack moved = ItemStack.EMPTY;
-        // 兑换按原栈计算，普通容器的存储量只在此时计入，学习记录仍是默认空容器。
+        // 按当前世界模式核算原栈价格，学习记录始终只保存物品类型。
         OptionalLong unit = OreConversionPrices.depositValue(stack);
-        if (unit.isEmpty() && OreConversionPrices.canDeposit(stack)) {
+        if (unit.isEmpty() && canDeposit) {
             status(player, "overflow");
             return ItemStack.EMPTY;
         }
@@ -278,9 +288,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
             broadcastChanges();
         }
         // 价格交易和学习记录是两个独立结果：只允许学习的物品不会从背包中移除。
-        boolean learned = data.learn(player, id);
+        boolean learned = canLearn && data.learn(player, id);
         sync(player);
-        status(player, converted > 0 ? learned ? "converted_learned" : "converted_known"
+        status(player, converted > 0 ? learned ? "converted_learned" : known ? "converted_known" : "converted_only"
                 : learned ? "learned" : "already_learned", converted);
         return moved;
     }
@@ -303,7 +313,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         ItemStack carried = getCarried();
         ItemStack output = new ItemStack(item);
         // 指针上已有其他物品时不扣款；同类物品则只填充剩余堆叠空间。
-        if (!carried.isEmpty() && !ItemStack.isSameItemSameComponents(carried, output)) return;
+        if (!carried.isEmpty() && !ItemStack.isSameItemSameTags(carried, output)) return;
         int room = output.getMaxStackSize() - carried.getCount();
         count = Math.min(count, room);
         if (count <= 0 || !OreConversionPrices.isPlain(output)) return;
@@ -375,8 +385,8 @@ public class OreConversionMenu extends AbstractContainerMenu {
         // 先填充同类堆叠，再使用空格，符合玩家手动整理物品的预期。
         for (int slot = 0; slot < additions.length; slot++) {
             ItemStack existing = inventory.getItem(slot);
-            if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, output)) continue;
-            int space = Math.min(existing.getMaxStackSize(), inventory.getMaxStackSize(existing)) - existing.getCount();
+            if (existing.isEmpty() || !ItemStack.isSameItemSameTags(existing, output)) continue;
+            int space = Math.min(existing.getMaxStackSize(), inventory.getMaxStackSize()) - existing.getCount();
             int take = Math.min(remaining, Math.max(0, space));
             additions[slot] = take;
             remaining -= take;
@@ -384,7 +394,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
         }
         for (int slot = 0; slot < additions.length; slot++) {
             if (!inventory.getItem(slot).isEmpty()) continue;
-            int take = Math.min(remaining, Math.min(output.getMaxStackSize(), inventory.getMaxStackSize(output)));
+            int take = Math.min(remaining, Math.min(output.getMaxStackSize(), inventory.getMaxStackSize()));
             additions[slot] = take;
             remaining -= take;
             if (remaining == 0) return additions;
@@ -432,7 +442,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /**
-     * 从结算来源扣除购买费用，成功后写回普通容器的物品组件。
+     * 从结算来源扣除购买费用，成功后写回普通容器的物品 NBT。
      *
      * @param player 交易玩家
      * @param amount 要支付的正数 ME

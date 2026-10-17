@@ -4,12 +4,12 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.recipe.OreContainerUpgradeRecipe;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.register.ModItems;
+import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -25,13 +25,13 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.AbstractCookingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.ShapedRecipe;
 import net.minecraft.world.item.crafting.ShapelessRecipe;
 import net.minecraft.world.item.crafting.StonecutterRecipe;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
-import net.neoforged.neoforge.event.OnDatapackSyncEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.server.ServerLifecycleHooks;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import org.slf4j.Logger;
 
@@ -61,7 +61,7 @@ public final class OreConversionPrices {
      * 注册数据包重载监听器，读取基础价格、标签价格、输入来源和自定义配方。
      * 单个 JSON 文件出错时会记录错误并跳过该文件。
      *
-     * @param event NeoForge 的重载监听器注册事件
+     * @param event MinecraftForge 的重载监听器注册事件
      */
     public static void registerReloadListener(AddReloadListenerEvent event) {
         event.addListener(new SimpleJsonResourceReloadListener(new Gson(), "ore_conversion") {
@@ -139,7 +139,9 @@ public final class OreConversionPrices {
         MinecraftServer server = event.getPlayerList().getServer();
         // 数据包重载与玩家登录时都重建价格；服务端不会信任客户端上报的价格。
         rebuild(server);
-        event.getRelevantPlayers().forEach(player -> {
+        // Forge 以空玩家表示全服重载，否则只向正在登录的玩家同步。
+        var players = event.getPlayer() == null ? event.getPlayerList().getPlayers() : List.of(event.getPlayer());
+        players.forEach(player -> {
             OreConversionNetwork.sendPrices(player);
             OreConversionNetwork.sendState(player,
                     player.containerMenu instanceof com.lazeroX.ore_craft.menu.OreConversionMenu menu ? menu.containerId : -1);
@@ -163,8 +165,7 @@ public final class OreConversionPrices {
         // 显式物品价与标签价属于锚点，配方推导不会覆盖这些作者配置的价格。
         Set<ResourceLocation> anchors = Set.copyOf(resolved.keySet());
         List<Recipe<?>> supported = new ArrayList<>();
-        for (RecipeHolder<?> holder : server.getRecipeManager().getRecipes()) {
-            Recipe<?> recipe = holder.value();
+        for (Recipe<?> recipe : server.getRecipeManager().getRecipes()) {
             // 仅推导确定性配方；特殊配方的产物受运行时状态影响，无法可靠定价。
             if (!recipe.isSpecial() && (recipe instanceof ShapedRecipe || recipe instanceof OreContainerUpgradeRecipe
                     || recipe instanceof ShapelessRecipe
@@ -179,7 +180,7 @@ public final class OreConversionPrices {
             changed = false;
             for (Recipe<?> recipe : supported) {
                 ItemStack output = recipe.getResultItem(server.registryAccess());
-                if (output.isEmpty() || !output.isComponentsPatchEmpty() || output.getCount() <= 0) continue;
+                if (output.isEmpty() || !hasDefaultData(output) || output.getCount() <= 0) continue;
                 ResourceLocation id = BuiltInRegistries.ITEM.getKey(output.getItem());
                 if (isBlocked(output.getItem()) || anchors.contains(id)) continue;
                 List<Ingredient> ingredients = recipe.getIngredients();
@@ -190,8 +191,8 @@ public final class OreConversionPrices {
                     if (ingredient.isEmpty()) continue;
                     long cheapest = Long.MAX_VALUE;
                     for (ItemStack candidate : ingredient.getItems()) {
-                        // 带组件或容器返还物的原料不能按普通物品价格参与推导。
-                        if (candidate.isEmpty() || !candidate.isComponentsPatchEmpty() || candidate.hasCraftingRemainingItem()) continue;
+                        // 带特殊 NBT 或容器返还物的原料不能按普通物品价格参与推导。
+                        if (candidate.isEmpty() || !hasDefaultData(candidate) || candidate.hasCraftingRemainingItem()) continue;
                         Long candidatePrice = resolved.get(BuiltInRegistries.ITEM.getKey(candidate.getItem()));
                         if (candidatePrice != null) cheapest = Math.min(cheapest, candidatePrice);
                     }
@@ -268,13 +269,32 @@ public final class OreConversionPrices {
     }
 
     /**
+     * 读取当前服务器存档中的回收开关，避免静态布尔缓存串到下一次打开的世界。
+     * 仅供服务端规则使用；客户端通过价格数据包取得自己的同步副本。
+     *
+     * @return 当前世界开启全物品回收时为 true，服务端尚未就绪时为 false
+     */
+    public static boolean convertAllItems() {
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        return server != null && server.overworld() != null
+                && OreConversionSavedData.get(server).convertAllItems();
+    }
+
+    /**
      * 判断物品是否能输入转化桌或传输接口。
-     * 矿质容器允许按本体价格回收；其他普通来源仍需直接定价，两种绿宝石煤炭允许配方推导价格。
+     * 全物品模式接受所有已有有效价格的物品及其特殊状态，不为未定价物品补充价格。
+     * 默认模式保留矿物来源限制与特殊状态保护，矿质容器和绿宝石煤炭沿用原来的回收规则。
+     *
+     * @param stack 待回收物品栈
+     * @return 当前世界规则允许回收时为 true
      */
     public static boolean canDeposit(ItemStack stack) {
         Item item = stack.getItem();
+        boolean allItems = convertAllItems();
+        if (!isValidForDeposit(stack, allItems) || !canExtract(item)) return false;
+        // 开关只放宽回收来源和物品状态，不允许未定价物品凭空产生 ME。
+        if (allItems) return true;
         boolean emeraldCoal = item == ModItems.EMERALD_COAL.get() || item == ModItems.ETERNAL_EMERALD_COAL.get();
-        if (!isPlainForDeposit(stack) || !canExtract(item)) return false;
         // 容器自身是可定价物品，回收不依赖普通矿物来源列表；末影容器不读取所连账户。
         if (item instanceof OreContainerItem || item instanceof EnderOreContainerItem) return true;
         if (!(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
@@ -282,8 +302,9 @@ public final class OreConversionPrices {
     }
 
     /**
-     * 计算输入栈中每件物品可回收的 ME；普通容器加上存储量，末影容器只回收本体。
-     * 输入资格先按原栈校验，避免附魔或其他额外组件随容器一起被低价吞掉。
+     * 计算输入栈中每件物品可回收的 ME，输入资格与金额始终由服务端校验。
+     * 全物品模式只按物品基础价结算，附魔、损伤、容器内容和存储 ME 均不额外计价。
+     * 默认模式保留普通矿质容器的本体加存储量回收规则，末影容器仍只回收本体。
      *
      * @param stack 准备放入转化桌或传输接口的物品栈
      * @return 每件可到账的 ME；不允许输入或金额溢出时为空
@@ -292,6 +313,7 @@ public final class OreConversionPrices {
         if (!canDeposit(stack)) return OptionalLong.empty();
         OptionalLong base = price(stack.getItem());
         if (base.isEmpty()) return OptionalLong.empty();
+        if (convertAllItems()) return base;
         if (stack.getItem() instanceof OreContainerItem container) {
             long stored = container.storedMe(stack);
             if (base.getAsLong() > Long.MAX_VALUE - stored) return OptionalLong.empty();
@@ -302,8 +324,21 @@ public final class OreConversionPrices {
     }
 
     /**
-     * 检查输入物品的状态；忽略普通容器自身存储量和永恒煤自动记录的持有者标记。
-     * 附魔、自定义名称及其他组件仍不能兑换 ME，避免带特殊状态的物品被误消耗。
+     * 校验输入栈的数量和特殊状态，两端使用同一规则避免槽位预测与服务端判定不一致。
+     * 全物品模式允许损伤、附魔、名称、内置库存及其他 NBT，回收后这些数据随物品消耗。
+     *
+     * @param stack 待回收物品栈
+     * @param allItems 服务端的世界开关，或客户端收到的同一开关
+     * @return 非空、数量合法，且符合当前状态限制时为 true
+     */
+    public static boolean isValidForDeposit(ItemStack stack, boolean allItems) {
+        if (stack.isEmpty() || stack.getCount() <= 0 || stack.getCount() > stack.getMaxStackSize()) return false;
+        return allItems || isPlainForDeposit(stack);
+    }
+
+    /**
+     * 检查默认回收模式中的物品状态；忽略普通容器自身存储量和永恒煤自动记录的持有者标记。
+     * 附魔、自定义名称及其他 NBT 仍不能兑换 ME，避免带特殊状态的物品被误消耗。
      * 客户端使用同一规则显示可兑换提示，实际价格和来源资格由服务端判定。
      *
      * @param stack 待投入的物品栈
@@ -321,10 +356,18 @@ public final class OreConversionPrices {
         return isPlain(stack);
     }
 
-    /** 判断物品栈是否非空、未损坏且不带数据组件。 */
+    /** 判断物品栈是否非空、未损坏且不带NBT 数据。 */
     public static boolean isPlain(ItemStack stack) {
         return !stack.isEmpty() && stack.getCount() > 0 && stack.getCount() <= stack.getMaxStackSize()
-                && stack.isComponentsPatchEmpty() && !stack.isDamaged();
+                && hasDefaultData(stack) && !stack.isDamaged();
+    }
+
+    /**
+     * 比较默认物品的 NBT 与能力数据，允许耐久工具自动写入的 Damage=0，拒绝附魔等特殊状态。
+     * 不能简单检查 hasTag，因为 1.20.1 的全新耐久物品也可能自带默认 NBT。
+     */
+    private static boolean hasDefaultData(ItemStack stack) {
+        return ItemStack.isSameItemSameTags(stack, stack.getItem().getDefaultInstance());
     }
 
     /** 返回当前不可变价格表快照。 */

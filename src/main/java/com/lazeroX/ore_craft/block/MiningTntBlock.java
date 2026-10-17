@@ -4,16 +4,12 @@ import com.lazeroX.ore_craft.register.ModItems;
 import com.lazeroX.ore_craft.entity.MiningPrimedTntEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
@@ -58,9 +54,7 @@ public class MiningTntBlock extends TntBlock {
     ) {
         super.setPlacedBy(level, pos, state, placer, stack);
 
-        Holder<Enchantment> fortune = level.registryAccess()
-                .lookupOrThrow(Registries.ENCHANTMENT)
-                .getOrThrow(Enchantments.FORTUNE);
+        Enchantment fortune = Enchantments.BLOCK_FORTUNE;
         int fortuneLevel = Math.min(3, stack.getEnchantmentLevel(fortune));
 
         if (fortuneLevel > 0) {
@@ -139,20 +133,12 @@ public class MiningTntBlock extends TntBlock {
      * @return 包含一个采矿 TNT 的掉落列表
      */
     @Override
-    protected List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
+    public List<ItemStack> getDrops(BlockState state, LootParams.Builder params) {
         ItemStack result = new ItemStack(ModItems.MINING_TNT_ITEM.get());
         int fortuneLevel = state.getValue(FORTUNE_LEVEL);
 
         if (fortuneLevel > 0) {
-            Holder<Enchantment> fortune = params.getLevel()
-                    .registryAccess()
-                    .lookupOrThrow(Registries.ENCHANTMENT)
-                    .getOrThrow(Enchantments.FORTUNE);
-            ItemEnchantments.Mutable enchantments = new ItemEnchantments.Mutable(
-                    EnchantmentHelper.getEnchantmentsForCrafting(result)
-            );
-            enchantments.set(fortune, fortuneLevel);
-            EnchantmentHelper.setEnchantments(result, enchantments.toImmutable());
+            result.enchant(Enchantments.BLOCK_FORTUNE, fortuneLevel);
         }
 
         return List.of(result);

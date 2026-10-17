@@ -17,6 +17,8 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -85,7 +87,7 @@ public final class OreLearningBookItem extends Item {
      */
     private static void openLearning(ServerPlayer player, InteractionHand hand) {
         // 额外数据只传递持有手；目标物品始终由服务端背包槽读取，不能由客户端任意指定。
-        player.openMenu(new SimpleMenuProvider((id, inventory, owner) ->
+        net.minecraftforge.network.NetworkHooks.openScreen(player, new SimpleMenuProvider((id, inventory, owner) ->
                 new OreLearningMenu(id, inventory, hand), TITLE), extra -> extra.writeEnum(hand));
         if (player.containerMenu instanceof OreLearningMenu menu) {
             OreConversionNetwork.sendPrices(player);
@@ -103,7 +105,7 @@ public final class OreLearningBookItem extends Item {
      * @param flag 提示显示选项
      */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.learning.purpose").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.ore_craft.learning.container_action").withStyle(ChatFormatting.GRAY));

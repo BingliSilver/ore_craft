@@ -113,12 +113,6 @@ public abstract class AbstractOreContainerScreen<T extends AbstractContainerMenu
      */
     protected void renderExtraTooltip(GuiGraphics graphics, int mouseX, int mouseY) {}
 
-    /** 只在画布坐标中绘制面板，避免原版背景在缩放后的空间重复铺满窗口。 */
-    @Override
-    public final void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBg(graphics, partialTick, mouseX, mouseY);
-    }
-
     /** 点击使用逆变换后的逻辑坐标；子类回退到此方法时必须传入原 GUI 坐标。 */
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -146,7 +140,7 @@ public abstract class AbstractOreContainerScreen<T extends AbstractContainerMenu
 
     /** 滚轮仅还原命中位置，滚动量和翻页方向不随界面倍率变化。 */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return super.mouseScrolled(menuCoordinate(mouseX), menuCoordinate(mouseY), scrollX, scrollY);
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
+        return super.mouseScrolled(menuCoordinate(mouseX), menuCoordinate(mouseY), scrollY);
     }
 }

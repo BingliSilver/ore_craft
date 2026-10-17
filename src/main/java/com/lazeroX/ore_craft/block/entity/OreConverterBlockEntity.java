@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.block.entity;
 
+import net.minecraft.util.Mth;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModBlocks;
@@ -7,7 +8,6 @@ import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
@@ -38,7 +38,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     /** 顶部专收收款容器；其余五面只向自动化暴露待回收物品格。 */
     private static final int[] TOP_SLOTS = {CONTAINER_SLOT};
     private static final int[] OTHER_SLOTS = {INPUT_SLOT};
-    /** 上次库存通知时的输入物快照；种类或组件变化会使当前转换失效。 */
+    /** 上次库存通知时的输入物快照；种类或 NBT 变化会使当前转换失效。 */
     private ItemStack previousInput = ItemStack.EMPTY;
     /** 上次库存通知时的容器快照；更换容器时重新开始转换计时。 */
     private ItemStack previousContainer = ItemStack.EMPTY;
@@ -50,8 +50,8 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
             // 同种原料追加数量仍属于当前一轮转换；更换原料或容器才需要重新计时。
             ItemStack currentInput = getItem(INPUT_SLOT);
             ItemStack currentContainer = getItem(CONTAINER_SLOT);
-            if (!ItemStack.isSameItemSameComponents(previousInput, currentInput)
-                    || !ItemStack.isSameItemSameComponents(previousContainer, currentContainer)
+            if (!ItemStack.isSameItemSameTags(previousInput, currentInput)
+                    || !ItemStack.isSameItemSameTags(previousContainer, currentContainer)
                     || previousContainer.getCount() != currentContainer.getCount()) {
                 progressTicks = 0;
             }
@@ -138,7 +138,8 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
 
     /**
      * 每服务端刻检查输入物和收款容器；普通版五秒最多 16 件，升级版一秒最多 32 件。
-     * 普通矿质容器作为输入时按本体加存储量回收，末影容器只按本体价值回收。
+     * 默认模式下普通矿质容器按本体加存储量回收；全物品模式统一只按本体基础价回收。
+     * 每刻重新读取回收规则，关闭全物品模式后暂停不再符合要求的原料并保留库存。
      * 容量不足整批时按可容纳的整件数量结算，只能容纳一件时也继续回收。
      * 实际存入的 ME 与消耗数量严格对应，存入失败时保持输入物不变。
      *
@@ -187,22 +188,22 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
 
     /** 将两格库存、账户归属和剩余等待进度写入区块存档。 */
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         if (owner != null) tag.putUUID("Owner", owner);
-        if (!inventory.getItem(INPUT_SLOT).isEmpty()) tag.put("Input", inventory.getItem(INPUT_SLOT).save(registries));
+        if (!inventory.getItem(INPUT_SLOT).isEmpty()) tag.put("Input", inventory.getItem(INPUT_SLOT).save(new CompoundTag()));
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty())
-            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(registries));
+            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
         tag.putInt("Progress", progressTicks);
     }
 
     /** 从区块存档恢复原料、容器与进度；旧存档缺少容器时保持容器格为空。 */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
-        inventory.setItem(INPUT_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Input")));
-        inventory.setItem(CONTAINER_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Container")));
-        progressTicks = Math.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
+        inventory.setItem(INPUT_SLOT, ItemStack.of(tag.getCompound("Input")));
+        inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));
+        progressTicks = Mth.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
     }
 }

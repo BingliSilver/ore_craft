@@ -1,5 +1,6 @@
 package com.lazeroX.ore_craft.block.entity;
 
+import net.minecraft.util.Mth;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
@@ -8,7 +9,6 @@ import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -189,7 +189,7 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         ItemStack output = machine.inventory.getItem(OUTPUT_SLOT);
         if (!OreConversionPrices.canExtract(item) || !OreConversionPrices.isPlain(target)
                 || unit.isEmpty() || !OreMachineEnergy.isContainer(container)
-                || (!output.isEmpty() && !ItemStack.isSameItemSameComponents(output, target))) {
+                || (!output.isEmpty() && !ItemStack.isSameItemSameTags(output, target))) {
             machine.resetProgress();
             return;
         }
@@ -230,26 +230,26 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
 
     /** 将容器、输出、拥有者、选择和进度写入区块存档。 */
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         if (owner != null) tag.putUUID("Owner", owner);
         if (selected != null) tag.putString("Selected", selected.toString());
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty())
-            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(registries));
+            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
         if (!inventory.getItem(OUTPUT_SLOT).isEmpty())
-            tag.put("Output", inventory.getItem(OUTPUT_SLOT).save(registries));
+            tag.put("Output", inventory.getItem(OUTPUT_SLOT).save(new CompoundTag()));
         tag.putInt("Progress", progressTicks);
     }
 
     /** 从区块存档恢复状态，损坏或不存在的选择会被清空。 */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         ResourceLocation id = ResourceLocation.tryParse(tag.getString("Selected"));
         selected = id != null && BuiltInRegistries.ITEM.containsKey(id) ? id : null;
-        inventory.setItem(CONTAINER_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Container")));
-        inventory.setItem(OUTPUT_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Output")));
-        progressTicks = Math.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
+        inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));
+        inventory.setItem(OUTPUT_SLOT, ItemStack.of(tag.getCompound("Output")));
+        progressTicks = Mth.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);
     }
 }

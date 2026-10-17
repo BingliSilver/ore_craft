@@ -19,7 +19,6 @@ import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,6 +34,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
     private static final float Y_LAYOUT_SCALE = HEIGHT / 206.0F;
     private static final int TEXTURE_WIDTH = 1728;
     private static final int TEXTURE_HEIGHT = 912;
+    /** 转化桌背景纹理的资源标识，由 Forge 回移的工厂方法校验命名空间与路径。 */
     private static final ResourceLocation BACKGROUND = ResourceLocation.fromNamespaceAndPath(
             "ore_craft", "textures/gui/ore_conversion_table.png");
     private static final int CATALOG_X = sx(206);
@@ -117,7 +117,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
 
     /** 将目录操作封装成请求并发送到服务端验证。 */
     private void action(int kind, ResourceLocation id, int count) {
-        PacketDistributor.sendToServer(new OreConversionNetwork.ActionPayload(menu.containerId, kind, id, count));
+        OreConversionNetwork.sendToServer(new OreConversionNetwork.ActionPayload(menu.containerId, kind, id, count));
     }
 
     /** 递减提示显示时间，并在菜单状态变化时刷新目录。 */
@@ -339,7 +339,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
                 }
                 Item item = BuiltInRegistries.ITEM.get(entry.id());
                 ItemStack carried = menu.getCarried();
-                if (!carried.isEmpty() && !ItemStack.isSameItemSameComponents(carried, new ItemStack(item))) {
+                if (!carried.isEmpty() && !ItemStack.isSameItemSameTags(carried, new ItemStack(item))) {
                     suppressCatalogRelease = true;
                     return true;
                 }
@@ -375,7 +375,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
 
     /** 在鼠标位于目录区域时用滚轮切换页面。 */
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollY) {
         int localX = (int) menuCoordinate(mouseX) - leftPos;
         int localY = (int) menuCoordinate(mouseY) - topPos;
         if (localX >= sx(204) && localX < sx(352) && localY >= sy(66) && localY < sy(177) && scrollY != 0) {
@@ -384,7 +384,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
             updateControls();
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        return super.mouseScrolled(mouseX, mouseY, scrollY);
     }
 
     /** 用逻辑坐标判断悬停区域，再按游戏界面尺寸绘制余额、目录物品或状态详情。 */

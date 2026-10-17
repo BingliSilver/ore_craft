@@ -1,8 +1,8 @@
 package com.lazeroX.ore_craft.event;
 
 import com.lazeroX.ore_craft.block.OreExperienceConverterBlock;
-import net.neoforged.neoforge.common.util.TriState;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 
 /**
  * 使矿质经验转化器的潜行右键始终交给方块处理，包括玩家手持物品时。
@@ -21,7 +21,7 @@ public final class OreExperienceConverterInteraction {
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
         if (!event.getEntity().isShiftKeyDown() || event.getEntity().isSpectator()
                 || !(event.getLevel().getBlockState(event.getPos()).getBlock() instanceof OreExperienceConverterBlock)) return;
-        event.setUseBlock(TriState.TRUE);
-        event.setUseItem(TriState.FALSE);
+        event.setUseBlock(Event.Result.ALLOW);
+        event.setUseItem(Event.Result.DENY);
     }
 }

@@ -26,6 +26,8 @@ public final class OreConversionClient {
     private static Map<ResourceLocation, OreConversionNetwork.PriceEntry> prices = Map.of();
     /** 正在接收的价格分块；末块到达前不会发布为完整目录。 */
     private static Map<ResourceLocation, OreConversionNetwork.PriceEntry> incomingPrices;
+    /** 服务端同步的全物品回收开关；退出服务器后恢复默认关闭。 */
+    private static boolean convertAllItems;
 
     /** 工具类不允许创建实例。 */
     private OreConversionClient() {}
@@ -54,6 +56,8 @@ public final class OreConversionClient {
             incomingPrices.put(entry.id(), entry);
         }
         if (packet.last()) {
+            // 规则和整批价格同时发布，分块未完成时空目录会暂时拒绝所有客户端输入预测。
+            convertAllItems = packet.convertAllItems();
             prices = Map.copyOf(incomingPrices);
             incomingPrices = null;
         }
@@ -73,6 +77,7 @@ public final class OreConversionClient {
         learnedIds = Set.of();
         prices = Map.of();
         incomingPrices = null;
+        convertAllItems = false;
     }
 
     /** 返回最近同步的账户余额。 */
@@ -90,9 +95,16 @@ public final class OreConversionClient {
         return learnedIds.contains(BuiltInRegistries.ITEM.getKey(item));
     }
 
-    /** 判断物品栈能否作为普通物品输入转化桌。 */
+    /**
+     * 查询服务端同步的回收模式，供物品提示显示实际结算规则。
+     *
+     * @return 当前服务器允许全物品回收时为 true，尚未同步时为 false
+     */
+    public static boolean convertAllItems() { return convertAllItems; }
+
+    /** 判断物品栈能否按服务端同步的来源权限及特殊状态规则输入转化桌。 */
     public static boolean canConvert(ItemStack stack) {
         OreConversionNetwork.PriceEntry entry = prices.get(BuiltInRegistries.ITEM.getKey(stack.getItem()));
-        return entry != null && entry.convertible() && OreConversionPrices.isPlainForDeposit(stack);
+        return entry != null && entry.convertible() && OreConversionPrices.isValidForDeposit(stack, convertAllItems);
     }
 }

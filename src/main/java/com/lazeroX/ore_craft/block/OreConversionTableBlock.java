@@ -2,7 +2,6 @@ package com.lazeroX.ore_craft.block;
 
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -21,8 +20,6 @@ import net.minecraft.world.phys.BlockHitResult;
 
 /** 转化桌共用的外形和交互；容器版子类额外保存交易容器，矿质转化桌+使用全局账户。 */
 public class OreConversionTableBlock extends Block {
-    /** 用于编码转化桌方块属性的 MapCodec。 */
-    public static final MapCodec<OreConversionTableBlock> CODEC = simpleCodec(OreConversionTableBlock::new);
     /** 转化桌菜单标题。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_conversion_table");
     /** 新版转化桌的本地化菜单标题。 */
@@ -62,15 +59,10 @@ public class OreConversionTableBlock extends Block {
         this.containerBacked = containerBacked;
     }
 
-    /** 返回该方块的序列化编解码器。 */
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return CODEC;
-    }
 
     /** 返回转化桌自定义的外形。 */
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
@@ -85,10 +77,10 @@ public class OreConversionTableBlock extends Block {
      * @return 按客户端或服务端返回对应成功结果
      */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (player instanceof ServerPlayer serverPlayer) {
             // 菜单额外数据携带方块坐标，供服务端验证玩家仍在交互范围内。
-            serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+            net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
             if (serverPlayer.containerMenu instanceof OreConversionMenu menu) {
                 OreConversionNetwork.sendPrices(serverPlayer);
                 menu.sync(serverPlayer);
@@ -106,7 +98,7 @@ public class OreConversionTableBlock extends Block {
      * @return 创建转化桌菜单的提供器
      */
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMenu(id, inventory, pos, containerBacked),
                 containerBacked ? CONTAINER_TITLE : TITLE);
     }

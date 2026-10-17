@@ -4,13 +4,11 @@
     "minecraft:amethyst_shard": 32,
     "minecraft:andesite": 16,
     "minecraft:apple": 128,
-    "minecraft:armadillo_scute": 48,
     "minecraft:bamboo": 32,
     "minecraft:basalt": 4,
     "minecraft:beef": 64,
     "minecraft:big_dripleaf": 32,
     "minecraft:blackstone": 4,
-    "minecraft:bolt_armor_trim_smithing_template": 10176,
     "minecraft:bone": 144,
     "minecraft:brain_coral": 16,
     "minecraft:brain_coral_block": 64,
@@ -73,8 +71,6 @@
     "minecraft:fire_coral_block": 64,
     "minecraft:fire_coral_fan": 16,
     "minecraft:flint": 4,
-    "minecraft:flow_armor_trim_smithing_template": 30528,
-    "minecraft:flow_banner_pattern": 20480,
     "minecraft:ghast_tear": 4096,
     "minecraft:glow_berries": 16,
     "minecraft:glow_lichen": 8,
@@ -83,9 +79,7 @@
     "minecraft:granite": 16,
     "minecraft:gravel": 4,
     "minecraft:gunpowder": 192,
-    "minecraft:guster_banner_pattern": 12224,
     "minecraft:heart_of_the_sea": 32768,
-    "minecraft:heavy_core": 40960,
     "minecraft:honey_bottle": 48,
     "minecraft:horn_coral": 16,
     "minecraft:horn_coral_block": 64,
@@ -102,11 +96,8 @@
     "minecraft:mangrove_roots": 4,
     "minecraft:melon_slice": 16,
     "minecraft:moss_block": 12,
-    "minecraft:music_disc_creator": 40960,
-    "minecraft:music_disc_creator_music_box": 8192,
     "minecraft:music_disc_otherside": 6144,
     "minecraft:music_disc_pigstep": 8192,
-    "minecraft:music_disc_precipice": 12224,
     "minecraft:music_disc_relic": 10176,
     "minecraft:mutton": 64,
     "minecraft:name_tag": 192,
@@ -126,6 +117,7 @@
     "minecraft:prismarine_crystals": 512,
     "minecraft:prismarine_shard": 256,
     "minecraft:pufferfish": 64,
+    "minecraft:pumpkin": 144,
     "minecraft:quartz": 256,
     "minecraft:rabbit": 64,
     "minecraft:rabbit_foot": 128,
@@ -145,7 +137,7 @@
     "minecraft:seagrass": 1,
     "minecraft:sentry_armor_trim_smithing_template": 57345,
     "minecraft:shaper_armor_trim_smithing_template": 10176,
-    "minecraft:short_grass": 1,
+    "minecraft:grass": 1,
     "minecraft:shulker_shell": 2048,
     "minecraft:silence_armor_trim_smithing_template": 39465,
     "minecraft:skeleton_skull": 256,
@@ -172,7 +164,7 @@
     "minecraft:tube_coral_fan": 16,
     "minecraft:tuff": 4,
     "minecraft:turtle_egg": 192,
-    "minecraft:turtle_scute": 96,
+    "minecraft:scute": 96,
     "minecraft:twisting_vines": 8,
     "minecraft:vex_armor_trim_smithing_template": 51917,
     "minecraft:vine": 8,
@@ -185,27 +177,25 @@
     "minecraft:zombie_head": 256
   },
   "tag_prices": {
-    "#c:crops/beetroot": 64,
-    "#c:crops/carrot": 64,
-    "#c:crops/nether_wart": 24,
-    "#c:crops/potato": 64,
-    "#c:crops/wheat": 24,
-    "#c:dusts/glowstone": 384,
-    "#c:dusts/redstone": 64,
-    "#c:gems/amethyst": 32,
-    "#c:gems/diamond": 8192,
-    "#c:gems/emerald": 16384,
-    "#c:gems/quartz": 256,
-    "#c:ingots/copper": 128,
-    "#c:ingots/gold": 2048,
-    "#c:ingots/iron": 256,
-    "#c:nether_stars": 139264,
-    "#c:pumpkins/normal": 144,
-    "#c:rods/blaze": 1536,
-    "#c:rods/breeze": 2304,
-    "#c:rods/wooden": 4,
-    "#c:seeds/beetroot": 16,
-    "#c:seeds/wheat": 16,
+    "#forge:crops/beetroot": 64,
+    "#forge:crops/carrot": 64,
+    "#forge:crops/nether_wart": 24,
+    "#forge:crops/potato": 64,
+    "#forge:crops/wheat": 24,
+    "#forge:dusts/glowstone": 384,
+    "#forge:dusts/redstone": 64,
+    "#forge:gems/amethyst": 32,
+    "#forge:gems/diamond": 8192,
+    "#forge:gems/emerald": 16384,
+    "#forge:gems/quartz": 256,
+    "#forge:ingots/copper": 128,
+    "#forge:ingots/gold": 2048,
+    "#forge:ingots/iron": 256,
+    "#forge:nether_stars": 139264,
+    "#forge:rods/blaze": 1536,
+    "#forge:rods/wooden": 4,
+    "#forge:seeds/beetroot": 16,
+    "#forge:seeds/wheat": 16,
     "#minecraft:creeper_drop_music_discs": 2048,
     "#minecraft:decorated_pot_sherds": 216,
     "#minecraft:leaves": 1,
@@ -524,7 +514,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:ingots/iron",
+          "source": "#forge:ingots/iron",
           "amount": 8
         }
       ]
@@ -534,7 +524,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:ingots/gold",
+          "source": "#forge:ingots/gold",
           "amount": 8
         }
       ]
@@ -544,7 +534,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:gems/diamond",
+          "source": "#forge:gems/diamond",
           "amount": 8
         }
       ]
@@ -608,7 +598,7 @@
           "amount": 1
         },
         {
-          "source": "#c:storage_blocks/gold",
+          "source": "#forge:storage_blocks/gold",
           "amount": 8
         }
       ]
@@ -628,7 +618,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:gems/emerald",
+          "source": "#forge:gems/emerald",
           "amount": 3
         }
       ]
@@ -710,7 +700,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:ingots/gold",
+          "source": "#forge:ingots/gold",
           "amount": 7
         }
       ]
@@ -748,7 +738,7 @@
           "amount": 1
         },
         {
-          "source": "#c:dusts/glowstone",
+          "source": "#forge:dusts/glowstone",
           "amount": 1
         }
       ]
@@ -758,7 +748,7 @@
       "count": 1,
       "ingredients": [
         {
-          "source": "#c:rods/wooden",
+          "source": "#forge:rods/wooden",
           "amount": 1
         }
       ]
@@ -870,7 +860,7 @@
           "amount": 1
         },
         {
-          "source": "#c:mushrooms",
+          "source": "#forge:mushrooms",
           "amount": 1
         }
       ]

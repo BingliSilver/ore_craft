@@ -1,12 +1,10 @@
 package com.lazeroX.ore_craft.value;
 
-import net.minecraft.core.Holder;
-import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.item.enchantment.Enchantment;
 
 /**
- * 按附魔定义统一计算矿质消耗。价格只由等级、权重和 Treasure 标签决定，
- * 因此数据包或其他模组注册的附魔也遵循同一规则。已有附魔按实际等级估值，
+ * 按附魔定义统一计算矿质消耗。价格只由等级、稀有度权重和宝藏属性决定，
+ * 因此其他模组注册的附魔也遵循同一规则。已有附魔按实际等级估值，
  * 即使神化等模组产生了高于附魔定义上限的等级，也可以正常降级或移除并回收 ME。
  */
 public final class EnchantMeCostCalculator {
@@ -21,18 +19,18 @@ public final class EnchantMeCostCalculator {
      * 计算指定附魔等级的完整价格。乘法溢出时饱和到 long 最大值，
      * 不会绕回负数或意外变成低价。
      *
-     * @param enchantment 当前世界注册表中的附魔 Holder
+     * @param enchantment Forge 注册表中的附魔实例
      * @param level 实际附魔等级，必须为正数；允许超过附魔定义或附魔台制作上限
      * @return 所需 ME，最少为 1，溢出时为 {@link Long#MAX_VALUE}
      * @throws IllegalArgumentException 等级低于 1 时抛出
      */
-    public static long calculateCost(Holder<Enchantment> enchantment, int level) {
+    public static long calculateCost(Enchantment enchantment, int level) {
         // 估值不负责制作权限；读取超限附魔时不能因定义上限而使界面或交易崩溃。
         if (level < 1) {
             throw new IllegalArgumentException("Invalid enchantment level: " + level);
         }
         long cost = saturatedMultiply(BASE_ENCHANT_ME, getLevelMultiplier(level));
-        cost = saturatedMultiply(cost, getRarityMultiplier(enchantment.value().getWeight()));
+        cost = saturatedMultiply(cost, getRarityMultiplier(enchantment.getRarity().getWeight()));
         return Math.max(1L, saturatedMultiply(cost, getTreasureMultiplier(enchantment)));
     }
 
@@ -45,7 +43,7 @@ public final class EnchantMeCostCalculator {
      * @param targetLevel 玩家选定等级，允许为零；制作权限由菜单单独验证
      * @return 目标价格与当前价格的差额，单位为 ME
      */
-    public static long calculateDifference(Holder<Enchantment> enchantment, int originalLevel, int targetLevel) {
+    public static long calculateDifference(Enchantment enchantment, int originalLevel, int targetLevel) {
         long original = originalLevel == 0 ? 0L : calculateCost(enchantment, originalLevel);
         long target = targetLevel == 0 ? 0L : calculateCost(enchantment, targetLevel);
         return target - original;
@@ -64,9 +62,9 @@ public final class EnchantMeCostCalculator {
         return 8L;
     }
 
-    /** 1.21.1 的 Treasure 身份由注册表标签提供，而非附魔名称判断。 */
-    private static long getTreasureMultiplier(Holder<Enchantment> enchantment) {
-        return enchantment.is(EnchantmentTags.TREASURE) ? 2L : 1L;
+    /** 1.20.1 由附魔实例声明宝藏属性，保留宝藏附魔价格翻倍的规则。 */
+    private static long getTreasureMultiplier(Enchantment enchantment) {
+        return enchantment.isTreasureOnly() ? 2L : 1L;
     }
 
     /** 对正数价格执行不会溢出的乘法。 */

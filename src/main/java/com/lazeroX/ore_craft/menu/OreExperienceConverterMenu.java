@@ -6,7 +6,7 @@ import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -47,7 +47,7 @@ public final class OreExperienceConverterMenu extends AbstractContainerMenu {
     private final int[] machineData = {0, 0, 0, 0, 0, 0, 1};
 
     /** 从服务端打开菜单的附加数据读取机器坐标并创建客户端槽位。 */
-    public OreExperienceConverterMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreExperienceConverterMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
@@ -138,7 +138,7 @@ public final class OreExperienceConverterMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         if (!level.getBlockState(pos).is(ModBlocks.ORE_EXPERIENCE_CONVERTER.get())
-                || !player.canInteractWithBlock(pos, 4.0)) return false;
+                || !(player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0)) return false;
         // 客户端不掌握归属 UUID，最终权限始终由服务端判断。
         return level.isClientSide() || converter != null && level.getBlockEntity(pos) == converter
                 && player.getUUID().equals(converter.owner());

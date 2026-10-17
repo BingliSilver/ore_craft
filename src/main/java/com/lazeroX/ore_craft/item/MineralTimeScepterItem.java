@@ -3,7 +3,6 @@ package com.lazeroX.ore_craft.item;
 import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -13,10 +12,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.SimpleMenuProvider;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -58,8 +59,7 @@ public final class MineralTimeScepterItem extends Item {
      * @return 2、4、8、16、32 或 64
      */
     public static int multiplier(ItemStack stack) {
-        int value = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                .copyTag().getInt(MULTIPLIER_KEY);
+        int value = stack.hasTag() ? stack.getTag().getInt(MULTIPLIER_KEY) : 0;
         return MULTIPLIERS.contains(value) ? value : MIN_MULTIPLIER;
     }
 
@@ -70,8 +70,7 @@ public final class MineralTimeScepterItem extends Item {
      * @return 五档合法持续秒数之一
      */
     public static int durationSeconds(ItemStack stack) {
-        int value = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY)
-                .copyTag().getInt(DURATION_KEY);
+        int value = stack.hasTag() ? stack.getTag().getInt(DURATION_KEY) : 0;
         return DURATIONS.contains(value) ? value : DEFAULT_DURATION_SECONDS;
     }
 
@@ -95,10 +94,10 @@ public final class MineralTimeScepterItem extends Item {
      */
     public static void saveConfiguration(ItemStack stack, int multiplier, int durationSeconds) {
         if (!isValidConfiguration(multiplier, durationSeconds)) return;
-        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> {
-            tag.putInt(MULTIPLIER_KEY, multiplier);
-            tag.putInt(DURATION_KEY, durationSeconds);
-        });
+        // 两项设置写入同一个物品 NBT，保留其他自定义键。
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putInt(MULTIPLIER_KEY, multiplier);
+        tag.putInt(DURATION_KEY, durationSeconds);
     }
 
     /**
@@ -131,7 +130,7 @@ public final class MineralTimeScepterItem extends Item {
      * @param flag 提示显示选项
      */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         int selected = multiplier(stack);
         int duration = durationSeconds(stack);

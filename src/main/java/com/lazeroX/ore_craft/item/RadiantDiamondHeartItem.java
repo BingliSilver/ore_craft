@@ -6,12 +6,13 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class RadiantDiamondHeartItem extends Item {
     @Override
     public void appendHoverText(
             ItemStack stack,
-            TooltipContext context,
+            @Nullable Level context,
             List<Component> tooltip,
             TooltipFlag flag
     ) {
@@ -98,7 +99,7 @@ public class RadiantDiamondHeartItem extends Item {
             player.getCooldowns().addCooldown(this, USE_COOLDOWN_TICKS);
 
             // hurtAndBreak 会在达到最大损伤值时销毁物品并广播破损动画。
-            stack.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
+            stack.hurtAndBreak(1, player, holder -> holder.broadcastBreakEvent(hand));
         }
 
         return InteractionResultHolder.consume(stack);

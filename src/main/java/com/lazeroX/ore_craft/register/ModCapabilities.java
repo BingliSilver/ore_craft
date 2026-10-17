@@ -1,26 +1,56 @@
 package com.lazeroX.ore_craft.register;
 
+import com.lazeroX.ore_craft.Ore_craft;
+import com.lazeroX.ore_craft.block.entity.OreMachineInventory;
 import com.lazeroX.ore_craft.block.entity.OreMachineItemHandler;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
+import net.minecraftforge.common.util.LazyOptional;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.minecraftforge.items.IItemHandler;
+import org.jetbrains.annotations.Nullable;
 
-/**
- * 为矿质机器注册 NeoForge 方块物品能力，使其他模组的管道能够发现真实库存。
- * 面向不同方向的包装器沿用漏斗规则，且不会暴露虚拟学习物品槽。
- */
+import java.util.ArrayList;
+import java.util.List;
+
+/** 为机器附加 Forge 物品能力，使管道和漏斗遵守相同的方向与槽位规则。 */
 public final class ModCapabilities {
-    /** 注册类只提供静态生命周期方法，不应创建实例。 */
+    /** 注册工具类不允许创建实例。 */
     private ModCapabilities() {}
 
-    /**
-     * 在模组总线的能力注册阶段关联两种方块实体与物品处理器。
-     *
-     * @param event NeoForge 能力注册事件
-     */
-    public static void register(RegisterCapabilitiesEvent event) {
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.ORE_CONVERTER.get(),
-                (converter, side) -> new OreMachineItemHandler(converter, side));
-        event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, ModBlockEntities.ORE_CONVERSION_MACHINE.get(),
-                (machine, side) -> new OreMachineItemHandler(machine, side));
+    /** 在方块实体创建时附加能力；卸载时失效全部缓存，避免管道引用已销毁库存。 */
+    public static void register(AttachCapabilitiesEvent<BlockEntity> event) {
+        if (!(event.getObject() instanceof OreMachineInventory inventory)) return;
+        MachineProvider provider = new MachineProvider(inventory);
+        event.addCapability(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "machine_inventory"), provider);
+        event.addListener(provider::invalidate);
+    }
+
+    /** 每个实体独立的能力提供者，缓存六个方向和无方向的处理器。 */
+    private static final class MachineProvider implements ICapabilityProvider {
+        /** 前六项对应 Direction 序号，第七项为无方向访问。 */
+        private final List<LazyOptional<IItemHandler>> handlers = new ArrayList<>(7);
+
+        /** 只包装真实库存，不创建额外槽位或暴露虚拟学习物品。 */
+        private MachineProvider(OreMachineInventory inventory) {
+            for (Direction side : Direction.values()) {
+                handlers.add(LazyOptional.of(() -> new OreMachineItemHandler(inventory, side)));
+            }
+            handlers.add(LazyOptional.of(() -> new OreMachineItemHandler(inventory, null)));
+        }
+
+        /** 仅响应物品能力查询；同一方向始终返回相同的可失效引用。 */
+        @Override
+        public <T> LazyOptional<T> getCapability(Capability<T> capability, @Nullable Direction side) {
+            return capability == ForgeCapabilities.ITEM_HANDLER
+                    ? handlers.get(side == null ? 6 : side.ordinal()).cast() : LazyOptional.empty();
+        }
+
+        /** 通知所有物流设备丢弃旧引用；方块实体重建时重新附加能力。 */
+        private void invalidate() { handlers.forEach(LazyOptional::invalidate); }
     }
 }

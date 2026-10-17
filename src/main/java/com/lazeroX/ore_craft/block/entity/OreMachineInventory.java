@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 /**
  * 将矿质机器已有的持久库存暴露为原版漏斗可识别的带方向容器。
- * NeoForge 管道通过同一容器的物品能力访问；各面的进出规则仍由具体方块实体声明。
+ * MinecraftForge 管道通过同一容器的物品能力访问；各面的进出规则仍由具体方块实体声明。
  * 物品变动交给原库存保存并按需要调整计时。
  */
 public interface OreMachineInventory extends WorldlyContainer {

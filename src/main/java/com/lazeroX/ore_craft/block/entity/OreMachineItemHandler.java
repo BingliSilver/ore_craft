@@ -2,20 +2,21 @@ package com.lazeroX.ore_craft.block.entity;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.items.wrapper.SidedInvWrapper;
+import net.minecraftforge.items.wrapper.InvWrapper;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * 将机器已有的原版带方向库存适配为 NeoForge 管道使用的物品能力。
+ * 将机器已有的原版带方向库存适配为 MinecraftForge 管道使用的物品能力。
  * 有方向查询沿用漏斗规则；无方向查询可看到全部真实槽位，但进出仍须通过机器许可。
  * 包装器不暴露可直接改写库存的接口，避免管道绕过物品类型及方向检查。
  */
 public final class OreMachineItemHandler implements IItemHandler {
     /** 被适配的机器库存，和菜单共享同一份持久物品。 */
     private final OreMachineInventory machine;
-    /** NeoForge 提供的带方向槽位映射与插入、提取实现。 */
-    private final SidedInvWrapper delegate;
+    /** 有方向时映射开放槽位，无方向时暴露全部真实槽位；额外权限仍在本类检查。 */
+    private final IItemHandler delegate;
     /** 管道查询的面；null 表示管道未指定方向。 */
     @Nullable
     private final Direction side;
@@ -29,7 +30,8 @@ public final class OreMachineItemHandler implements IItemHandler {
     public OreMachineItemHandler(OreMachineInventory machine, @Nullable Direction side) {
         this.machine = machine;
         this.side = side;
-        this.delegate = new SidedInvWrapper(machine, side);
+        // Forge 的 SidedInvWrapper 不为 null 提供全库存视图，须显式使用普通包装器。
+        this.delegate = side == null ? new InvWrapper(machine) : new SidedInvWrapper(machine, side);
     }
 
     /** 返回此面可见的真实槽位数量；无方向时包含全部真实槽位。 */
@@ -66,7 +68,7 @@ public final class OreMachineItemHandler implements IItemHandler {
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
         if (slot < 0 || slot >= delegate.getSlots()) return false;
-        int realSlot = SidedInvWrapper.getSlot(machine, slot, side);
+        int realSlot = side == null ? slot : SidedInvWrapper.getSlot(machine, slot, side);
         return side == null ? machine.canPlaceItemWithoutSide(realSlot, stack)
                 : machine.canPlaceItemThroughFace(realSlot, stack, side);
     }

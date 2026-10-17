@@ -1,12 +1,12 @@
 package com.lazeroX.ore_craft.block.entity;
 
+import net.minecraft.util.Mth;
 import com.lazeroX.ore_craft.block.OreExperienceConverterBlock;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.value.EnchantMeCostCalculator;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -31,8 +31,8 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
     public static final int INTERVAL_TICKS = 20;
     /**
      * 每一点经验消耗五倍一级常见附魔基础价，当前为 10,240 ME；经验指点数而非等级。
-     * 按原版 1.21.1 附魔池、最高附魔能力和全部兼容候选保守估算，祛魔回收上界约
-     * 7,607 ME/消耗经验点；此单价保留约 35% 余量，避免低级或多重附魔循环获利。
+     * 降级到 1.20.1 后保留原费用；附魔估值改为读取旧版稀有度与宝藏属性。
+     * 模组改变附魔池或附魔能力时，需要重新评估兑换经验再祛魔的循环收益。
      * 与附魔基础价共用常量，调整基础价格时经验价格也同比变化。
      */
     public static final long ME_PER_EXPERIENCE = EnchantMeCostCalculator.BASE_ENCHANT_ME * 5L;
@@ -165,13 +165,13 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
         if (updated == container && player != null) OreConversionNetwork.sendState(player, -1);
     }
 
-    /** 保存容器组件、固定账户归属、所选倍率和未完成轮次；开关随方块状态自动保存。 */
+    /** 保存容器 NBT、固定账户归属、所选倍率和未完成轮次；开关随方块状态自动保存。 */
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         if (owner != null) tag.putUUID("Owner", owner);
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty()) {
-            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(registries));
+            tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
         }
         tag.putInt("Progress", progressTicks);
         tag.putInt("Multiplier", multiplier);
@@ -179,12 +179,12 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
 
     /** 恢复供能容器、账户和倍率；旧存档或非法倍率回退 x1，异常进度限制在一轮内。 */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
+    public void load(CompoundTag tag) {
+        super.load(tag);
         owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
-        inventory.setItem(CONTAINER_SLOT, ItemStack.parseOptional(registries, tag.getCompound("Container")));
+        inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));
         int savedMultiplier = tag.getInt("Multiplier");
         multiplier = MULTIPLIERS.contains(savedMultiplier) ? savedMultiplier : 1;
-        progressTicks = Math.clamp(tag.getInt("Progress"), 0, INTERVAL_TICKS - 1);
+        progressTicks = Mth.clamp(tag.getInt("Progress"), 0, INTERVAL_TICKS - 1);
     }
 }

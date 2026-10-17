@@ -3,7 +3,6 @@ package com.lazeroX.ore_craft.block;
 import com.lazeroX.ore_craft.block.entity.OreExperienceConverterBlockEntity;
 import com.lazeroX.ore_craft.menu.OreExperienceConverterMenu;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -32,8 +31,6 @@ import net.minecraft.world.phys.BlockHitResult;
  * 仅放置者可以操作，以免末影容器意外消耗其他玩家的全局 ME。
  */
 public final class OreExperienceConverterBlock extends Block implements EntityBlock {
-    /** 用于重建方块属性的编解码器。 */
-    public static final MapCodec<OreExperienceConverterBlock> CODEC = simpleCodec(OreExperienceConverterBlock::new);
     /** 生产开关；同时用于模型切换和菜单状态展示。 */
     public static final BooleanProperty ENABLED = BlockStateProperties.ENABLED;
     /** 单槽容器菜单的本地化标题。 */
@@ -49,9 +46,6 @@ public final class OreExperienceConverterBlock extends Block implements EntityBl
         registerDefaultState(stateDefinition.any().setValue(ENABLED, false));
     }
 
-    /** 返回方块属性编解码器。 */
-    @Override
-    protected MapCodec<? extends Block> codec() { return CODEC; }
 
     /** 将开关加入方块状态，使服务器修改后自动同步到客户端并持久化。 */
     @Override
@@ -89,7 +83,7 @@ public final class OreExperienceConverterBlock extends Block implements EntityBl
      * 无归属的命令放置方块由首位操作者认领；旁观者不能更改机器状态。
      */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (player instanceof ServerPlayer serverPlayer && !player.isSpectator()
                 && level.getBlockEntity(pos) instanceof OreExperienceConverterBlockEntity converter) {
             converter.claim(player.getUUID());
@@ -105,7 +99,7 @@ public final class OreExperienceConverterBlock extends Block implements EntityBl
                 player.displayClientMessage(Component.translatable(enabled
                         ? "message.ore_craft.experience.enabled" : "message.ore_craft.experience.disabled"), true);
             } else {
-                serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+                net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide());
@@ -113,13 +107,13 @@ public final class OreExperienceConverterBlock extends Block implements EntityBl
 
     /** 创建绑定真实库存的菜单；关闭界面后容器仍留在机器中继续供能。 */
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreExperienceConverterMenu(id, inventory, pos), TITLE);
     }
 
     /** 仅在方块被替换或拆除时掉落容器；切换开关不会重复掉落库存。 */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())
                 && level.getBlockEntity(pos) instanceof OreExperienceConverterBlockEntity converter) {
             Containers.dropContents(level, pos, converter.inventory());

@@ -7,45 +7,49 @@ import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.registration.NetworkRegistry;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Comparator;
 import java.util.Map;
 
-/** 注册转化桌与矿质转化器的网络载荷，并同步价格、账户状态和操作反馈。 */
+/** 使用 Forge 1.20.1 的可靠通道同步价格、账户和菜单操作；交易只在服务端主线程执行。 */
 public final class OreConversionNetwork {
-    /** 从已学习目录提取单个物品到鼠标指针的操作编号。 */
+    /** 从目录提取单件的操作编号。 */
     public static final int EXTRACT = 1;
-    /** 按价格和背包空间批量提取物品的操作编号。 */
+    /** 批量提取至背包的操作编号。 */
     public static final int EXTRACT_STACK = 2;
-    /** 矿质转化器从已学习目录选择生产物品的操作编号。 */
+    /** 机器选定产物的操作编号。 */
     public static final int SELECT_MACHINE_ITEM = 3;
+    /** 双端必须使用相同协议，避免不同载荷格式被误读。 */
+    private static final String PROTOCOL = "1.20.1-2";
+    /** 所有菜单共享通道；消息编号 0 至 3 为转化，4 为附魔。 */
+    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
+            ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "main"),
+            () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
 
-    /** 工具类不允许创建实例。 */
+    /** 网络工具类不允许实例化。 */
     private OreConversionNetwork() {}
 
-    /**
-     * 注册转化桌提取、机器物品选择和服务端同步载荷的编解码器及处理器。
-     *
-     * @param event 网络载荷注册事件
-     */
-    public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("8")
-                .playToServer(ActionPayload.TYPE, ActionPayload.CODEC, (packet, context) -> {
-                    if (!(context.player() instanceof ServerPlayer player)) return;
-                    // 校验菜单实例和容器 ID，拒绝旧界面或其他机器伪造的操作请求。
+    /** 注册方向与编解码器；Forge 将处理器调度至游戏主线程。 */
+    public static void register(FMLCommonSetupEvent event) {
+        CHANNEL.messageBuilder(ActionPayload.class, 0, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(ActionPayload::encode).decoder(ActionPayload::decode)
+                .consumerMainThread((packet, context) -> {
+                    ServerPlayer player = context.get().getSender();
+                    if (player == null) return;
+                    // 菜单类型、编号及交易方法中的距离检查共同拒绝伪造请求。
                     if (player.containerMenu instanceof OreConversionMenu menu
                             && menu.containerId == packet.containerId()) {
                         switch (packet.action()) {
@@ -53,24 +57,33 @@ public final class OreConversionNetwork {
                             case EXTRACT_STACK -> menu.extractStackToInventory(player, packet.itemId());
                             default -> { }
                         }
-                    } else if (player.containerMenu instanceof OreConversionMachineMenu machine
-                            && machine.containerId == packet.containerId()
-                            && packet.action() == SELECT_MACHINE_ITEM) {
-                        machine.select(player, packet.itemId());
+                    } else if (player.containerMenu instanceof OreConversionMachineMenu menu
+                            && menu.containerId == packet.containerId() && packet.action() == SELECT_MACHINE_ITEM) {
+                        menu.select(player, packet.itemId());
                     }
-                })
-                .playToClient(SyncPayload.TYPE, SyncPayload.CODEC, (packet, context) -> {
-                    if (context.player().level().isClientSide()) OreConversionClient.receive(packet);
-                })
-                .playToClient(PricesPayload.TYPE, PricesPayload.CODEC, (packet, context) -> {
-                    if (context.player().level().isClientSide()) OreConversionClient.receivePrices(packet);
-                })
-                .playToClient(StatusPayload.TYPE, StatusPayload.CODEC, (packet, context) -> {
-                    if (context.player().level().isClientSide()) OreConversionClient.receiveStatus(packet);
-                });
+                }).add();
+        CHANNEL.messageBuilder(SyncPayload.class, 1, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(SyncPayload::encode).decoder(SyncPayload::decode)
+                .consumerMainThread((packet, context) -> OreConversionClient.receive(packet)).add();
+        CHANNEL.messageBuilder(PricesPayload.class, 2, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(PricesPayload::encode).decoder(PricesPayload::decode)
+                .consumerMainThread((packet, context) -> OreConversionClient.receivePrices(packet)).add();
+        CHANNEL.messageBuilder(StatusPayload.class, 3, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(StatusPayload::encode).decoder(StatusPayload::decode)
+                .consumerMainThread((packet, context) -> OreConversionClient.receiveStatus(packet)).add();
     }
 
-    /** 玩家登录后发送价格目录和账户数据。 */
+    /** 客户端提交操作，服务器会重新校验参数与库存。 */
+    public static void sendToServer(Object packet) { CHANNEL.sendToServer(packet); }
+
+    /** 向已握手的真实玩家发包；测试模拟连接可不提供通道。 */
+    private static void sendToPlayer(ServerPlayer player, Object packet) {
+        if (CHANNEL.isRemotePresent(player.connection.connection)) {
+            CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
+        }
+    }
+
+    /** 登录后发送完整价格和账户快照。 */
     public static void onLogin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             sendPrices(player);
@@ -78,7 +91,7 @@ public final class OreConversionNetwork {
         }
     }
 
-    /** 玩家重生后重新发送价格目录和账户数据。 */
+    /** 重生后恢复客户端账户缓存。 */
     public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
             sendPrices(player);
@@ -86,187 +99,144 @@ public final class OreConversionNetwork {
         }
     }
 
-    /**
-     * 向玩家发送余额、可兑换目录和完整学习记录，供界面及物品提示分别使用。
-     *
-     * @param player 数据接收者
-     * @param containerId 当前菜单 ID；非菜单同步时使用负数
-     */
+    /** 同步余额、可提取目录与完整学习记录；负菜单编号表示全局更新。 */
     public static void sendState(ServerPlayer player, int containerId) {
-        if (!NetworkRegistry.hasChannel(player.connection, SyncPayload.TYPE.id())) return;
         OreConversionSavedData.Account account = OreConversionSavedData.get(player).account(player);
         Map<ResourceLocation, Long> prices = OreConversionPrices.snapshot();
         List<PriceEntry> learned = new ArrayList<>();
         for (ResourceLocation id : account.learned()) {
             Long price = prices.get(id);
-            if (price != null && BuiltInRegistries.ITEM.containsKey(id) && OreConversionPrices.canExtract(BuiltInRegistries.ITEM.get(id))) {
+            if (price != null && BuiltInRegistries.ITEM.containsKey(id)
+                    && OreConversionPrices.canExtract(BuiltInRegistries.ITEM.get(id))) {
                 learned.add(new PriceEntry(id, price, false));
             }
         }
         learned.sort(Comparator.comparing(entry -> entry.id().toString()));
-        // 提示中的“已学习”以账户完整记录为准；提取目录会过滤当前无法兑换的物品。
         List<ResourceLocation> learnedIds = account.learned().stream()
                 .sorted(Comparator.comparing(ResourceLocation::toString)).toList();
-        PacketDistributor.sendToPlayer(player, new SyncPayload(containerId, account.balance(), learned, learnedIds));
+        sendToPlayer(player, new SyncPayload(containerId, account.balance(), learned, learnedIds));
     }
 
-    /** 将全量价格目录按网络载荷上限分块发送给玩家。 */
+    /** 每块最多 256 个价格，空目录也发送首尾分块以清除客户端旧数据。 */
     public static void sendPrices(ServerPlayer player) {
-        if (!NetworkRegistry.hasChannel(player.connection, PricesPayload.TYPE.id())) return;
-        List<PriceEntry> allPrices = OreConversionPrices.snapshot().entrySet().stream()
+        // 开关与同一次价格传输一起发送，客户端不得使用单人服务器的静态状态推测权限。
+        boolean convertAllItems = OreConversionSavedData.get(player).convertAllItems();
+        List<PriceEntry> prices = OreConversionPrices.snapshot().entrySet().stream()
                 .filter(entry -> BuiltInRegistries.ITEM.containsKey(entry.getKey()) && entry.getValue() > 0)
                 .map(entry -> {
                     Item item = BuiltInRegistries.ITEM.get(entry.getKey());
-                    return new PriceEntry(entry.getKey(), entry.getValue(),
-                            OreConversionPrices.canDeposit(new ItemStack(item)));
-                })
-                .sorted(Comparator.comparing(entry -> entry.id().toString()))
-                .toList();
-        int chunks = Math.max(1, (allPrices.size() + 255) / 256);
-        // 即使目录为空也发送首尾同为 true 的空分块，让客户端结束本轮接收状态。
+                    return new PriceEntry(entry.getKey(), entry.getValue(), OreConversionPrices.canDeposit(new ItemStack(item)));
+                }).sorted(Comparator.comparing(entry -> entry.id().toString())).toList();
+        int chunks = Math.max(1, (prices.size() + 255) / 256);
         for (int chunk = 0; chunk < chunks; chunk++) {
             int from = chunk * 256;
-            PacketDistributor.sendToPlayer(player, new PricesPayload(chunk == 0, chunk == chunks - 1,
-                    allPrices.subList(from, Math.min(from + 256, allPrices.size()))));
+            sendToPlayer(player, new PricesPayload(chunk == 0, chunk == chunks - 1, convertAllItems,
+                    prices.subList(from, Math.min(from + 256, prices.size()))));
         }
     }
 
-    /** 向玩家发送与菜单绑定的操作提示及对应金额。 */
+    /** 同步菜单操作提示键及其 ME 金额。 */
     public static void sendStatus(ServerPlayer player, int containerId, String key, long amount) {
-        if (NetworkRegistry.hasChannel(player.connection, StatusPayload.TYPE.id())) {
-            PacketDistributor.sendToPlayer(player, new StatusPayload(containerId, key, amount));
-        }
+        sendToPlayer(player, new StatusPayload(containerId, key, amount));
     }
 
-    /**
-     * 客户端展示用的单条物品价格与可输入标记。
-     *
-     * @param id 物品注册 ID
-     * @param price 物品的 ME 单价
-     * @param convertible 物品是否可作为转化输入
-     */
+    /** 单条价格；id 为注册 ID，price 为 ME 单价，convertible 表示能否回收。 */
     public record PriceEntry(ResourceLocation id, long price, boolean convertible) {}
 
-    /**
-     * 客户端发起的转化桌操作请求。
-     *
-     * @param containerId 发起请求时的菜单 ID
-     * @param action 操作类型编号
-     * @param itemId 目标物品注册 ID
-     * @param count 操作数量或附加槽位参数
-     */
-    public record ActionPayload(int containerId, int action, ResourceLocation itemId, int count) implements CustomPacketPayload {
-        public static final Type<ActionPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_action"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, ActionPayload> CODEC = StreamCodec.of(
-                (buf, packet) -> {
-                    buf.writeVarInt(packet.containerId);
-                    buf.writeByte(packet.action);
-                    buf.writeResourceLocation(packet.itemId);
-                    buf.writeVarInt(packet.count);
-                },
-                buf -> new ActionPayload(buf.readVarInt(), buf.readUnsignedByte(), buf.readResourceLocation(), buf.readVarInt()));
+    /** 操作请求；菜单编号和 count 的合法范围由对应交易方法校验。 */
+    public record ActionPayload(int containerId, int action, ResourceLocation itemId, int count) {
+        /** 按固定顺序写入操作参数。 */
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeVarInt(containerId);
+            buf.writeByte(action);
+            buf.writeResourceLocation(itemId);
+            buf.writeVarInt(count);
+        }
+        /** 从客户端请求读取操作参数。 */
+        public static ActionPayload decode(FriendlyByteBuf buf) {
+            return new ActionPayload(buf.readVarInt(), buf.readUnsignedByte(), buf.readResourceLocation(), buf.readVarInt());
+        }
+    }
 
-        /** 返回此载荷的注册类型。 */
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    /** 账户快照；学习记录与可兑换目录分开保存，避免价格变化丢失学习提示。 */
+    public record SyncPayload(int containerId, long balance, List<PriceEntry> catalog, List<ResourceLocation> learnedIds) {
+        /** 序列化余额和目录，此处无须传输价格的回收权限。 */
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeVarInt(containerId);
+            buf.writeLong(balance);
+            buf.writeVarInt(catalog.size());
+            for (PriceEntry entry : catalog) {
+                buf.writeResourceLocation(entry.id());
+                buf.writeLong(entry.price());
+            }
+            buf.writeVarInt(learnedIds.size());
+            learnedIds.forEach(buf::writeResourceLocation);
+        }
+        /** 解码数量上限与服务端 2048 种学习上限一致。 */
+        public static SyncPayload decode(FriendlyByteBuf buf) {
+            int id = buf.readVarInt();
+            long balance = buf.readLong();
+            int size = readSize(buf, OreConversionSavedData.MAX_LEARNED);
+            List<PriceEntry> catalog = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) catalog.add(new PriceEntry(buf.readResourceLocation(), buf.readLong(), false));
+            int learnedSize = readSize(buf, OreConversionSavedData.MAX_LEARNED);
+            List<ResourceLocation> learned = new ArrayList<>(learnedSize);
+            for (int i = 0; i < learnedSize; i++) learned.add(buf.readResourceLocation());
+            return new SyncPayload(id, balance, catalog, learned);
+        }
     }
 
     /**
-     * 服务端发给客户端的余额、可提取目录和完整学习记录快照。
+     * 全量价格与世界回收开关的分块，同一轮传输使用同一开关值。
      *
-     * @param containerId 对应的菜单 ID
-     * @param balance 玩家 ME 余额
-     * @param catalog 当前可提取的已学习物品价格列表
-     * @param learnedIds 账户中全部已学习物品的 ID，供客户端提示判断
+     * @param first 是否开始一轮新的价格传输
+     * @param last 是否接收完整目录，可发布价格与规则
+     * @param convertAllItems 是否允许有价格的特殊状态物品按基础价回收
+     * @param entries 本块最多 256 条物品价格与回收权限
      */
-    public record SyncPayload(int containerId, long balance, List<PriceEntry> catalog,
-                              List<ResourceLocation> learnedIds) implements CustomPacketPayload {
-        public static final Type<SyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_sync"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, SyncPayload> CODEC = StreamCodec.of(
-                (buf, packet) -> {
-                    buf.writeVarInt(packet.containerId);
-                    buf.writeLong(packet.balance);
-                    buf.writeVarInt(packet.catalog.size());
-                    for (PriceEntry entry : packet.catalog) {
-                        buf.writeResourceLocation(entry.id());
-                        buf.writeLong(entry.price());
-                    }
-                    buf.writeVarInt(packet.learnedIds.size());
-                    for (ResourceLocation id : packet.learnedIds) buf.writeResourceLocation(id);
-                },
-                buf -> {
-                    int id = buf.readVarInt();
-                    long balance = buf.readLong();
-                    int size = buf.readVarInt();
-                    // 限制反序列化列表大小，避免异常载荷造成过量内存分配。
-                    if (size < 0 || size > 2048) throw new IllegalArgumentException("Invalid conversion catalog size");
-                    List<PriceEntry> catalog = new ArrayList<>(size);
-                    for (int i = 0; i < size; i++) catalog.add(new PriceEntry(buf.readResourceLocation(), buf.readLong(), false));
-                    int learnedSize = buf.readVarInt();
-                    // 学习记录最多 2048 条，解码时沿用服务端的数量上限。
-                    if (learnedSize < 0 || learnedSize > 2048) throw new IllegalArgumentException("Invalid learned item count");
-                    List<ResourceLocation> learnedIds = new ArrayList<>(learnedSize);
-                    for (int i = 0; i < learnedSize; i++) learnedIds.add(buf.readResourceLocation());
-                    return new SyncPayload(id, balance, catalog, learnedIds);
-                });
-
-        /** 返回此载荷的注册类型。 */
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    public record PricesPayload(boolean first, boolean last, boolean convertAllItems, List<PriceEntry> entries) {
+        /** 写入分块边界、世界开关及每种物品的价格、回收权限。 */
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeBoolean(first);
+            buf.writeBoolean(last);
+            buf.writeBoolean(convertAllItems);
+            buf.writeVarInt(entries.size());
+            for (PriceEntry entry : entries) {
+                buf.writeResourceLocation(entry.id());
+                buf.writeLong(entry.price());
+                buf.writeBoolean(entry.convertible());
+            }
+        }
+        /** 限制每块最多 256 项，防止异常消息分配过量内存。 */
+        public static PricesPayload decode(FriendlyByteBuf buf) {
+            boolean first = buf.readBoolean();
+            boolean last = buf.readBoolean();
+            boolean convertAllItems = buf.readBoolean();
+            int size = readSize(buf, 256);
+            List<PriceEntry> entries = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) entries.add(new PriceEntry(buf.readResourceLocation(), buf.readLong(), buf.readBoolean()));
+            return new PricesPayload(first, last, convertAllItems, entries);
+        }
     }
 
-    /**
-     * 分块传输的全量物品价格目录。
-     *
-     * @param first 是否为本次传输的首块
-     * @param last 是否为本次传输的末块
-     * @param entries 当前分块中的价格条目
-     */
-    public record PricesPayload(boolean first, boolean last, List<PriceEntry> entries) implements CustomPacketPayload {
-        public static final Type<PricesPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_prices"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, PricesPayload> CODEC = StreamCodec.of(
-                (buf, packet) -> {
-                    buf.writeBoolean(packet.first);
-                    buf.writeBoolean(packet.last);
-                    buf.writeVarInt(packet.entries.size());
-                    for (PriceEntry entry : packet.entries) {
-                        buf.writeResourceLocation(entry.id());
-                        buf.writeLong(entry.price());
-                        buf.writeBoolean(entry.convertible());
-                    }
-                },
-                buf -> {
-                    boolean first = buf.readBoolean();
-                    boolean last = buf.readBoolean();
-                    int size = buf.readVarInt();
-                    // 单个价格载荷最多包含 256 条，匹配服务端分块大小。
-                    if (size < 0 || size > 256) throw new IllegalArgumentException("Invalid conversion price chunk size");
-                    List<PriceEntry> entries = new ArrayList<>(size);
-                    for (int i = 0; i < size; i++) entries.add(new PriceEntry(
-                            buf.readResourceLocation(), buf.readLong(), buf.readBoolean()));
-                    return new PricesPayload(first, last, entries);
-                });
-
-        /** 返回此载荷的注册类型。 */
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    /** 与菜单编号绑定的本地化反馈及金额。 */
+    public record StatusPayload(int containerId, String key, long amount) {
+        /** 提示键最长 32 字符，文字由客户端语言文件提供。 */
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeVarInt(containerId);
+            buf.writeUtf(key, 32);
+            buf.writeLong(amount);
+        }
+        /** 读取菜单反馈。 */
+        public static StatusPayload decode(FriendlyByteBuf buf) {
+            return new StatusPayload(buf.readVarInt(), buf.readUtf(32), buf.readLong());
+        }
     }
 
-    /**
-     * 菜单操作的本地化提示键和相关金额。
-     *
-     * @param containerId 触发提示的菜单 ID
-     * @param key 客户端语言文件中的提示键后缀
-     * @param amount 提示中使用的金额参数
-     */
-    public record StatusPayload(int containerId, String key, long amount) implements CustomPacketPayload {
-        public static final Type<StatusPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_status"));
-        public static final StreamCodec<RegistryFriendlyByteBuf, StatusPayload> CODEC = StreamCodec.of(
-                (buf, packet) -> {
-                    buf.writeVarInt(packet.containerId);
-                    buf.writeUtf(packet.key, 32);
-                    buf.writeLong(packet.amount);
-                },
-                buf -> new StatusPayload(buf.readVarInt(), buf.readUtf(32), buf.readLong()));
-
-        /** 返回此载荷的注册类型。 */
-        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    /** 读取有界集合长度；负数或超过协议容量时拒绝解码。 */
+    private static int readSize(FriendlyByteBuf buf, int maximum) {
+        int size = buf.readVarInt();
+        if (size < 0 || size > maximum) throw new IllegalArgumentException("Invalid packet list size: " + size);
+        return size;
     }
 }

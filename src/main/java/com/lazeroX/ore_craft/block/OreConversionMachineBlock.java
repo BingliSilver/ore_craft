@@ -4,7 +4,6 @@ import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,11 +28,6 @@ import net.minecraft.world.phys.BlockHitResult;
  * 两个等级共用菜单；方块实体独立计时，破坏时只返还真实库存。
  */
 public final class OreConversionMachineBlock extends Block implements EntityBlock {
-    /** 方块属性编解码器，供游戏保存和复制方块状态。 */
-    public static final MapCodec<OreConversionMachineBlock> CODEC = simpleCodec(OreConversionMachineBlock::new);
-    /** 升级版的编解码器，确保重建方块时仍使用快速等级。 */
-    public static final MapCodec<OreConversionMachineBlock> PLUS_CODEC =
-            simpleCodec(properties -> new OreConversionMachineBlock(properties, true));
     /** 菜单标题使用语言文件，客户端和服务端保持一致。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_conversion_machine");
     /** 升级版菜单标题；与普通版使用同一套槽位。 */
@@ -54,9 +48,6 @@ public final class OreConversionMachineBlock extends Block implements EntityBloc
         this.upgraded = upgraded;
     }
 
-    /** 返回此方块的属性编解码器。 */
-    @Override
-    protected MapCodec<? extends Block> codec() { return upgraded ? PLUS_CODEC : CODEC; }
 
     /**
      * 每个放置实例创建独立支付容器、输出和计时状态。
@@ -97,7 +88,7 @@ public final class OreConversionMachineBlock extends Block implements EntityBloc
 
     /** 所有者打开菜单；旧方块缺少归属时由首次打开者认领。 */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof OreConversionMachineBlockEntity machine) {
             machine.claim(player.getUUID());
@@ -105,7 +96,7 @@ public final class OreConversionMachineBlock extends Block implements EntityBloc
                 serverPlayer.sendSystemMessage(Component.translatable("message.ore_craft.machine.not_owner"));
                 return InteractionResult.SUCCESS;
             }
-            serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+            net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
             // 每次打开都刷新学习目录，避免登录早期的同步尚未到达时右侧列表为空。
             if (serverPlayer.containerMenu instanceof OreConversionMachineMenu)
                 OreConversionNetwork.sendState(serverPlayer, -1);
@@ -115,14 +106,14 @@ public final class OreConversionMachineBlock extends Block implements EntityBloc
 
     /** 创建绑定当前方块实体的菜单，关闭时库存留在方块内。 */
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreConversionMachineMenu(id, inventory, pos),
                 upgraded ? PLUS_TITLE : TITLE);
     }
 
     /** 破坏方块时掉落真实库存；选中物品只是目录引用，无需掉落。 */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())
                 && level.getBlockEntity(pos) instanceof OreConversionMachineBlockEntity machine) {
             Containers.dropContents(level, pos, machine.inventory());

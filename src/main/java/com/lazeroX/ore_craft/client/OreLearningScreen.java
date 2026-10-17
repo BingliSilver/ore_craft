@@ -16,6 +16,7 @@ public final class OreLearningScreen extends AbstractOreContainerScreen<OreLearn
     /** 展开书本背景按菜单共用的逻辑尺寸绘制，透明边缘露出游戏场景。 */
     private static final int WIDTH = OreLearningMenu.BOOK_WIDTH;
     private static final int HEIGHT = OreLearningMenu.BOOK_HEIGHT;
+    /** 学习宝典的书页背景资源，在客户端加载纹理时解析。 */
     private static final ResourceLocation BACKGROUND = ResourceLocation.fromNamespaceAndPath(
             "ore_craft", "textures/gui/ore_learning_book.png");
     /** 纸面文字采用深棕墨色，辅助说明使用较浅的棕色。 */

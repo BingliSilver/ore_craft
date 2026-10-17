@@ -6,7 +6,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
@@ -37,7 +40,7 @@ public final class OreExperienceConverterBlockItem extends BlockItem {
      * @param flag 普通或高级物品提示标记
      */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.experience.purpose").withStyle(ChatFormatting.GRAY));
         // 使用分组数字展示精确费用，倍率只增加整轮产量，不改变每点经验的单价。

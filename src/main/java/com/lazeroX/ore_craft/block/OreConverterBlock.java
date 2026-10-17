@@ -4,7 +4,6 @@ import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
-import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -29,15 +28,11 @@ import net.minecraft.world.phys.BlockHitResult;
  * 两个等级使用相同菜单；每个放置实例独立保存原料、容器和进度，挖掉时返还库存。
  */
 public final class OreConverterBlock extends Block implements EntityBlock {
-    /** 方块属性编解码器。 */
-    public static final MapCodec<OreConverterBlock> CODEC = simpleCodec(OreConverterBlock::new);
-    /** 升级版的编解码器，重建时保留方块等级。 */
-    public static final MapCodec<OreConverterBlock> PLUS_CODEC = simpleCodec(properties -> new OreConverterBlock(properties, true));
     /** 打开菜单时显示的标题。 */
     private static final Component TITLE = Component.translatable("container.ore_craft.ore_converter");
     /** 升级版菜单标题；界面布局与普通版共用。 */
     private static final Component PLUS_TITLE = Component.translatable("container.ore_craft.ore_converter_plus");
-    /** 注册时固定的设备等级，决定标题和方块编解码器。 */
+    /** 注册时固定的设备等级，决定菜单标题；处理速度由方块实体读取注册项判断。 */
     private final boolean upgraded;
 
     /** 根据注册器传入的硬度、音效和亮度创建传输接口方块。 */
@@ -51,11 +46,6 @@ public final class OreConverterBlock extends Block implements EntityBlock {
         this.upgraded = upgraded;
     }
 
-    /** 返回方块属性编解码器。 */
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return upgraded ? PLUS_CODEC : CODEC;
-    }
 
     /** 每次放置新方块时创建独立库存和计时状态。 */
     @Override
@@ -86,7 +76,7 @@ public final class OreConverterBlock extends Block implements EntityBlock {
      * 其他玩家不能放入物品，避免其投入物被记入别人的账户。
      */
     @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.InteractionHand hand, BlockHitResult hit) {
         if (player instanceof ServerPlayer serverPlayer
                 && level.getBlockEntity(pos) instanceof OreConverterBlockEntity converter) {
             converter.claim(player.getUUID());
@@ -94,7 +84,7 @@ public final class OreConverterBlock extends Block implements EntityBlock {
                 serverPlayer.sendSystemMessage(Component.translatable("message.ore_craft.converter.not_owner"));
                 return InteractionResult.SUCCESS;
             }
-            serverPlayer.openMenu(state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
+            net.minecraftforge.network.NetworkHooks.openScreen(serverPlayer, state.getMenuProvider(level, pos), data -> data.writeBlockPos(pos));
             // 客户端输入格依赖价格目录显示可放入状态，打开时补发最新配置。
             if (serverPlayer.containerMenu instanceof OreConverterMenu) {
                 OreConversionNetwork.sendPrices(serverPlayer);
@@ -106,14 +96,14 @@ public final class OreConverterBlock extends Block implements EntityBlock {
 
     /** 创建绑定世界库存的菜单；关闭界面不会搬走原料或容器。 */
     @Override
-    protected MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
+    public MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
         return new SimpleMenuProvider((id, inventory, player) -> new OreConverterMenu(id, inventory, pos),
                 upgraded ? PLUS_TITLE : TITLE);
     }
 
     /** 破坏方块时掉落原料和容器，避免旧方块实体吞掉物品。 */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean moved) {
         if (!level.isClientSide() && !state.is(newState.getBlock())
                 && level.getBlockEntity(pos) instanceof OreConverterBlockEntity converter) {
             Containers.dropContents(level, pos, converter.inventory());

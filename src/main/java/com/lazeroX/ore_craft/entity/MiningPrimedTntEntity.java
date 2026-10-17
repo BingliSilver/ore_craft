@@ -3,9 +3,10 @@ package com.lazeroX.ore_craft.entity;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Container;
@@ -17,8 +18,6 @@ import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.GameRules;
@@ -27,7 +26,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.event.EventHooks;
+import net.minecraftforge.event.ForgeEventFactory;
 
 import javax.annotation.Nullable;
 import java.util.ArrayDeque;
@@ -46,6 +45,9 @@ import java.util.Set;
 public class MiningPrimedTntEntity extends PrimedTnt {
     /** NBT 中保存原物品时运等级的键。 */
     private static final String TAG_FORTUNE_LEVEL = "fortune_level";
+    /** 1.20.1 原版 TNT 不同步方块外观，因此为自定义渲染单独同步状态。 */
+    private static final EntityDataAccessor<BlockState> DISPLAY_BLOCK = SynchedEntityData.defineId(
+            MiningPrimedTntEntity.class, EntityDataSerializers.BLOCK_STATE);
 
     /** 寻找额外存储箱子时允许搜索的最大半径。 */
     private static final int STORAGE_SEARCH_RADIUS = 8;
@@ -56,6 +58,25 @@ public class MiningPrimedTntEntity extends PrimedTnt {
 
     /** 原方块物品携带的时运等级；正数表示按该等级计算矿物掉落。 */
     private int fortuneLevel;
+
+    /** 保留父类引信同步，并初始化采矿 TNT 的显示状态。 */
+    @Override
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        entityData.define(DISPLAY_BLOCK, ModBlocks.MINING_TNT_BLOCK.get().defaultBlockState());
+    }
+
+    /** 返回客户端渲染用的采矿 TNT 方块状态。 */
+    public BlockState getBlockState() { return entityData.get(DISPLAY_BLOCK); }
+
+    /** 更新显示状态，Forge 实体跟踪自动同步到附近客户端。 */
+    private void setBlockState(BlockState state) { entityData.set(DISPLAY_BLOCK, state); }
+
+    /** 使用 Forge 的实体生成包，确保客户端按自定义实体类型创建实例。 */
+    @Override
+    public net.minecraft.network.protocol.Packet<net.minecraft.network.protocol.game.ClientGamePacketListener> getAddEntityPacket() {
+        return net.minecraftforge.network.NetworkHooks.getEntitySpawningPacket(this);
+    }
 
     /**
      * 实体注册表使用的构造器。
@@ -133,8 +154,8 @@ public class MiningPrimedTntEntity extends PrimedTnt {
                 Explosion.BlockInteraction.DESTROY
         );
 
-        // 保留 NeoForge 的爆炸开始事件，使其他模组仍可以取消这次爆炸。
-        if (EventHooks.onExplosionStart(serverLevel, explosion)) {
+        // 保留 MinecraftForge 的爆炸开始事件，使其他模组仍可以取消这次爆炸。
+        if (ForgeEventFactory.onExplosionStart(serverLevel, explosion)) {
             return;
         }
 
@@ -177,14 +198,8 @@ public class MiningPrimedTntEntity extends PrimedTnt {
             return ItemStack.EMPTY;
         }
 
-        Holder<Enchantment> fortune = level.registryAccess()
-                .lookupOrThrow(Registries.ENCHANTMENT)
-                .getOrThrow(Enchantments.FORTUNE);
         ItemStack tool = new ItemStack(Items.DIAMOND_PICKAXE);
-        EnchantmentHelper.updateEnchantments(
-                tool,
-                enchantments -> enchantments.set(fortune, fortuneLevel)
-        );
+        tool.enchant(Enchantments.BLOCK_FORTUNE, fortuneLevel);
         return tool;
     }
 
@@ -254,7 +269,7 @@ public class MiningPrimedTntEntity extends PrimedTnt {
 
         ItemStack remaining = incoming.copy();
         for (ItemStack existing : collectedDrops) {
-            if (!ItemStack.isSameItemSameComponents(existing, remaining)
+            if (!ItemStack.isSameItemSameTags(existing, remaining)
                     || existing.getCount() >= existing.getMaxStackSize()) {
                 continue;
             }

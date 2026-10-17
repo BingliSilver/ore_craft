@@ -4,7 +4,6 @@ import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModItems;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
@@ -13,10 +12,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.server.ServerLifecycleHooks;
+import net.minecraftforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -52,8 +50,8 @@ public class EternalEmeraldCoalItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
         if (!level.isClientSide && entity instanceof ServerPlayer player && !player.getUUID().equals(owner(stack))) {
-            // 仅在持有者变化时写入，避免每刻改写物品组件与背包同步数据。
-            CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putUUID(OWNER_KEY, player.getUUID()));
+            // 仅在持有者变化时修改 NBT，避免每刻触发背包同步。
+            stack.getOrCreateTag().putUUID(OWNER_KEY, player.getUUID());
         }
     }
 
@@ -115,14 +113,12 @@ public class EternalEmeraldCoalItem extends Item {
      */
     public ItemStack copyWithoutOwnerForDeposit(ItemStack stack) {
         ItemStack copy = stack.copy();
-        CustomData customData = copy.get(DataComponents.CUSTOM_DATA);
-        if (customData == null) return copy;
-
-        CompoundTag tag = customData.copyTag();
+        CompoundTag tag = copy.getTag();
+        if (tag == null) return copy;
         // 只豁免本物品自动写入的有效 UUID，不清除其他来源的特殊数据。
         if (tag.hasUUID(OWNER_KEY)) {
             tag.remove(OWNER_KEY);
-            CustomData.set(DataComponents.CUSTOM_DATA, copy, tag);
+            if (tag.isEmpty()) copy.setTag(null);
         }
         return copy;
     }
@@ -136,7 +132,7 @@ public class EternalEmeraldCoalItem extends Item {
      * @param flag 提示显示选项
      */
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
         tooltip.add(Component.translatable("tooltip.ore_craft.eternal_emerald_coal.fuel").withStyle(ChatFormatting.GOLD));
         tooltip.add(Component.translatable("tooltip.ore_craft.eternal_emerald_coal.me").withStyle(ChatFormatting.GREEN));
@@ -151,7 +147,7 @@ public class EternalEmeraldCoalItem extends Item {
      */
     @Nullable
     private static UUID owner(ItemStack stack) {
-        CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        return tag.hasUUID(OWNER_KEY) ? tag.getUUID(OWNER_KEY) : null;
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.hasUUID(OWNER_KEY) ? tag.getUUID(OWNER_KEY) : null;
     }
 }

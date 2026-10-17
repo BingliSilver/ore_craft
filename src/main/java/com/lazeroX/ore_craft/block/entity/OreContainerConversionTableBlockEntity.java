@@ -3,7 +3,6 @@ package com.lazeroX.ore_craft.block.entity;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
@@ -18,9 +17,9 @@ import net.minecraft.world.level.block.state.BlockState;
 public final class OreContainerConversionTableBlockEntity extends BlockEntity {
     /** 交易容器在持久库存中的唯一索引。 */
     public static final int CONTAINER_SLOT = 0;
-    /** 存档中保存完整容器物品组件的键名，包括普通容器内的 ME。 */
+    /** 存档中保存完整容器物品 NBT的键名，包括普通容器内的 ME。 */
     private static final String CONTAINER_KEY = "TradeContainer";
-    /** 单槽持久库存；放入、取出和交易写回组件都会标记区块需要保存。 */
+    /** 单槽持久库存；放入、取出和交易写回 NBT都会标记区块需要保存。 */
     private final SimpleContainer inventory = new SimpleContainer(1) {
         /** 把菜单的库存变更传播到方块实体，确保关闭界面后仍能写入世界存档。 */
         @Override
@@ -58,29 +57,27 @@ public final class OreContainerConversionTableBlockEntity extends BlockEntity {
     }
 
     /**
-     * 保存交易容器和它的完整物品组件；空槽不写入物品标签。
+     * 保存交易容器和它的完整物品 NBT；空槽不写入物品标签。
      *
      * @param tag 接收方块实体数据的标签
-     * @param registries 当前世界注册表访问器
      */
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.saveAdditional(tag, registries);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         ItemStack container = inventory.getItem(CONTAINER_SLOT);
-        if (!container.isEmpty()) tag.put(CONTAINER_KEY, container.save(registries));
+        if (!container.isEmpty()) tag.put(CONTAINER_KEY, container.save(new CompoundTag()));
     }
 
     /**
      * 恢复交易容器；旧存档没有此数据时为空，异常类型不进入交易槽。
      *
      * @param tag 从区块读取的方块实体标签
-     * @param registries 当前世界注册表访问器
      */
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
-        super.loadAdditional(tag, registries);
-        ItemStack container = ItemStack.parseOptional(registries, tag.getCompound(CONTAINER_KEY));
-        // 矿质容器只能单件存放；有效物品的全部组件随副本保留，包含交易后的 ME。
+    public void load(CompoundTag tag) {
+        super.load(tag);
+        ItemStack container = ItemStack.of(tag.getCompound(CONTAINER_KEY));
+        // 矿质容器只能单件存放；有效物品的全部 NBT 随副本保留，包含交易后的 ME。
         inventory.setItem(CONTAINER_SLOT, OreMachineEnergy.isContainer(container)
                 ? container.copyWithCount(1) : ItemStack.EMPTY);
     }

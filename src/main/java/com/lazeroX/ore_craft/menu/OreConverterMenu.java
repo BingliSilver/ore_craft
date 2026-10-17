@@ -8,7 +8,7 @@ import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -47,7 +47,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
     private int clientProgress;
 
     /** 从打开菜单时的附加数据读取方块坐标并创建客户端菜单。 */
-    public OreConverterMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreConverterMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
@@ -102,7 +102,7 @@ public final class OreConverterMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         if (!(level.getBlockState(pos).getBlock() instanceof OreConverterBlock)
-                || !player.canInteractWithBlock(pos, 4.0)) return false;
+                || !(player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0)) return false;
         // 所有权只由服务端验证；客户端方块实体没有同步 UUID，不能据此关闭界面。
         if (level.isClientSide()) return true;
         return converter != null && level.getBlockEntity(pos) == converter

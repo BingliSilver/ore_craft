@@ -12,7 +12,6 @@ import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.client.renderer.blockentity.EnchantTableRenderer;
 import net.minecraft.util.Mth;
-import net.minecraft.world.phys.AABB;
 
 /**
  * 使用原版附魔书模型和贴图渲染矿质附魔台上方的动态书本。
@@ -56,15 +55,8 @@ public final class OreEnchantingBookRenderer implements BlockEntityRenderer<OreE
         float open = Mth.lerp(partialTick, entity.previousOpen, entity.open);
         bookModel.setupAnim(animationTime, pageLeft, pageRight, open);
         VertexConsumer vertices = EnchantTableRenderer.BOOK_LOCATION.buffer(buffers, RenderType::entitySolid);
-        bookModel.render(poseStack, vertices, packedLight, packedOverlay, -1);
+        bookModel.render(poseStack, vertices, packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
         poseStack.popPose();
     }
 
-    /** 扩大渲染范围，允许书本漂浮到方块顶部之外。 */
-    @Override
-    public AABB getRenderBoundingBox(OreEnchantingBlockEntity entity) {
-        var pos = entity.getBlockPos();
-        return new AABB(pos.getX(), pos.getY(), pos.getZ(),
-                pos.getX() + 1.0, pos.getY() + 1.5, pos.getZ() + 1.0);
-    }
 }

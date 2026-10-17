@@ -11,41 +11,42 @@ import com.lazeroX.ore_craft.block.OreExperienceConverterBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredBlock;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 /** 集中声明和注册本模组的方块。 */
 public final class ModBlocks {
-    private static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(Ore_craft.MODID);
+    /** 方块注册表的延迟注册器，先于方块物品完成注册。 */
+    private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(net.minecraft.core.registries.Registries.BLOCK, Ore_craft.MODID);
 
     /** 矿质转化桌方块。 */
-    public static final DeferredBlock<OreConversionTableBlock> ORE_CONVERSION_TABLE =
+    public static final RegistryObject<OreConversionTableBlock> ORE_CONVERSION_TABLE =
             BLOCKS.register("ore_conversion_table", () -> new OreConversionTableBlock(
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
 
     /** 矿质转化桌：仅提供一个持久交易容器槽，不提供全局账户充值、提现口。 */
-    public static final DeferredBlock<OreContainerConversionTableBlock> ORE_CONTAINER_CONVERSION_TABLE =
+    public static final RegistryObject<OreContainerConversionTableBlock> ORE_CONTAINER_CONVERSION_TABLE =
             BLOCKS.register("ore_container_conversion_table", () -> new OreContainerConversionTableBlock(
                     BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 8)));
 
     /** 矿质附魔台：可以打开预览界面，暂不承载附魔交易。 */
-    public static final DeferredBlock<OreEnchantingTableBlock> ORE_ENCHANTING_TABLE =
+    public static final RegistryObject<OreEnchantingTableBlock> ORE_ENCHANTING_TABLE =
             BLOCKS.register("ore_enchanting_table", () -> new OreEnchantingTableBlock(
                     BlockBehaviour.Properties.of().strength(5.0F, 1200.0F).requiresCorrectToolForDrops()
                             .sound(SoundType.STONE).noOcclusion().lightLevel(state -> 10)));
 
     /** 可作为高效燃料的绿宝石煤炭块。 */
-    public static final DeferredBlock<Block> EMERALD_COAL_BLOCK =
-            BLOCKS.registerSimpleBlock("emerald_coal_block", BlockBehaviour.Properties.of()
+    public static final RegistryObject<Block> EMERALD_COAL_BLOCK =
+            BLOCKS.register("emerald_coal_block", () -> new Block(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
-                    .sound(SoundType.STONE));
+                    .sound(SoundType.STONE)));
 
     /** 矿质传输接口：每五秒将原料转换成 ME 并存入其矿质容器。 */
-    public static final DeferredBlock<OreConverterBlock> ORE_CONVERTER =
+    public static final RegistryObject<OreConverterBlock> ORE_CONVERTER =
             BLOCKS.register("ore_converter", () -> new OreConverterBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
@@ -53,7 +54,7 @@ public final class ModBlocks {
                     .lightLevel(state -> 10)));
 
     /** 下界合金升级的矿质传输接口：每秒最多处理 32 件原料。 */
-    public static final DeferredBlock<OreConverterBlock> ORE_CONVERTER_PLUS =
+    public static final RegistryObject<OreConverterBlock> ORE_CONVERTER_PLUS =
             BLOCKS.register("ore_converter_plus", () -> new OreConverterBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
@@ -61,7 +62,7 @@ public final class ModBlocks {
                     .lightLevel(state -> 10), true));
 
     /** 矿质转化器：消耗容器 ME，定时生成已学习的指定物品。 */
-    public static final DeferredBlock<OreConversionMachineBlock> ORE_CONVERSION_MACHINE =
+    public static final RegistryObject<OreConversionMachineBlock> ORE_CONVERSION_MACHINE =
             BLOCKS.register("ore_conversion_machine", () -> new OreConversionMachineBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
@@ -69,7 +70,7 @@ public final class ModBlocks {
                     .lightLevel(state -> 10)));
 
     /** 下界合金升级的矿质转化器：每秒最多生成 32 件已学习物品。 */
-    public static final DeferredBlock<OreConversionMachineBlock> ORE_CONVERSION_MACHINE_PLUS =
+    public static final RegistryObject<OreConversionMachineBlock> ORE_CONVERSION_MACHINE_PLUS =
             BLOCKS.register("ore_conversion_machine_plus", () -> new OreConversionMachineBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
@@ -77,7 +78,7 @@ public final class ModBlocks {
                     .lightLevel(state -> 10), true));
 
     /** 默认关闭的矿质经验转化器，按 UI 选择的 x1～x128 档位每秒整批扣费并喷出经验。 */
-    public static final DeferredBlock<OreExperienceConverterBlock> ORE_EXPERIENCE_CONVERTER =
+    public static final RegistryObject<OreExperienceConverterBlock> ORE_EXPERIENCE_CONVERTER =
             BLOCKS.register("ore_experience_converter", () -> new OreExperienceConverterBlock(BlockBehaviour.Properties.of()
                     .strength(5.0F, 6.0F)
                     .requiresCorrectToolForDrops()
@@ -85,11 +86,12 @@ public final class ModBlocks {
                     .lightLevel(state -> state.getValue(OreExperienceConverterBlock.ENABLED) ? 10 : 0)));
 
     /** 点燃后收集爆炸掉落物的采矿 TNT。 */
-    public static final DeferredBlock<MiningTntBlock> MINING_TNT_BLOCK =
+    public static final RegistryObject<MiningTntBlock> MINING_TNT_BLOCK =
             BLOCKS.register("mining_tnt", () -> new MiningTntBlock(
-                    BlockBehaviour.Properties.ofFullCopy(net.minecraft.world.level.block.Blocks.TNT)
+                    BlockBehaviour.Properties.copy(net.minecraft.world.level.block.Blocks.TNT)
             ));
 
+    /** 方块由注册生命周期管理，不创建注册工具类实例。 */
     private ModBlocks() {}
 
     /**

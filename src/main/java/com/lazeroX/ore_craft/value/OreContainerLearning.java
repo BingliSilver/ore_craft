@@ -21,8 +21,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.ChestType;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.items.IItemHandler;
+import net.minecraftforge.common.capabilities.ForgeCapabilities;
+import net.minecraftforge.items.IItemHandler;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,7 +52,7 @@ public final class OreContainerLearning {
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
         // 批量学习不依赖客户端提交的槽位或物品 ID，且仅接受正常方块交互范围。
-        if (!player.canInteractWithBlock(pos, 4.0)) return true;
+        if (!(player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0)) return true;
         BlockState state = level.getBlockState(pos);
         BlockEntity entity = level.getBlockEntity(pos);
         Container container = null;
@@ -106,7 +106,7 @@ public final class OreContainerLearning {
     /**
      * 潜行右键空气时扫描玩家自己的主背包和快捷栏，按容器批量学习规则登记物品类型。
      * 与宝典菜单一致只读取背包 36 格，不扫描防具、副手、鼠标持有物或物品内部库存。
-     * 样本数量、附魔、耐久、ME 等组件均保持原样，仅学习对应物品的默认类型。
+     * 样本数量、附魔、耐久、ME 等数据均保持原样，仅学习对应物品的默认类型。
      *
      * @param player 学习记录所属的服务端玩家，调用方须确认其正在潜行使用宝典
      */
@@ -151,10 +151,12 @@ public final class OreContainerLearning {
     private static List<IItemHandler> itemHandlers(Level level, BlockPos pos) {
         List<IItemHandler> handlers = new ArrayList<>();
         Set<IItemHandler> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        IItemHandler unsided = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, null);
+        BlockEntity entity = level.getBlockEntity(pos);
+        if (entity == null) return handlers;
+        IItemHandler unsided = entity.getCapability(ForgeCapabilities.ITEM_HANDLER).orElse(null);
         if (unsided != null && seen.add(unsided)) handlers.add(unsided);
         for (Direction side : Direction.values()) {
-            IItemHandler handler = level.getCapability(Capabilities.ItemHandler.BLOCK, pos, side);
+            IItemHandler handler = entity.getCapability(ForgeCapabilities.ITEM_HANDLER, side).orElse(null);
             if (handler != null && seen.add(handler)) handlers.add(handler);
         }
         return handlers;
@@ -162,7 +164,7 @@ public final class OreContainerLearning {
 
     /**
      * 按单件学习规则检查默认物品状态，将可学习类型加入去重集合。
-     * 附魔、耐久或容器 ME 等组件不进入学习目录，原栈始终保持原样。
+     * 附魔、耐久或容器 ME 等数据不进入学习目录，原栈始终保持原样。
      *
      * @param sample 库存中的原始样本，只读
      * @param candidates 本次可学习物品的唯一 ID 集合

@@ -14,13 +14,13 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
-import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
-import net.neoforged.neoforge.client.event.RenderTooltipEvent;
-import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.minecraftforge.client.event.RenderTooltipEvent;
+import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 
 import java.util.List;
 import java.util.Locale;
@@ -62,13 +62,18 @@ public final class OreConversionTooltip {
         OreConversionClient.price(stack.getItem()).ifPresent(unit -> {
             event.getToolTip().add(meLine(format(unit), OreConversionClient.isLearned(stack.getItem())));
             boolean convertible = OreConversionClient.canConvert(stack);
-            if (stack.getItem() instanceof OreContainerItem container && convertible) {
+            if (stack.getItem() instanceof OreContainerItem container && convertible && !OreConversionClient.convertAllItems()) {
                 long stored = container.storedMe(stack);
                 // 本体价格仍单独显示；有存储量时补充实际回收总额，避免误认为内部 ME 会丢失。
                 if (stored > 0 && unit <= Long.MAX_VALUE - stored) {
                     event.getToolTip().add(Component.translatable("tooltip.ore_craft.ore_container.recycle_total",
                             format(unit + stored)).withStyle(style -> style.withColor(0xA9A6B0)));
                 }
+            }
+            if (convertible && OreConversionClient.convertAllItems()) {
+                // 开启时所有输入都只按本体价格结算，避免将容器内容或特殊状态误认为额外 ME。
+                event.getToolTip().add(Component.translatable("tooltip.ore_craft.conversion.base_only")
+                        .withStyle(style -> style.withColor(0xA9A6B0)));
             }
             if (convertible) {
                 event.getToolTip().add(Component.translatable("tooltip.ore_craft.conversion.convertible")
@@ -78,7 +83,6 @@ public final class OreConversionTooltip {
     }
 
     /** 注册 ME 单价与末影容器账户余额共用的客户端绘制器。 */
-    @SubscribeEvent
     public static void registerTooltipComponent(RegisterClientTooltipComponentFactoriesEvent event) {
         event.register(MeValueComponent.class,
                 value -> new MeValueClientComponent(value.value(), value.learned(), value.account()));

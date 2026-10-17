@@ -8,9 +8,9 @@ import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 /** 集中注册需要逐帧渲染或保存状态的方块实体类型。 */
 public final class ModBlockEntities {
@@ -19,29 +19,29 @@ public final class ModBlockEntities {
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Ore_craft.MODID);
 
     /** 仅基础矿质转化桌保存交易槽，矿质转化桌+继续不创建方块实体。 */
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreContainerConversionTableBlockEntity>> ORE_CONTAINER_CONVERSION_TABLE =
+    public static final RegistryObject<BlockEntityType<OreContainerConversionTableBlockEntity>> ORE_CONTAINER_CONVERSION_TABLE =
             BLOCK_ENTITY_TYPES.register("ore_container_conversion_table", () -> BlockEntityType.Builder.of(
                     OreContainerConversionTableBlockEntity::new, ModBlocks.ORE_CONTAINER_CONVERSION_TABLE.get()).build(null));
 
     /** 矿质附魔台的书本动画状态，不保存附魔输入物品。 */
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreEnchantingBlockEntity>> ORE_ENCHANTING_TABLE =
+    public static final RegistryObject<BlockEntityType<OreEnchantingBlockEntity>> ORE_ENCHANTING_TABLE =
             BLOCK_ENTITY_TYPES.register("ore_enchanting_table", () -> BlockEntityType.Builder.of(
                     OreEnchantingBlockEntity::new, ModBlocks.ORE_ENCHANTING_TABLE.get()).build(null));
 
     /** 普通版与升级版传输接口共用库存和归属类型，处理速度由方块等级决定。 */
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConverterBlockEntity>> ORE_CONVERTER =
+    public static final RegistryObject<BlockEntityType<OreConverterBlockEntity>> ORE_CONVERTER =
             BLOCK_ENTITY_TYPES.register("ore_converter", () -> BlockEntityType.Builder.of(
                     OreConverterBlockEntity::new, ModBlocks.ORE_CONVERTER.get(),
                     ModBlocks.ORE_CONVERTER_PLUS.get()).build(null));
 
     /** 普通版与升级版转化器共用支付容器、产物、选择和进度类型。 */
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreConversionMachineBlockEntity>> ORE_CONVERSION_MACHINE =
+    public static final RegistryObject<BlockEntityType<OreConversionMachineBlockEntity>> ORE_CONVERSION_MACHINE =
             BLOCK_ENTITY_TYPES.register("ore_conversion_machine", () -> BlockEntityType.Builder.of(
                     OreConversionMachineBlockEntity::new, ModBlocks.ORE_CONVERSION_MACHINE.get(),
                     ModBlocks.ORE_CONVERSION_MACHINE_PLUS.get()).build(null));
 
     /** 经验转化器保存单个供能容器、固定账户归属和生产轮次。 */
-    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreExperienceConverterBlockEntity>> ORE_EXPERIENCE_CONVERTER =
+    public static final RegistryObject<BlockEntityType<OreExperienceConverterBlockEntity>> ORE_EXPERIENCE_CONVERTER =
             BLOCK_ENTITY_TYPES.register("ore_experience_converter", () -> BlockEntityType.Builder.of(
                     OreExperienceConverterBlockEntity::new, ModBlocks.ORE_EXPERIENCE_CONVERTER.get()).build(null));
 

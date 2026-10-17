@@ -9,7 +9,7 @@ import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -50,7 +50,7 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
     private int clientProgress;
 
     /** 从打开菜单时的附加数据读取方块坐标。 */
-    public OreConversionMachineMenu(int id, Inventory inventory, RegistryFriendlyByteBuf extra) {
+    public OreConversionMachineMenu(int id, Inventory inventory, FriendlyByteBuf extra) {
         this(id, inventory, extra.readBlockPos());
     }
 
@@ -106,7 +106,7 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
     @Override
     public boolean stillValid(Player player) {
         if (!(level.getBlockState(pos).getBlock() instanceof OreConversionMachineBlock)
-                || !player.canInteractWithBlock(pos, 4.0)) return false;
+                || !(player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0)) return false;
         if (level.isClientSide()) return true;
         return machine != null && level.getBlockEntity(pos) == machine
                 && player.getUUID().equals(machine.owner());
