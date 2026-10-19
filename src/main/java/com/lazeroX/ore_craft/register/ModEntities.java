@@ -2,6 +2,8 @@ package com.lazeroX.ore_craft.register;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.entity.MiningPrimedTntEntity;
+import com.lazeroX.ore_craft.entity.SoulBodyEntity;
+import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
@@ -25,6 +27,17 @@ public final class ModEntities {
                     .updateInterval(10)
                     .build(Ore_craft.MODID + ":mining_tnt"));
 
+    /** 出窍期间的临时身体：使用玩家体型、不保存到区块，装备与皮肤由服务端同步。 */
+    public static final RegistryObject<EntityType<SoulBodyEntity>> SOUL_BODY =
+            ENTITY_TYPES.register("soul_body", () -> EntityType.Builder
+                    .<SoulBodyEntity>of(SoulBodyEntity::new, MobCategory.MISC)
+                    .sized(0.6F, 1.8F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .noSave()
+                    .noSummon()
+                    .build(Ore_craft.MODID + ":soul_body"));
+
     /** 实体类型由注册生命周期管理，不创建工具类实例。 */
     private ModEntities() {}
 
@@ -35,5 +48,11 @@ public final class ModEntities {
      */
     public static void register(IEventBus modEventBus) {
         ENTITY_TYPES.register(modEventBus);
+        modEventBus.addListener(ModEntities::registerAttributes);
+    }
+
+    /** @param event 模组生物属性创建事件，身体必须具备生命和防御属性才能安全生成 */
+    private static void registerAttributes(EntityAttributeCreationEvent event) {
+        event.put(SOUL_BODY.get(), SoulBodyEntity.createAttributes().build());
     }
 }

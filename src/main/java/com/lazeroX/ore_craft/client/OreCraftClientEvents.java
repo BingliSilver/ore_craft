@@ -11,6 +11,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 
 /**
  * 只在物理客户端加载的模组初始化事件。
@@ -22,13 +23,14 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册采矿 TNT 实体和矿质附魔书方块实体的渲染器。
+     * 注册采矿 TNT、灵魂身体实体以及矿质附魔书方块实体的渲染器。
      *
      * @param event MinecraftForge 实体渲染器注册事件
      */
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
+        event.registerEntityRenderer(ModEntities.SOUL_BODY.get(), SoulBodyRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
@@ -59,5 +61,12 @@ public final class OreCraftClientEvents {
     @SubscribeEvent
     public static void registerTooltips(RegisterClientTooltipComponentFactoriesEvent event) {
         OreConversionTooltip.registerTooltipComponent(event);
+    }
+
+    /** @param event HUD 注册事件；倒计时在旁观者物品栏上方独立绘制，不依赖生存模式热键栏 */
+    @SubscribeEvent
+    public static void registerOverlays(RegisterGuiOverlaysEvent event) {
+        event.registerAboveAll("soul_return_countdown", (gui, graphics, partialTick, width, height) ->
+                SoulSeparationClient.renderCountdown(graphics, width, height));
     }
 }

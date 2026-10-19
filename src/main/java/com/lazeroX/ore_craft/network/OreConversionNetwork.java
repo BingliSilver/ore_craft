@@ -33,8 +33,8 @@ public final class OreConversionNetwork {
     /** 机器选定产物的操作编号。 */
     public static final int SELECT_MACHINE_ITEM = 3;
     /** 双端必须使用相同协议，避免不同载荷格式被误读。 */
-    private static final String PROTOCOL = "1.20.1-2";
-    /** 所有菜单共享通道；消息编号 0 至 3 为转化，4 为附魔。 */
+    private static final String PROTOCOL = "1.20.1-3";
+    /** 共享通道：0 至 3 为转化，4 为附魔，5 至 6 为灵魂出窍；新增载荷同步升级协议。 */
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "main"),
             () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);

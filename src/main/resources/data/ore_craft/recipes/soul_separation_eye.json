@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "CAC",
+    "BXB",
+    "CAC"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:rotten_flesh"
+    },
+    "B": {
+      "item": "minecraft:bone"
+    },
+    "X": {
+      "item": "minecraft:diamond"
+    },
+    "C": {
+      "item": "minecraft:spider_eye"
+    }
+  },
+  "result": {
+    "item": "ore_craft:soul_separation_eye",
+    "count": 1
+  }
+}

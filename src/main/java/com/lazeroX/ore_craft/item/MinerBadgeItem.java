@@ -65,8 +65,10 @@ public class MinerBadgeItem extends Item {
     @Override
     public void inventoryTick(ItemStack stack, Level level, Entity entity, int slotId, boolean isSelected) {
         // 只在服务端整秒刻执行，并让玩家物品栏中的第一个徽章负责本轮修复。
+        // 旁观/灵魂状态不执行被动修复，避免与出窍身体上的装备耐久副本相互覆盖。
         if (level.isClientSide()
                 || !(entity instanceof Player player)
+                || player.isSpectator()
                 || level.getGameTime() % REPAIR_INTERVAL_TICKS != 0
                 || !isFirstBadge(player, stack)) {
             return;

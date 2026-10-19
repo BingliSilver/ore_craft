@@ -15,6 +15,7 @@ import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.OreExperienceConverterBlockItem;
 import com.lazeroX.ore_craft.item.OreLearningBookItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
+import com.lazeroX.ore_craft.item.SoulSeparationEyeItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -105,6 +106,10 @@ public final class ModItems {
     /** 按默认 ME 等值转换原料的合成催化剂；不可堆叠，合成后原样返还。 */
     public static final RegistryObject<ItemSynthesisCoreItem> ITEM_SYNTHESIS_CORE =
             ITEMS.register("item_synthesis_core", () -> new ItemSynthesisCoreItem(new Item.Properties()));
+
+    /** 魂离之眼：消耗背包容器 4096 ME 出窍 30 秒，身体承伤，右键可提前回归。 */
+    public static final RegistryObject<SoulSeparationEyeItem> SOUL_SEPARATION_EYE =
+            ITEMS.register("soul_separation_eye", () -> new SoulSeparationEyeItem(new Item.Properties()));
 
     /** 矿质时间权杖：右键设置倍率和时长，主手潜行右键为目标方块付费加速。 */
     public static final RegistryObject<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =

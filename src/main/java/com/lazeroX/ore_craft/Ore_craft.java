@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.event.OreExperienceConverterInteraction;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
+import com.lazeroX.ore_craft.network.SoulSeparationNetwork;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModCapabilities;
@@ -61,6 +62,7 @@ public class Ore_craft {
 
         modEventBus.addListener(OreConversionNetwork::register);
         modEventBus.addListener(OreEnchantingNetwork::register);
+        modEventBus.addListener(SoulSeparationNetwork::register);
         modEventBus.addListener((RegisterGameTestsEvent event) -> event.register(OreConversionGameTests.class));
         MinecraftForge.EVENT_BUS.addListener(OreConversionPrices::registerReloadListener);
         MinecraftForge.EVENT_BUS.addListener(OreConversionPrices::onServerStarted);
