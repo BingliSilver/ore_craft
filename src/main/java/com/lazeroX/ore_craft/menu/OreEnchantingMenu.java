@@ -160,7 +160,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         return !stack.isEmpty() && (isBookTarget(stack) || stack.getEnchantmentValue() > 0 || stack.isEnchanted());
     }
 
-    /** 普通书和附魔书都允许记录任意已注册附魔。 */
+    /** 普通书和附魔书均可作为目标；铁砧专用附魔仍由共享等级规则阻止新赋予。 */
     private static boolean isBookTarget(ItemStack stack) {
         return stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK);
     }
@@ -253,7 +253,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         var found = lookup.getOptional(enchantmentId);
         if (found.isEmpty()) return;
         int currentLevel = EnchantmentHelper.getEnchantments(target()).getOrDefault(found.get(), 0);
-        // 同时验证界面请求和伪造载荷，不能借神化提高的定义上限制造超限附魔。
+        // 同时验证界面请求和伪造载荷，阻止超限等级及只能由铁砧获取的末影容器附魔。
         if (!EnchantLevelLimits.canSelectLevel(found.get(), currentLevel, requestedLevel)) return;
         // 恢复原等级时删除变更记录，避免空操作产生可复制的结果预览。
         if (requestedLevel == currentLevel) selectedLevels.remove(enchantmentId);
@@ -320,7 +320,8 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
             Enchantment enchantment = found.get();
             int selectedLevel = choice.getValue();
             int currentLevel = current.getOrDefault(enchantment, 0);
-            // 领取前再次验证制作上限，但保留真实原等级用于计算超限附魔的回收价值。
+            // 领取前再次验证上限与专用附魔获取限制，普通书也不能绕过末影容器的铁砧配方。
+            // 真实原等级仍用于计算已有附魔的移除和回收价值。
             if (!EnchantLevelLimits.canSelectLevel(enchantment, currentLevel, selectedLevel)
                     || selectedLevel == currentLevel || effective.getOrDefault(enchantment, 0) > currentLevel) return null;
             if (selectedLevel > currentLevel && !isBookTarget(target)

@@ -18,7 +18,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * 魂离之眼：一次支付背包矿质容器中的 ME，开启限时灵魂出窍。
+ * 魂离之眼：一次支付 4096 ME，开启限时灵魂出窍。
+ * 携带末影容器或穿戴末影容器附魔盔甲时使用全局账户，否则使用背包普通容器。
  * 物品注册实例不持有玩家状态；计时、身体和回归均由服务端 SoulSeparation 管理。
  */
 public final class SoulSeparationEyeItem extends Item {
@@ -67,6 +68,5 @@ public final class SoulSeparationEyeItem extends Item {
         tooltip.add(Component.translatable("tooltip.ore_craft.soul_eye.flight").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.ore_craft.soul_eye.body").withStyle(ChatFormatting.RED));
         tooltip.add(Component.translatable("tooltip.ore_craft.soul_eye.return").withStyle(ChatFormatting.LIGHT_PURPLE));
-        tooltip.add(Component.translatable("tooltip.ore_craft.soul_eye.energy").withStyle(ChatFormatting.DARK_GRAY));
     }
 }

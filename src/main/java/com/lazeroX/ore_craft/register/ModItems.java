@@ -96,7 +96,8 @@ public final class ModItems {
                     new RadiantDiamondHeartItem(new Item.Properties().durability(6)));
 
     /**
-     * 不可堆叠的矿质照明核心：背包中携带时自动照明，右键用矿质容器中的 ME 制造火把。
+     * 不可堆叠的矿质照明核心：背包中携带时自动照明，右键支付 ME 制造火把。
+     * 携带末影容器或穿戴末影容器附魔盔甲时使用全局账户，否则由普通容器供能。
      * 每件核心单独保存自动照明开关；同一玩家携带多件时不会重复放置。
      */
     public static final RegistryObject<MineralIlluminationCoreItem> MINERAL_ILLUMINATION_CORE =
@@ -107,7 +108,7 @@ public final class ModItems {
     public static final RegistryObject<ItemSynthesisCoreItem> ITEM_SYNTHESIS_CORE =
             ITEMS.register("item_synthesis_core", () -> new ItemSynthesisCoreItem(new Item.Properties()));
 
-    /** 魂离之眼：消耗背包容器 4096 ME 出窍 30 秒，身体承伤，右键可提前回归。 */
+    /** 魂离之眼：由普通容器或已接通的全局账户支付 4096 ME 出窍 30 秒，身体承伤，右键回归。 */
     public static final RegistryObject<SoulSeparationEyeItem> SOUL_SEPARATION_EYE =
             ITEMS.register("soul_separation_eye", () -> new SoulSeparationEyeItem(new Item.Properties()));
 

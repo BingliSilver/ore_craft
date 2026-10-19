@@ -50,7 +50,7 @@ public final class ItemSynthesisCoreItem extends Item {
     }
 
     /**
-     * 展示等价转换用途、原料摆放方式及核心返还规则。
+     * 展示核心可重复使用、无耐久损耗及不额外扣除 ME 的说明。
      *
      * @param stack 当前悬停的核心物品栈
      * @param context 客户端世界，某些物品预览场景下可为空
@@ -60,9 +60,6 @@ public final class ItemSynthesisCoreItem extends Item {
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.translatable("tooltip.ore_craft.item_synthesis_core.purpose").withStyle(ChatFormatting.AQUA));
-        // 无序配方中每份原料占一个格子；同一格堆叠多件不能代替多个原料格。
-        tooltip.add(Component.translatable("tooltip.ore_craft.item_synthesis_core.layout").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.ore_craft.item_synthesis_core.reusable").withStyle(ChatFormatting.GREEN));
     }
 }

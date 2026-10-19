@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.item;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
+import com.lazeroX.ore_craft.value.EnderContainerAccess;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,7 +38,8 @@ import java.util.WeakHashMap;
  * 以玩家随身矿质容器为能源的照明核心，提供移动时自动放火把及手动制造火把的能力。
  *
  * <p>每件核心默认开启自动照明，潜行右键切换的状态随物品保存。所有扣费、放置和物品
- * 发放只在服务端执行；末影容器存在时只使用全局账户，否则合并扣除普通容器内的 ME。
+ * 发放只在服务端执行；携带末影容器或穿戴末影容器附魔盔甲时只使用全局账户，
+ * 否则合并扣除普通容器内的 ME。
  * 玩家移动跨入新方块且有效光照低于 8 时，尝试在脚下或水平相邻位置放置一根普通火把。
  * 手动制造的火把优先放入背包，放不下的部分掉落到玩家身边，并使用相同的成功提示。</p>
  */
@@ -74,7 +76,7 @@ public final class MineralIlluminationCoreItem extends Item {
     }
 
     /**
-     * 显示持久化开关、触发阈值、操作方式以及供能优先级。
+     * 显示持久化开关、触发阈值以及手动和自动照明的操作方式。
      *
      * @param stack 当前核心
      * @param context 提示上下文
@@ -92,7 +94,6 @@ public final class MineralIlluminationCoreItem extends Item {
         tooltip.add(Component.translatable("tooltip.ore_craft.illumination.toggle").withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("tooltip.ore_craft.illumination.create", TORCH_BATCH_SIZE)
                 .withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("tooltip.ore_craft.illumination.energy").withStyle(ChatFormatting.DARK_GRAY));
     }
 
     /**
@@ -243,19 +244,17 @@ public final class MineralIlluminationCoreItem extends Item {
     /**
      * 先验证余额再一次性扣款，普通容器不足时不会留下部分扣费。
      *
-     * @param player 支付者，容器必须位于其随身背包或副手等 Inventory 槽位
+     * @param player 支付者，需携带容器或正确穿戴末影容器附魔盔甲
      * @param cost 正数费用
      * @return 可完成或退款的付款记录；无容器或余额不足时返回 null
      */
     private static EnergyPayment withdraw(ServerPlayer player, long cost) {
         if (cost <= 0) return null;
         Inventory inventory = player.getInventory();
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            if (inventory.getItem(slot).getItem() instanceof EnderOreContainerItem) {
-                // 有末影容器时只消费全局 ME，余额不足也不混用普通容器。
-                return OreConversionSavedData.get(player).debit(player, cost)
-                        ? new EnergyPayment(player, cost, true, List.of()) : null;
-            }
+        if (EnderContainerAccess.hasAccess(player)) {
+            // 穿戴附魔盔甲与携带实体末影容器等效，余额不足时也不混用普通容器。
+            return OreConversionSavedData.get(player).debit(player, cost)
+                    ? new EnergyPayment(player, cost, true, List.of()) : null;
         }
 
         long remaining = cost;

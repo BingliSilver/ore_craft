@@ -13,6 +13,7 @@ import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModCapabilities;
 import com.lazeroX.ore_craft.register.ModCreativeTabs;
 import com.lazeroX.ore_craft.register.ModEffects;
+import com.lazeroX.ore_craft.register.ModEnchantments;
 import com.lazeroX.ore_craft.register.ModEntities;
 import com.lazeroX.ore_craft.register.ModItems;
 import com.lazeroX.ore_craft.register.ModMenus;
@@ -49,6 +50,7 @@ public class Ore_craft {
         ModBlocks.register(modEventBus);
         ModBlockEntities.register(modEventBus);
         ModItems.register(modEventBus);
+        ModEnchantments.register(modEventBus);
         ModEffects.register(modEventBus);
         ModPotions.register(modEventBus);
         ModEntities.register(modEventBus);

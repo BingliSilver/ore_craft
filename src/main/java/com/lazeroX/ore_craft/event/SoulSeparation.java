@@ -2,13 +2,13 @@ package com.lazeroX.ore_craft.event;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.entity.SoulBodyEntity;
-import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.SoulSeparationNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModEntities;
 import com.lazeroX.ore_craft.register.ModItems;
+import com.lazeroX.ore_craft.value.EnderContainerAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -57,7 +57,7 @@ import java.util.UUID;
  */
 @Mod.EventBusSubscriber(modid = Ore_craft.MODID)
 public final class SoulSeparation {
-    /** 每次出窍的一次性费用，单位 ME，创造模式也需要供能容器。 */
+    /** 每次出窍的一次性费用，单位 ME；创造模式也需要供能容器或末影容器附魔盔甲。 */
     public static final long COST = 4_096L;
     /** 持续 30 秒，即正常 20 TPS 下的 600 个游戏刻。 */
     public static final int DURATION_TICKS = 600;
@@ -347,17 +347,16 @@ public final class SoulSeparation {
     }
 
     /**
-     * 预检后一次性支付固定费用：末影容器独占全局账户通道，否则按背包顺序合并普通容器。
-     * @param player 付款人，需要实际携带至少一个供能容器
+     * 预检后一次性支付固定费用：实体末影容器或附魔盔甲接通全局账户，否则合并普通容器。
+     * @param player 付款人，需要携带供能容器或穿戴末影容器附魔盔甲
      * @return 可完成或回滚的支付记录，余额不足返回 null 且不扣费
      */
     private static Payment withdraw(ServerPlayer player) {
         Inventory inventory = player.getInventory();
-        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
-            if (inventory.getItem(slot).getItem() instanceof EnderOreContainerItem) {
-                return OreConversionSavedData.get(player).debit(player, COST)
-                        ? new Payment(player, true, List.of()) : null;
-            }
+        if (EnderContainerAccess.hasAccess(player)) {
+            // 全局接入优先级保持一致：附魔装备只替代容器携带条件，不增加余额或降低费用。
+            return OreConversionSavedData.get(player).debit(player, COST)
+                    ? new Payment(player, true, List.of()) : null;
         }
         long remaining = COST;
         List<Charge> charges = new ArrayList<>();
