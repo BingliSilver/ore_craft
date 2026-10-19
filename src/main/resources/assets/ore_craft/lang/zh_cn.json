@@ -1,4 +1,8 @@
 {
+  "item.ore_craft.item_synthesis_core": "物品合成核心",
+  "tooltip.ore_craft.item_synthesis_core.purpose": "按默认 ME 等值转换：铜→铁→金→钻石，木炭→煤炭。",
+  "tooltip.ore_craft.item_synthesis_core.layout": "无序合成：核心加足量原料，每份原料各占一格。",
+  "tooltip.ore_craft.item_synthesis_core.reusable": "核心不消耗、无耐久损耗，不额外扣除 ME。",
   "block.ore_craft.ore_experience_converter": "矿质经验转化器",
   "container.ore_craft.ore_experience_converter": "矿质经验转化器",
   "tooltip.ore_craft.experience.purpose": "放入矿质容器，将 ME 转化为经验球。",
@@ -174,7 +178,6 @@
   "tooltip.ore_craft.conversion.learned": " (已学习)",
   "tooltip.ore_craft.conversion.affordable": "当前 ME 可兑换：%s 个",
   "tooltip.ore_craft.conversion.convertible": "可转换ME",
-  "tooltip.ore_craft.conversion.base_only": "回收仅计基础价，附魔和容器内容不额外计价",
   "item.ore_craft.copper_ore_container": "铜质矿质容器",
   "item.ore_craft.iron_ore_container": "铁质矿质容器",
   "item.ore_craft.gold_ore_container": "金质矿质容器",

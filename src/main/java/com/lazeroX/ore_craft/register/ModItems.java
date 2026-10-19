@@ -6,6 +6,7 @@ import com.lazeroX.ore_craft.item.EmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
+import com.lazeroX.ore_craft.item.ItemSynthesisCoreItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
 import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
@@ -100,6 +101,10 @@ public final class ModItems {
     public static final RegistryObject<MineralIlluminationCoreItem> MINERAL_ILLUMINATION_CORE =
             ITEMS.register("mineral_illumination_core", () ->
                     new MineralIlluminationCoreItem(new Item.Properties().stacksTo(1)));
+
+    /** 按默认 ME 等值转换原料的合成催化剂；不可堆叠，合成后原样返还。 */
+    public static final RegistryObject<ItemSynthesisCoreItem> ITEM_SYNTHESIS_CORE =
+            ITEMS.register("item_synthesis_core", () -> new ItemSynthesisCoreItem(new Item.Properties()));
 
     /** 矿质时间权杖：右键设置倍率和时长，主手潜行右键为目标方块付费加速。 */
     public static final RegistryObject<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =

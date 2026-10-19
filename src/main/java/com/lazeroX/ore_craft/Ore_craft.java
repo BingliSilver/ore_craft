@@ -42,7 +42,7 @@ public class Ore_craft {
      * @param context Forge 在模组构造阶段注入的加载上下文，用于取得本模组的事件总线
      */
     public Ore_craft(FMLJavaModLoadingContext context) {
-        // Forge 47.4.28 支持注入加载上下文，避免依赖已弃用的静态 get() 入口。
+        // 最低支持的 Forge 47.4.0 已支持注入加载上下文，避免依赖已弃用的静态 get() 入口。
         IEventBus modEventBus = context.getModEventBus();
         // 方块物品依赖方块注册项，先初始化方块再初始化物品。
         ModBlocks.register(modEventBus);

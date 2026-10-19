@@ -1,4 +1,8 @@
 {
+  "item.ore_craft.item_synthesis_core": "Item Synthesis Core",
+  "tooltip.ore_craft.item_synthesis_core.purpose": "Default ME equivalence: copper → iron → gold → diamond; charcoal → coal.",
+  "tooltip.ore_craft.item_synthesis_core.layout": "Shapeless crafting: core + required materials, one ingredient per slot.",
+  "tooltip.ore_craft.item_synthesis_core.reusable": "Reusable, no durability loss or extra ME cost.",
   "block.ore_craft.ore_experience_converter": "Mineral Experience Converter",
   "container.ore_craft.ore_experience_converter": "Mineral Experience Converter",
   "tooltip.ore_craft.experience.purpose": "Insert a mineral container to convert ME into experience orbs.",
@@ -174,7 +178,6 @@
   "tooltip.ore_craft.conversion.learned": " (Learned)",
   "tooltip.ore_craft.conversion.affordable": "Can afford: %s",
   "tooltip.ore_craft.conversion.convertible": "Convertible to ME",
-  "tooltip.ore_craft.conversion.base_only": "Base value only; enchantments and container contents add no ME",
   "item.ore_craft.copper_ore_container": "Copper Ore Container",
   "item.ore_craft.iron_ore_container": "Iron Ore Container",
   "item.ore_craft.gold_ore_container": "Gold Ore Container",

@@ -60,6 +60,7 @@ public final class OreConversionTooltip {
             return;
         }
         OreConversionClient.price(stack.getItem()).ifPresent(unit -> {
+            // 所有回收模式共用标准 ME 行，提示层不额外追加基础价结算说明。
             event.getToolTip().add(meLine(format(unit), OreConversionClient.isLearned(stack.getItem())));
             boolean convertible = OreConversionClient.canConvert(stack);
             if (stack.getItem() instanceof OreContainerItem container && convertible && !OreConversionClient.convertAllItems()) {
@@ -69,11 +70,6 @@ public final class OreConversionTooltip {
                     event.getToolTip().add(Component.translatable("tooltip.ore_craft.ore_container.recycle_total",
                             format(unit + stored)).withStyle(style -> style.withColor(0xA9A6B0)));
                 }
-            }
-            if (convertible && OreConversionClient.convertAllItems()) {
-                // 开启时所有输入都只按本体价格结算，避免将容器内容或特殊状态误认为额外 ME。
-                event.getToolTip().add(Component.translatable("tooltip.ore_craft.conversion.base_only")
-                        .withStyle(style -> style.withColor(0xA9A6B0)));
             }
             if (convertible) {
                 event.getToolTip().add(Component.translatable("tooltip.ore_craft.conversion.convertible")
