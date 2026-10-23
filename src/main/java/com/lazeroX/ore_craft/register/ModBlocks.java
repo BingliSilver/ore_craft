@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.block.MiningTntBlock;
 import com.lazeroX.ore_craft.block.OreConversionTableBlock;
+import com.lazeroX.ore_craft.block.OreCraftingTableBlock;
 import com.lazeroX.ore_craft.block.OreContainerConversionTableBlock;
 import com.lazeroX.ore_craft.block.OreConversionMachineBlock;
 import com.lazeroX.ore_craft.block.OreEnchantingTableBlock;
@@ -19,6 +20,18 @@ import net.minecraftforge.registries.DeferredRegister;
 public final class ModBlocks {
     /** 方块注册表的延迟注册器，先于方块物品完成注册。 */
     private static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(net.minecraft.core.registries.Registries.BLOCK, Ore_craft.MODID);
+
+    /** 基础矿质合成台：通过持久槽内的矿质容器支付转化及补料费用。 */
+    public static final RegistryObject<OreCraftingTableBlock> ORE_CRAFTING_TABLE =
+            BLOCKS.register("ore_crafting_table", () -> new OreCraftingTableBlock(
+                    BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
+                            .sound(SoundType.STONE).lightLevel(state -> 8), false));
+
+    /** 矿质合成台+：保留账户充提口，合成缺料时直接从个人 ME 账户支付。 */
+    public static final RegistryObject<OreCraftingTableBlock> ORE_CRAFTING_TABLE_PLUS =
+            BLOCKS.register("ore_crafting_table_plus", () -> new OreCraftingTableBlock(
+                    BlockBehaviour.Properties.of().strength(3.5F).requiresCorrectToolForDrops()
+                            .sound(SoundType.STONE).lightLevel(state -> 8), true));
 
     /** 矿质转化桌方块。 */
     public static final RegistryObject<OreConversionTableBlock> ORE_CONVERSION_TABLE =

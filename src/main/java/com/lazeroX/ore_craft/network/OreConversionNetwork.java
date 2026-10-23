@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.client.OreConversionClient;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
+import com.lazeroX.ore_craft.menu.OreCraftingMenu;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -33,8 +34,8 @@ public final class OreConversionNetwork {
     /** 机器选定产物的操作编号。 */
     public static final int SELECT_MACHINE_ITEM = 3;
     /** 双端必须使用相同协议，避免不同载荷格式被误读。 */
-    private static final String PROTOCOL = "1.20.1-3";
-    /** 共享通道：0 至 3 为转化，4 为附魔，5 至 6 为灵魂出窍；新增载荷同步升级协议。 */
+    private static final String PROTOCOL = "1.20.1-4";
+    /** 共享通道：0 至 3 为转化，4 为附魔，5 至 6 为灵魂出窍，7 为合成配方填充。 */
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "main"),
             () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
@@ -71,6 +72,16 @@ public final class OreConversionNetwork {
         CHANNEL.messageBuilder(StatusPayload.class, 3, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(StatusPayload::encode).decoder(StatusPayload::decode)
                 .consumerMainThread((packet, context) -> OreConversionClient.receiveStatus(packet)).add();
+        // 客户端只提交配方 ID 和批量意图；价格、原料和实际库存全部由服务端重新读取。
+        CHANNEL.messageBuilder(CraftingPayload.class, 7, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(CraftingPayload::encode).decoder(CraftingPayload::decode)
+                .consumerMainThread((packet, context) -> {
+                    ServerPlayer player = context.get().getSender();
+                    if (player != null && player.containerMenu instanceof OreCraftingMenu menu
+                            && menu.containerId == packet.containerId()) {
+                        menu.transferRecipe(player, packet.recipeId(), packet.maximum());
+                    }
+                }).add();
     }
 
     /** 客户端提交操作，服务器会重新校验参数与库存。 */
@@ -142,6 +153,28 @@ public final class OreConversionNetwork {
 
     /** 单条价格；id 为注册 ID，price 为 ME 单价，convertible 表示能否回收。 */
     public record PriceEntry(ResourceLocation id, long price, boolean convertible) {}
+
+    /**
+     * 合成台配方填充请求，不携带任意物品、NBT 或客户端计算的费用。
+     *
+     * @param containerId 当前菜单编号
+     * @param recipeId 服务器已加载的合成配方 ID
+     * @param maximum 是否请求最多一组原料
+     */
+    public record CraftingPayload(int containerId, ResourceLocation recipeId, boolean maximum) {
+        /** 保存请求参数，服务端处理时再次检查菜单有效性和配方类型。 */
+        public CraftingPayload {}
+        /** 按固定顺序编码，不传输任何由客户端决定的产物或费用。 */
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeVarInt(containerId);
+            buf.writeResourceLocation(recipeId);
+            buf.writeBoolean(maximum);
+        }
+        /** 读取紧凑的配方请求。 */
+        public static CraftingPayload decode(FriendlyByteBuf buf) {
+            return new CraftingPayload(buf.readVarInt(), buf.readResourceLocation(), buf.readBoolean());
+        }
+    }
 
     /** 操作请求；菜单编号和 count 的合法范围由对应交易方法校验。 */
     public record ActionPayload(int containerId, int action, ResourceLocation itemId, int count) {

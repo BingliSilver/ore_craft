@@ -6,6 +6,7 @@ import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreExperienceConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
+import com.lazeroX.ore_craft.block.entity.OreCraftingTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -17,6 +18,11 @@ public final class ModBlockEntities {
     /** 方块实体延迟注册器。 */
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Ore_craft.MODID);
+
+    /** 仅基础矿质合成台保存供能容器，合成网格按原版规则随菜单返还。 */
+    public static final RegistryObject<BlockEntityType<OreCraftingTableBlockEntity>> ORE_CRAFTING_TABLE =
+            BLOCK_ENTITY_TYPES.register("ore_crafting_table", () -> BlockEntityType.Builder.of(
+                    OreCraftingTableBlockEntity::new, ModBlocks.ORE_CRAFTING_TABLE.get()).build(null));
 
     /** 仅基础矿质转化桌保存交易槽，矿质转化桌+继续不创建方块实体。 */
     public static final RegistryObject<BlockEntityType<OreContainerConversionTableBlockEntity>> ORE_CONTAINER_CONVERSION_TABLE =

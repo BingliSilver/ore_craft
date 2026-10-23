@@ -1,0 +1,10 @@
+{
+  "parent": "ore_craft:block/ore_machine_capped_cube",
+  "textures": {
+    "top": "minecraft:block/crafting_table_top",
+    "bottom": "minecraft:block/polished_blackstone",
+    "side": "ore_craft:block/ore_conversion_table_side",
+    "frame": "ore_craft:block/ore_converter_side",
+    "cap": "ore_craft:block/ore_converter_top"
+  }
+}

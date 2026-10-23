@@ -10,15 +10,8 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.CrossbowItem;
-import net.minecraft.world.item.DiggerItem;
-import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -54,7 +47,8 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
     private Button next;
     private final List<FlatButton> categoryButtons = new ArrayList<>();
     private List<OreConversionNetwork.PriceEntry> filtered = List.of();
-    private Category category = Category.ALL;
+    /** 与合成台共用分类规则；窗口重建时保留当前筛选条件。 */
+    private OreCatalogCategory category = OreCatalogCategory.ALL;
     private int page;
     private int seenRevision = -1;
     private boolean suppressCatalogRelease;
@@ -93,10 +87,10 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         search.setResponder(value -> { page = 0; refresh(); });
         addRenderableWidget(search);
 
-        Category[] categories = Category.values();
+        OreCatalogCategory[] categories = OreCatalogCategory.values();
         for (int index = 0; index < categories.length; index++) {
-            Category target = categories[index];
-            FlatButton button = (FlatButton) addButton(Component.translatable(target.translation),
+            OreCatalogCategory target = categories[index];
+            FlatButton button = (FlatButton) addButton(target.label(),
                     sx(205 + index * 25), sy(49), sx(24), sy(14),
                     () -> { category = target; page = 0; refresh(); });
             categoryButtons.add(button);
@@ -165,7 +159,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         // 目录更新或筛选结果变少时，将页码限制在有效范围内。
         page = Math.max(0, Math.min(page, Math.max(0, (filtered.size() - 1) / PAGE_SIZE)));
         for (int index = 0; index < categoryButtons.size(); index++) {
-            categoryButtons.get(index).selected = Category.values()[index] == category;
+            categoryButtons.get(index).selected = OreCatalogCategory.values()[index] == category;
         }
         updateControls();
     }
@@ -187,7 +181,7 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         graphics.fill(x + sx(210), y + sy(29), x + sx(350), y + sy(45), 0xE9111921);
         outline(graphics, x + sx(210), y + sy(29), sx(140), sy(16), 0xFF647989);
         graphics.fill(x + sx(211), y + sy(30), x + sx(349), y + sy(31), 0xFF394A56);
-        searchIcon(graphics, x + sx(216), y + sy(33));
+        OreMachineScreenStyle.searchIcon(graphics, x + sx(216), y + sy(33));
 
         graphics.fill(x + sx(204), y + sy(66), x + sx(352), y + sy(164), 0x5A0A1016);
         outline(graphics, x + sx(204), y + sy(66), sx(148), sy(98), 0xFF586674);
@@ -234,19 +228,6 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
             graphics.fill(x + cellX + 1, y + cellY + 1, x + cellX + CATALOG_CELL_WIDTH - 1,
                     y + cellY + 2, hovered ? 0xFF7FD8D5 : 0xFF34424E);
         }
-    }
-
-    /** 绘制搜索框左侧的像素风放大镜图标。 */
-    private static void searchIcon(GuiGraphics graphics, int x, int y) {
-        graphics.fill(x + 2, y, x + 6, y + 1, MUTED);
-        graphics.fill(x + 1, y + 1, x + 2, y + 2, MUTED);
-        graphics.fill(x + 6, y + 1, x + 7, y + 2, MUTED);
-        graphics.fill(x, y + 2, x + 1, y + 6, MUTED);
-        graphics.fill(x + 7, y + 2, x + 8, y + 6, MUTED);
-        graphics.fill(x + 1, y + 6, x + 2, y + 7, MUTED);
-        graphics.fill(x + 6, y + 6, x + 7, y + 7, MUTED);
-        graphics.fill(x + 2, y + 7, x + 6, y + 8, MUTED);
-        graphics.fill(x + 7, y + 8, x + 9, y + 10, MUTED);
     }
 
     /** 绘制背包或矿质容器槽的背景框；尺寸与菜单内物品的居中计算保持一致。 */
@@ -445,44 +426,6 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
     /** 按当前界面固定使用的区域设置格式化完整整数。 */
     private static String formatNumber(long value) {
         return String.format(Locale.ROOT, "%,d", value);
-    }
-
-    /** 目录筛选分类及其本地化标签。 */
-    private enum Category {
-        ALL("gui.ore_craft.conversion.category.all"),
-        BLOCKS("gui.ore_craft.conversion.category.blocks"),
-        MATERIALS("gui.ore_craft.conversion.category.materials"),
-        TOOLS("gui.ore_craft.conversion.category.tools"),
-        EQUIPMENT("gui.ore_craft.conversion.category.equipment"),
-        OTHER("gui.ore_craft.conversion.category.other");
-
-        private final String translation;
-
-        /** 创建带本地化键的目录分类。 */
-        Category(String translation) { this.translation = translation; }
-
-        /** 根据物品类型和注册 ID 将物品归入当前分类。 */
-        private boolean matches(Item item) {
-            if (this == ALL) return true;
-            Category actual;
-            // 优先检查可明确识别的装备和工具类型，再用注册 ID 区分常见材料与其他物品。
-            if (item instanceof BlockItem) actual = BLOCKS;
-            else if (item instanceof ArmorItem || item.getDefaultInstance().isDamageableItem()
-                    && !(item instanceof DiggerItem || item instanceof SwordItem
-                    || item instanceof BowItem || item instanceof CrossbowItem || item instanceof FishingRodItem)) {
-                actual = EQUIPMENT;
-            } else if (item instanceof DiggerItem || item instanceof SwordItem || item instanceof BowItem
-                    || item instanceof CrossbowItem || item instanceof FishingRodItem) actual = TOOLS;
-            else {
-                String path = BuiltInRegistries.ITEM.getKey(item).getPath();
-                actual = path.endsWith("_ingot") || path.endsWith("_nugget") || path.endsWith("_shard")
-                        || path.endsWith("_dust") || path.startsWith("raw_")
-                        || path.equals("coal") || path.equals("charcoal") || path.equals("diamond")
-                        || path.equals("emerald") || path.equals("redstone") || path.equals("lapis_lazuli")
-                        || path.equals("quartz") ? MATERIALS : OTHER;
-            }
-            return this == actual;
-        }
     }
 
     /** 绘制扁平像素风外观的目录分类与分页按钮。 */

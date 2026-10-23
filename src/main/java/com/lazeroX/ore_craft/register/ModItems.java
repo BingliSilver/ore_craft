@@ -28,6 +28,11 @@ public final class ModItems {
     /** 创造模式选项卡也从此注册器读取全部模组物品。 */
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(net.minecraft.core.registries.Registries.ITEM, Ore_craft.MODID);
 
+    /** 矿质合成台的可放置物品，自动进入本模组创造模式目录。 */
+    public static final RegistryObject<BlockItem> ORE_CRAFTING_TABLE_ITEM = registerBlockItem(ModBlocks.ORE_CRAFTING_TABLE);
+    /** 直接使用账户 ME 的矿质合成台+物品。 */
+    public static final RegistryObject<BlockItem> ORE_CRAFTING_TABLE_PLUS_ITEM = registerBlockItem(ModBlocks.ORE_CRAFTING_TABLE_PLUS);
+
     /** 矿质转化桌对应的可放置物品。 */
     public static final RegistryObject<BlockItem> ORE_CONVERSION_TABLE_ITEM =
             registerBlockItem(ModBlocks.ORE_CONVERSION_TABLE);

@@ -35,7 +35,7 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册转化桌、学习宝典、附魔台、各类机器和时间权杖的客户端菜单界面。
+     * 注册转化桌、两款合成台、学习宝典、附魔台、各类机器和时间权杖的客户端菜单界面。
      * 普通及 Plus 机器共用相应屏幕实现，经验转化器使用独立单槽界面。
      * 所有屏幕继承公共缩放层，统一响应玩家的 GUI 界面尺寸设置与窗口变化。
      *
@@ -45,6 +45,9 @@ public final class OreCraftClientEvents {
     public static void registerMenuScreens(FMLClientSetupEvent event) {
         // 屏幕工厂使用非线程安全的原版注册表，须转到客户端初始化工作队列。
         event.enqueueWork(() -> {
+            // 两款合成台共享转化与合成界面，由菜单决定容器结算或全局账户结算。
+            MenuScreens.register(ModMenus.ORE_CRAFTING_MENU.get(), OreCraftingScreen::new);
+            MenuScreens.register(ModMenus.ORE_CRAFTING_PLUS_MENU.get(), OreCraftingScreen::new);
             MenuScreens.register(ModMenus.ORE_CONVERSION_MENU.get(), OreConversionScreen::new);
             // 两种转化桌共用界面，容器版由菜单标记显示额外的交易槽。
             MenuScreens.register(ModMenus.ORE_CONTAINER_CONVERSION_MENU.get(), OreConversionScreen::new);

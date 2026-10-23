@@ -1,0 +1,7 @@
+{
+  "parent": "ore_craft:block/ore_crafting_table",
+  "textures": {
+    "frame": "ore_craft:block/ore_converter_plus_side",
+    "cap": "ore_craft:block/ore_converter_plus_top"
+  }
+}

@@ -78,6 +78,41 @@ public final class OreMachineScreenStyle {
     }
 
     /**
+     * 绘制合成台使用的内嵌细竖框，两端与外框的青色内沿平齐。
+     * 保留中央矿石纹理，端点缩为细接缝，让上下横框保持连续并留出标题空间。
+     *
+     * @param graphics 绘制上下文
+     * @param x 竖框中心横坐标
+     * @param y 画布上边界
+     * @param height 画布逻辑高度，与 frame 使用的高度相同
+     */
+    public static void insetDivider(GuiGraphics graphics, int x, int y, int height) {
+        // frame 的内沿位于 y + 18 与 y + height - 19，竖框只占两者之间的内容区。
+        texture(graphics, x - 3, y + 19, 6, height - 38, 850, 120, 30, 660);
+        graphics.fill(x - 3, y + 18, x + 3, y + 19, 0xFF367F92);
+        graphics.fill(x - 3, y + height - 19, x + 3, y + height - 18, 0xFF367F92);
+    }
+
+    /**
+     * 绘制目录搜索框共用的像素风放大镜，与转化桌原有图标保持相同轮廓。
+     *
+     * @param graphics 绘制上下文
+     * @param x 图标左边界
+     * @param y 图标上边界，图标占用九乘十逻辑像素
+     */
+    public static void searchIcon(GuiGraphics graphics, int x, int y) {
+        graphics.fill(x + 2, y, x + 6, y + 1, MUTED);
+        graphics.fill(x + 1, y + 1, x + 2, y + 2, MUTED);
+        graphics.fill(x + 6, y + 1, x + 7, y + 2, MUTED);
+        graphics.fill(x, y + 2, x + 1, y + 6, MUTED);
+        graphics.fill(x + 7, y + 2, x + 8, y + 6, MUTED);
+        graphics.fill(x + 1, y + 6, x + 2, y + 7, MUTED);
+        graphics.fill(x + 6, y + 6, x + 7, y + 7, MUTED);
+        graphics.fill(x + 2, y + 7, x + 6, y + 8, MUTED);
+        graphics.fill(x + 7, y + 8, x + 9, y + 10, MUTED);
+    }
+
+    /**
      * 从转化桌纹理采样一个矩形，目标坐标均为公共缩放层中的逻辑像素。
      *
      * @param graphics 绘制上下文

@@ -16,6 +16,17 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(17)
 }
 
+repositories {
+    maven { url = 'https://maven.blamejared.com' }
+}
+
+dependencies {
+    // JEI is optional for players; only its public API is needed to compile the integration.
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}"
+    modRuntimeOnly "mezz.jei:jei-${minecraft_version}-forge:${jei_version}"
+}
+
 legacyForge {
     version = "${minecraft_version}-${forge_version}"
 

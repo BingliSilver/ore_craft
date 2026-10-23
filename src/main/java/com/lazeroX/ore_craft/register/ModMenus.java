@@ -2,6 +2,7 @@ package com.lazeroX.ore_craft.register;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
+import com.lazeroX.ore_craft.menu.OreCraftingMenu;
 import com.lazeroX.ore_craft.menu.OreLearningMenu;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
@@ -20,6 +21,16 @@ public final class ModMenus {
     /** 两端共用的菜单类型注册器，负责匹配打开界面时的附加数据。 */
     private static final DeferredRegister<MenuType<?>> MENU_TYPES =
             DeferredRegister.create(Registries.MENU, Ore_craft.MODID);
+
+    /** 基础合成台菜单，服务端和客户端均创建交易容器槽及三阶合成区。 */
+    public static final RegistryObject<MenuType<OreCraftingMenu>> ORE_CRAFTING_MENU =
+            MENU_TYPES.register("ore_crafting_table", () -> IForgeMenuType.create(
+                    (id, inventory, extra) -> new OreCraftingMenu(id, inventory, extra.readBlockPos(), true)));
+
+    /** Plus 合成台菜单，通过独立注册类型固定其账户充提槽布局。 */
+    public static final RegistryObject<MenuType<OreCraftingMenu>> ORE_CRAFTING_PLUS_MENU =
+            MENU_TYPES.register("ore_crafting_table_plus", () -> IForgeMenuType.create(
+                    (id, inventory, extra) -> new OreCraftingMenu(id, inventory, extra.readBlockPos(), false)));
 
     /** 矿质转化桌菜单类型。 */
     public static final RegistryObject<MenuType<OreConversionMenu>> ORE_CONVERSION_MENU =

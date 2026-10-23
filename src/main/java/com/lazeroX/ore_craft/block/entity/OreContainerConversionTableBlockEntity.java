@@ -7,6 +7,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
@@ -14,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * 各次打开的服务端菜单共用此库存；末影容器仍在实际交易时连接当前操作者的账户。
  * 基础版没有充值、提现槽，此库存也不提供自动化接口。
  */
-public final class OreContainerConversionTableBlockEntity extends BlockEntity {
+public class OreContainerConversionTableBlockEntity extends BlockEntity {
     /** 交易容器在持久库存中的唯一索引。 */
     public static final int CONTAINER_SLOT = 0;
     /** 存档中保存完整容器物品 NBT的键名，包括普通容器内的 ME。 */
@@ -48,7 +49,18 @@ public final class OreContainerConversionTableBlockEntity extends BlockEntity {
      * @param state 当前方块状态
      */
     public OreContainerConversionTableBlockEntity(BlockPos pos, BlockState state) {
-        super(ModBlockEntities.ORE_CONTAINER_CONVERSION_TABLE.get(), pos, state);
+        this(ModBlockEntities.ORE_CONTAINER_CONVERSION_TABLE.get(), pos, state);
+    }
+
+    /**
+     * 为共享交易规则的桌子创建持久供能库存，子类仅替换方块实体注册类型。
+     *
+     * @param type 与实际方块匹配的实体类型
+     * @param pos 桌子坐标
+     * @param state 当前方块状态
+     */
+    protected OreContainerConversionTableBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
 
     /** 返回菜单直接操作的持久库存；关闭菜单不得将它返还或清空。 */
