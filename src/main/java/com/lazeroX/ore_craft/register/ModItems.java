@@ -10,6 +10,7 @@ import com.lazeroX.ore_craft.item.ItemSynthesisCoreItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
 import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
+import com.lazeroX.ore_craft.item.MineralTeleportScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.OreExperienceConverterBlockItem;
@@ -121,6 +122,11 @@ public final class ModItems {
     public static final RegistryObject<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =
             ITEMS.register("mineral_time_scepter", () ->
                     new MineralTimeScepterItem(new Item.Properties().stacksTo(1)));
+
+    /** 潜行右键命名当前位置，普通右键打开本人共享坐标列表的传送权杖。 */
+    public static final RegistryObject<MineralTeleportScepterItem> MINERAL_TELEPORT_SCEPTER =
+            ITEMS.register("mineral_teleport_scepter", () ->
+                    new MineralTeleportScepterItem(new Item.Properties().stacksTo(1)));
 
     /** 容量 10,240 ME 的铜质矿质容器。 */
     public static final RegistryObject<OreContainerItem> COPPER_ORE_CONTAINER =

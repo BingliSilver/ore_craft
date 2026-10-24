@@ -3,6 +3,7 @@ package com.lazeroX.ore_craft.register;
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.entity.MiningPrimedTntEntity;
 import com.lazeroX.ore_craft.entity.SoulBodyEntity;
+import com.lazeroX.ore_craft.entity.MineralTeleportPortalEntity;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
@@ -37,6 +38,18 @@ public final class ModEntities {
                     .noSave()
                     .noSummon()
                     .build(Ore_craft.MODID + ":soul_body"));
+
+    /** 权杖生成的一次性入口，无重力、不写入区块存档，外观和生命周期由实体同步。 */
+    public static final RegistryObject<EntityType<MineralTeleportPortalEntity>> MINERAL_TELEPORT_PORTAL =
+            ENTITY_TYPES.register("mineral_teleport_portal", () -> EntityType.Builder
+                    .<MineralTeleportPortalEntity>of(MineralTeleportPortalEntity::new, MobCategory.MISC)
+                    .fireImmune()
+                    .sized(MineralTeleportPortalEntity.WIDTH, MineralTeleportPortalEntity.HEIGHT)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .noSave()
+                    .noSummon()
+                    .build(Ore_craft.MODID + ":mineral_teleport_portal"));
 
     /** 实体类型由注册生命周期管理，不创建工具类实例。 */
     private ModEntities() {}

@@ -303,8 +303,8 @@ public final class OreConversionPrices {
 
     /**
      * 计算输入栈中每件物品可回收的 ME，输入资格与金额始终由服务端校验。
-     * 全物品模式只按物品基础价结算，附魔、损伤、容器内容和存储 ME 均不额外计价。
-     * 默认模式保留普通矿质容器的本体加存储量回收规则，末影容器仍只回收本体。
+     * 两种回收模式下，普通矿质容器均按本体价格加内部存储 ME 结算，末影容器只回收本体。
+     * 全物品模式允许回收特殊状态物品，但附魔、损伤及容器内的物品不额外计价。
      *
      * @param stack 准备放入转化桌或传输接口的物品栈
      * @return 每件可到账的 ME；不允许输入或金额溢出时为空
@@ -313,9 +313,10 @@ public final class OreConversionPrices {
         if (!canDeposit(stack)) return OptionalLong.empty();
         OptionalLong base = price(stack.getItem());
         if (base.isEmpty()) return OptionalLong.empty();
-        if (convertAllItems()) return base;
         if (stack.getItem() instanceof OreContainerItem container) {
+            // 存储 ME 会随容器本体一起消耗，两种模式都必须计入，避免全物品回收时丢失余额。
             long stored = container.storedMe(stack);
+            // 超出 long 上限时拒绝整件回收，不能截断金额后仍消耗容器。
             if (base.getAsLong() > Long.MAX_VALUE - stored) return OptionalLong.empty();
             return OptionalLong.of(base.getAsLong() + stored);
         }

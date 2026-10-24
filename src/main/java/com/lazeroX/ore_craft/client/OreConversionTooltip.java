@@ -37,7 +37,7 @@ public final class OreConversionTooltip {
     /** 工具类不允许创建实例。 */
     private OreConversionTooltip() {}
 
-    /** 为末影容器显示个人账户余额，为其他已定价物品显示 ME 价格、学习状态和输入状态。 */
+    /** 为末影容器显示个人账户余额，为其他已定价物品显示 ME 价格、普通容器回收总额、学习及输入状态。 */
     @SubscribeEvent
     public static void onTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
@@ -63,9 +63,9 @@ public final class OreConversionTooltip {
             // 所有回收模式共用标准 ME 行，提示层不额外追加基础价结算说明。
             event.getToolTip().add(meLine(format(unit), OreConversionClient.isLearned(stack.getItem())));
             boolean convertible = OreConversionClient.canConvert(stack);
-            if (stack.getItem() instanceof OreContainerItem container && convertible && !OreConversionClient.convertAllItems()) {
+            if (stack.getItem() instanceof OreContainerItem container && convertible) {
                 long stored = container.storedMe(stack);
-                // 本体价格仍单独显示；有存储量时补充实际回收总额，避免误认为内部 ME 会丢失。
+                // 两种回收模式都计入内部 ME；本体价格单独显示，有存储量时补充实际回收总额。
                 if (stored > 0 && unit <= Long.MAX_VALUE - stored) {
                     event.getToolTip().add(Component.translatable("tooltip.ore_craft.ore_container.recycle_total",
                             format(unit + stored)).withStyle(style -> style.withColor(0xA9A6B0)));

@@ -23,7 +23,7 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册采矿 TNT、灵魂身体实体以及矿质附魔书方块实体的渲染器。
+     * 注册采矿 TNT、灵魂身体、权杖传送门以及矿质附魔书方块实体的渲染器。
      *
      * @param event MinecraftForge 实体渲染器注册事件
      */
@@ -31,11 +31,12 @@ public final class OreCraftClientEvents {
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntities.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
         event.registerEntityRenderer(ModEntities.SOUL_BODY.get(), SoulBodyRenderer::new);
+        event.registerEntityRenderer(ModEntities.MINERAL_TELEPORT_PORTAL.get(), MineralTeleportPortalRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
     /**
-     * 注册转化桌、两款合成台、学习宝典、附魔台、各类机器和时间权杖的客户端菜单界面。
+     * 注册转化桌、两款合成台、学习宝典、附魔台、各类机器及时间、传送权杖的客户端菜单界面。
      * 普通及 Plus 机器共用相应屏幕实现，经验转化器使用独立单槽界面。
      * 所有屏幕继承公共缩放层，统一响应玩家的 GUI 界面尺寸设置与窗口变化。
      *
@@ -57,6 +58,7 @@ public final class OreCraftClientEvents {
             MenuScreens.register(ModMenus.ORE_CONVERSION_MACHINE_MENU.get(), OreConversionMachineScreen::new);
             MenuScreens.register(ModMenus.ORE_EXPERIENCE_CONVERTER_MENU.get(), OreExperienceConverterScreen::new);
             MenuScreens.register(ModMenus.MINERAL_TIME_SCEPTER_MENU.get(), MineralTimeScepterScreen::new);
+            MenuScreens.register(ModMenus.MINERAL_TELEPORT_SCEPTER_MENU.get(), MineralTeleportScepterScreen::new);
         });
     }
 

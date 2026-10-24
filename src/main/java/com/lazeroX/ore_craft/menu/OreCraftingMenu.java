@@ -34,12 +34,13 @@ import java.util.function.ToLongFunction;
 /**
  * 在转化桌交易菜单上增加三阶合成区，学习、回收、提现和容器结算由父类处理。
  * 每位玩家拥有独立的临时合成区；基础款只共享持久供能槽，关闭界面时返还材料。
+ * 自动补料偏好按玩家保存在当前世界中，基础款与 Plus 款共用，重新打开时恢复。
  * 填充与补料均先在副本上规划，再由服务端一次扣费并提交真实库存。
  */
 public final class OreCraftingMenu extends OreConversionMenu {
     /** 清空合成网格的原版菜单按钮编号。 */
     public static final int CLEAR_GRID = 0;
-    /** 切换合成后自动补料的按钮编号，默认开启。 */
+    /** 切换合成后自动补料的按钮编号，未保存偏好时默认开启。 */
     public static final int TOGGLE_REFILL = 1;
     /** 当前交互玩家，用于世界、背包和账户归属检查。 */
     private final Player owner;
@@ -57,7 +58,7 @@ public final class OreCraftingMenu extends OreConversionMenu {
     private final int outputSlot;
     /** 阻止原版逐格消耗或批量提交时重复匹配不完整配方。 */
     private boolean updating;
-    /** 同步至客户端的自动补料开关；不改变转化桌交易规则。 */
+    /** 从玩家存档恢复并同步至客户端的自动补料开关，0 为关闭、1 为开启。 */
     private final DataSlot refill = DataSlot.standalone();
     /** 最近一次有效配方；取走产物时保留其原料规则以继续补料。 */
     private CraftingRecipe currentRecipe;
@@ -85,7 +86,11 @@ public final class OreCraftingMenu extends OreConversionMenu {
         }
         outputSlot = slots.size();
         addSlot(new ReplenishingResultSlot(inventory.player));
+        // 客户端先使用默认值，再通过 DataSlot 接收服务端从玩家存档读取的真实偏好。
         refill.set(1);
+        if (owner instanceof ServerPlayer player) {
+            refill.set(OreConversionSavedData.get(player).account(player).craftingAutoRefill() ? 1 : 0);
+        }
         addDataSlot(refill);
     }
 
@@ -275,12 +280,15 @@ public final class OreCraftingMenu extends OreConversionMenu {
         return slot.container != result && super.canTakeItemForPickAll(stack, slot);
     }
 
-    /** 校验清空和补料开关请求；清空失败时保持整个网格不动，不主动把材料扔到地上。 */
+    /** 校验清空和补料开关请求；切换时保存玩家偏好，清空失败时保持整个网格不动。 */
     @Override
     public boolean clickMenuButton(Player player, int button) {
         if (!(player instanceof ServerPlayer serverPlayer) || !validRequest(serverPlayer)) return false;
         if (button == TOGGLE_REFILL) {
-            refill.set(autoRefill() ? 0 : 1);
+            boolean enabled = !autoRefill();
+            // 在服务端确认点击时写入偏好，避免关闭菜单或退出游戏后丢失本次选择。
+            OreConversionSavedData.get(serverPlayer).setCraftingAutoRefill(serverPlayer, enabled);
+            refill.set(enabled ? 1 : 0);
             return true;
         }
         if (button != CLEAR_GRID) return false;

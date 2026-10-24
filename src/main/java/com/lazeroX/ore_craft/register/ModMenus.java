@@ -9,6 +9,7 @@ import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import com.lazeroX.ore_craft.menu.OreExperienceConverterMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
+import com.lazeroX.ore_craft.menu.MineralTeleportScepterMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -64,6 +65,10 @@ public final class ModMenus {
     /** 权杖倍率与施加时间的无物品槽设置菜单。 */
     public static final RegistryObject<MenuType<MineralTimeScepterMenu>> MINERAL_TIME_SCEPTER_MENU =
             MENU_TYPES.register("mineral_time_scepter", () -> IForgeMenuType.create(MineralTimeScepterMenu::new));
+
+    /** 传送权杖的命名及坐标列表菜单，额外数据包含持有手和服务端捕获的位置。 */
+    public static final RegistryObject<MenuType<MineralTeleportScepterMenu>> MINERAL_TELEPORT_SCEPTER_MENU =
+            MENU_TYPES.register("mineral_teleport_scepter", () -> IForgeMenuType.create(MineralTeleportScepterMenu::new));
 
     /** 菜单类型由注册生命周期管理，不创建工具类实例。 */
     private ModMenus() {}

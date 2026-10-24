@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "BCB",
+    "XBX"
+  ],
+  "key": {
+    "X": { "item": "minecraft:obsidian" },
+    "A": { "item": "minecraft:emerald" },
+    "B": { "item": "minecraft:emerald" },
+    "C": { "item": "ore_craft:diamond_ore_container" }
+  },
+  "result": { "item": "ore_craft:ender_ore_container", "count": 1 }
+}

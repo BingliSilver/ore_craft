@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** 将每名玩家的 ME 余额、已学习物品和全世界共用的转化开关保存在主世界存档数据中。 */
+/** 将每名玩家的 ME 余额、已学习物品、合成补料偏好和世界转化开关保存在主世界存档数据中。 */
 public final class OreConversionSavedData extends SavedData {
     /** 单个账户最多学习 2048 种物品；单件与批量学习共用此网络目录容量限制。 */
     public static final int MAX_LEARNED = 2048;
@@ -78,6 +78,21 @@ public final class OreConversionSavedData extends SavedData {
     /** 按 UUID 取得账户，使方块实体可在玩家离线时继续向其余额记账。 */
     public Account account(UUID playerId) {
         return accounts.computeIfAbsent(playerId, ignored -> new Account());
+    }
+
+    /**
+     * 保存玩家的合成台自动补料偏好，并在状态变化时标记存档待保存。
+     * 基础款与 Plus 款共用此偏好；数据按 UUID 保存，不受重新登录或玩家重生影响。
+     * 调用方须在服务端校验菜单请求，并将结果同步至当前界面。
+     *
+     * @param player 偏好所属的服务端玩家
+     * @param enabled true 为开启自动补料，false 为关闭
+     */
+    public void setCraftingAutoRefill(ServerPlayer player, boolean enabled) {
+        Account account = account(player);
+        if (account.craftingAutoRefill == enabled) return;
+        account.craftingAutoRefill = enabled;
+        setDirty();
     }
 
     /**
@@ -159,7 +174,7 @@ public final class OreConversionSavedData extends SavedData {
     }
 
     /**
-     * 将所有玩家账户和世界转化开关序列化到存档 NBT。
+     * 将所有玩家账户、合成补料偏好和世界转化开关序列化到存档 NBT。
      *
      * @param tag 接收账户数据的目标标签
      * @return 写入账户列表后的标签
@@ -171,6 +186,7 @@ public final class OreConversionSavedData extends SavedData {
             CompoundTag entry = new CompoundTag();
             entry.putUUID("Player", uuid);
             entry.putLong("Balance", account.balance);
+            entry.putBoolean("CraftingAutoRefill", account.craftingAutoRefill);
             ListTag learned = new ListTag();
             // 排序后写入列表，便于稳定比较存档差异。
             account.learned.stream().map(ResourceLocation::toString).sorted().forEach(id -> learned.add(StringTag.valueOf(id)));
@@ -183,7 +199,7 @@ public final class OreConversionSavedData extends SavedData {
     }
 
     /**
-     * 从存档 NBT 加载账户，并跳过格式错误或注册表中不存在的物品 ID。
+     * 从存档 NBT 加载账户及合成补料偏好，并跳过格式错误或注册表中不存在的物品 ID。
      *
      * @param tag 保存账户列表的根标签
      * @return 还原后的转化数据
@@ -198,6 +214,9 @@ public final class OreConversionSavedData extends SavedData {
             if (!entry.hasUUID("Player")) continue;
             Account account = new Account();
             account.balance = Math.max(0, entry.getLong("Balance"));
+            // 旧存档没有此字段时仍默认开启，必须区分“尚未保存”和“明确关闭”。
+            account.craftingAutoRefill = !entry.contains("CraftingAutoRefill", Tag.TAG_BYTE)
+                    || entry.getBoolean("CraftingAutoRefill");
             for (Tag learned : entry.getList("Learned", Tag.TAG_STRING)) {
                 ResourceLocation id = ResourceLocation.tryParse(learned.getAsString());
                 if (id != null && BuiltInRegistries.ITEM.containsKey(id)) account.learned.add(id);
@@ -208,13 +227,22 @@ public final class OreConversionSavedData extends SavedData {
         return data;
     }
 
-    /** 单个玩家的转化桌账户视图。 */
+    /** 单个玩家在当前存档中的转化账户及合成偏好视图，由外层存档统一修改并持久保存。 */
     public static final class Account {
+        /** 账户 ME 余额，读取存档后保证非负。 */
         private long balance;
+        /** 已学习物品的注册 ID，存档加载时会跳过无效物品。 */
         private final Set<ResourceLocation> learned = new HashSet<>();
+        /** 两款合成台共用的自动补料偏好，新玩家和缺少此字段的旧存档默认开启。 */
+        private boolean craftingAutoRefill = true;
+
+        /** 创建余额与学习目录均为空、自动补料默认开启的玩家账户。 */
+        public Account() {}
 
         /** 返回账户当前的 ME 余额。 */
         public long balance() { return balance; }
+        /** 返回玩家上次保存的合成台自动补料开关，未设置时为 true。 */
+        public boolean craftingAutoRefill() { return craftingAutoRefill; }
         /** 返回已学习物品 ID 的不可变快照。 */
         public Set<ResourceLocation> learned() { return Set.copyOf(learned); }
         /** 判断指定物品是否已学习。 */

@@ -31,6 +31,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingRecipe;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -66,11 +67,12 @@ public final class OreCraftJeiPlugin implements IModPlugin {
 
     /**
      * 为 JEI 提供缩放后的真实界面边界及物品命中，兼容目录和全部实际槽位的 R/U 查询。
-     * 不采用原始槽位坐标推测鼠标命中，否则游戏 GUI 较大时查询对象会偏移。
+     * 布局只在界面初始化后生成不可变快照，供 JEI 正确检测打开界面与窗口缩放后的变化。
+     * 物品命中使用实际 GUI 坐标，避免游戏 GUI 较大时查询对象偏移。
      */
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-        registration.addGuiScreenHandler(OreCraftingScreen.class, ScreenProperties::new);
+        registration.addGuiScreenHandler(OreCraftingScreen.class, ScreenProperties::create);
         // 目录不是原版 Slot，通过只读命中返回真实物品，不赋予客户端任何创建物品的能力。
         registration.addGuiContainerHandler(OreCraftingScreen.class, new IGuiContainerHandler<OreCraftingScreen>() {
             /** 统一返回目录或真实槽位下的物品，并以实际鼠标位置限定点击区域。 */
@@ -134,23 +136,52 @@ public final class OreCraftJeiPlugin implements IModPlugin {
         }
     }
 
-    /** JEI 使用的实际 GUI 边界，按当前窗口实时读取缩放后的大小。 */
-    private record ScreenProperties(OreCraftingScreen screen) implements IGuiProperties {
-        /** 保存当前屏幕，JEI 关闭该界面后不再使用此视图。 */
+    /**
+     * JEI 单次查询的不可变布局快照；旧快照在界面初始化、缩放后仍保留原值。
+     * JEI 通过比较前后属性决定是否重新校验和排列侧栏，因此不能在 getter 中读取可变屏幕。
+     *
+     * @param guiLeft 已缩放的画布左边界，单位为 Minecraft GUI 像素
+     * @param guiTop 已缩放的画布上边界
+     * @param guiWidth 已缩放的画布宽度，始终为正数
+     * @param guiHeight 已缩放的画布高度，始终为正数
+     * @param screenWidth 查询时的窗口 GUI 宽度，始终为正数
+     * @param screenHeight 查询时的窗口 GUI 高度，始终为正数
+     */
+    private record ScreenProperties(int guiLeft, int guiTop, int guiWidth, int guiHeight,
+                                    int screenWidth, int screenHeight) implements IGuiProperties {
+        /** 保存已通过 create 校验的坐标和尺寸，不持有会随初始化或窗口变化的屏幕引用。 */
         private ScreenProperties {}
+
+        /**
+         * 界面初始化后生成完整布局，初始化之前按 JEI 接口约定返回 null。
+         *
+         * @param screen JEI 正在查询的矿质合成台界面
+         * @return 当前布局的独立快照；窗口或画布尚无有效尺寸时返回 null
+         */
+        @Nullable
+        private static ScreenProperties create(OreCraftingScreen screen) {
+            // JEI 的打开事件早于 Screen.init，此时窗口宽高为零，不能缓存为有效界面。
+            // 初始化完成后的下一次查询会从 null 变为快照，触发 JEI 重新校验并显示两侧栏。
+            if (screen.width <= 0 || screen.height <= 0) return null;
+            Rect2i area = screen.guiArea();
+            if (area.getWidth() <= 0 || area.getHeight() <= 0) return null;
+            return new ScreenProperties(area.getX(), area.getY(), area.getWidth(), area.getHeight(),
+                    screen.width, screen.height);
+        }
+
         /** 返回目标屏幕类型。 */
         @Override public Class<? extends Screen> getScreenClass() { return OreCraftingScreen.class; }
-        /** 返回已缩放的 GUI 左边界。 */
-        @Override public int getGuiLeft() { return screen.guiArea().getX(); }
-        /** 返回已缩放的 GUI 上边界。 */
-        @Override public int getGuiTop() { return screen.guiArea().getY(); }
-        /** 返回已缩放的 GUI 宽度。 */
-        @Override public int getGuiXSize() { return screen.guiArea().getWidth(); }
-        /** 返回已缩放的 GUI 高度。 */
-        @Override public int getGuiYSize() { return screen.guiArea().getHeight(); }
-        /** 返回 Minecraft GUI 坐标系中的窗口宽度。 */
-        @Override public int getScreenWidth() { return screen.width; }
-        /** 返回 Minecraft GUI 坐标系中的窗口高度。 */
-        @Override public int getScreenHeight() { return screen.height; }
+        /** 返回快照中的已缩放 GUI 左边界。 */
+        @Override public int getGuiLeft() { return guiLeft; }
+        /** 返回快照中的已缩放 GUI 上边界。 */
+        @Override public int getGuiTop() { return guiTop; }
+        /** 返回快照中的已缩放 GUI 宽度。 */
+        @Override public int getGuiXSize() { return guiWidth; }
+        /** 返回快照中的已缩放 GUI 高度。 */
+        @Override public int getGuiYSize() { return guiHeight; }
+        /** 返回查询时的窗口 GUI 宽度，之后调整窗口不会修改该值。 */
+        @Override public int getScreenWidth() { return screenWidth; }
+        /** 返回查询时的窗口 GUI 高度，之后调整窗口不会修改该值。 */
+        @Override public int getScreenHeight() { return screenHeight; }
     }
 }

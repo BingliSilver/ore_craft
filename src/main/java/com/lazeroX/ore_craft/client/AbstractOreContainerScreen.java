@@ -5,6 +5,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * 本模组所有菜单界面的公共缩放层，统一管理画布居中、绘制和鼠标坐标换算。
@@ -72,6 +74,20 @@ public abstract class AbstractOreContainerScreen<T extends AbstractContainerMenu
     }
 
     /**
+     * 绘制自定义世界暗幕，并沿用原版背景绘制完成后的 Forge 通知流程。
+     * JEI 在该事件中刷新侧栏布局并绘制物品列表；只画矩形会使其退回屏幕末尾补画，
+     * 导致布局更新晚于容器前景和提示绘制。事件必须在菜单缩放前发送，使用原始 GUI 坐标。
+     *
+     * @param graphics 尚未应用菜单缩放的 GUI 绘制上下文
+     */
+    @Override
+    public final void renderBackground(GuiGraphics graphics) {
+        graphics.fill(0, 0, width, height, backgroundColor());
+        // 自定义暗幕替代了原版 renderBackground，因此也要补齐其事件，且每帧只发送一次。
+        MinecraftForge.EVENT_BUS.post(new ScreenEvent.BackgroundRendered(this, graphics));
+    }
+
+    /**
      * 将 GUI 鼠标坐标或位移还原到菜单逻辑坐标；子类自定义命中判断也必须使用此方法。
      *
      * @param position 游戏 GUI 坐标系中的位置或位移
@@ -82,22 +98,29 @@ public abstract class AbstractOreContainerScreen<T extends AbstractContainerMenu
     }
 
     /**
-     * 绘制画布、槽位和控件，再回到原版 GUI 坐标系绘制物品提示。
+     * 先在原版 GUI 坐标系绘制暗幕及 JEI 侧栏，再缩放画布、槽位和控件，最后还原坐标绘制提示。
      * 提示的边界计算由 Minecraft 处理，避免缩小画布后提示偏离鼠标或提前换行。
+     * 菜单使用独立绘图上下文，防止容器绘制事件及物品绘制器的矩阵、裁剪状态影响外层 JEI 提示。
      */
     @Override
     public final void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, backgroundColor());
+        // 背景事件中的 JEI 使用窗口坐标，不能继承下面仅属于菜单的额外缩放。
+        renderBackground(graphics);
         int logicalX = (int) Math.floor(menuCoordinate(mouseX));
         int logicalY = (int) Math.floor(menuCoordinate(mouseY));
-        graphics.pose().pushPose();
+        // 先提交侧栏，再使用独立的矩阵栈和裁剪栈绘制菜单，避免与 JEI 共用可变绘图状态。
+        graphics.flush();
+        GuiGraphics menuGraphics = new GuiGraphics(minecraft, graphics.bufferSource());
+        // 保留外层屏幕的层级和平移；仅复制矩阵数值，不共享随后会被缩放的矩阵对象。
+        menuGraphics.pose().last().pose().set(graphics.pose().last().pose());
+        menuGraphics.pose().last().normal().set(graphics.pose().last().normal());
         try {
-            graphics.pose().scale(menuScale, menuScale, 1.0F);
+            menuGraphics.pose().scale(menuScale, menuScale, 1.0F);
             // 原版槽位悬停、拖拽携带物和控件绘制均接收相同的逻辑鼠标位置。
-            super.render(graphics, logicalX, logicalY, partialTick);
+            super.render(menuGraphics, logicalX, logicalY, partialTick);
         } finally {
-            // 及时还原矩阵，保证提示和后续其他模组的屏幕绘制不继承额外缩放。
-            graphics.pose().popPose();
+            // 两个上下文共用顶点缓冲，菜单内容必须先提交，后续提示再使用未缩放的外层上下文。
+            menuGraphics.flush();
         }
         renderTooltip(graphics, mouseX, mouseY);
         renderExtraTooltip(graphics, mouseX, mouseY);
