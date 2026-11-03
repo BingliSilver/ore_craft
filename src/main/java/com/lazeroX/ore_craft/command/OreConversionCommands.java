@@ -1,13 +1,20 @@
 package com.lazeroX.ore_craft.command;
 
 import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
+import com.lazeroX.ore_craft.value.MeValueFiles;
+import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraftforge.event.RegisterCommandsEvent;
 
 import java.util.Collection;
@@ -33,7 +40,8 @@ public final class OreConversionCommands {
      */
     public static void register(RegisterCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("orecraft")
-                .requires(source -> source.hasPermission(REQUIRED_PERMISSION))
+                .requires(source -> source.hasPermission(REQUIRED_PERMISSION)
+                        || source.getEntity() instanceof ServerPlayer player && player.isCreative())
                 .then(Commands.literal("convertall")
                         .executes(context -> queryConvertAll(context.getSource()))
                         .then(Commands.argument("enabled", BoolArgumentType.bool())
@@ -47,6 +55,68 @@ public final class OreConversionCommands {
                         .then(Commands.argument("targets", EntityArgument.entities())
                                 .executes(context -> clearLearned(context.getSource(),
                                         EntityArgument.getPlayers(context, "targets"))))));
+        event.getDispatcher().register(Commands.literal("orecraft")
+                .requires(source -> source.hasPermission(REQUIRED_PERMISSION)
+                        || source.getEntity() instanceof ServerPlayer player && player.isCreative())
+                .then(Commands.literal("setme")
+                        .then(Commands.argument("item", ResourceLocationArgument.id())
+                                .then(Commands.argument("value", LongArgumentType.longArg(1))
+                                        .executes(context -> setMe(context.getSource(),
+                                                ResourceLocationArgument.getId(context, "item"),
+                                                LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.WORLD))
+                                        .then(Commands.literal("global").executes(context -> setMe(context.getSource(),
+                                                ResourceLocationArgument.getId(context, "item"),
+                                                LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.GLOBAL)))
+                                        .then(Commands.literal("world").executes(context -> setMe(context.getSource(),
+                                                ResourceLocationArgument.getId(context, "item"),
+                                                LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.WORLD))))))
+                .then(Commands.literal("sethand")
+                        .then(Commands.argument("value", LongArgumentType.longArg(1))
+                                .executes(context -> setHeldMe(context.getSource(),
+                                        LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.WORLD))
+                                .then(Commands.literal("global").executes(context -> setHeldMe(context.getSource(),
+                                        LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.GLOBAL)))
+                                .then(Commands.literal("world").executes(context -> setHeldMe(context.getSource(),
+                                        LongArgumentType.getLong(context, "value"), MeValueFiles.Scope.WORLD))))));
+    }
+
+    /** 写入指定物品的价格，并立即刷新服务端与在线客户端。 */
+    private static int setMe(CommandSourceStack source, ResourceLocation id, long value, MeValueFiles.Scope scope) {
+        if (!BuiltInRegistries.ITEM.containsKey(id)) {
+            source.sendFailure(Component.translatable("commands.ore_craft.me.unknown_item", id));
+            return 0;
+        }
+        try {
+            MeValueFiles.write(source.getServer(), scope, id, value);
+            OreConversionPrices.reloadExternalValues(source.getServer());
+            // 价格快照由服务端权威生成，写盘后立即同步，保证已打开的转化界面也能看到新值。
+            for (ServerPlayer player : source.getServer().getPlayerList().getPlayers()) {
+                OreConversionNetwork.sendPrices(player);
+                OreConversionNetwork.sendState(player, player.containerMenu.containerId);
+            }
+            source.sendSuccess(() -> Component.translatable("commands.ore_craft.me.set", id, value, scope == MeValueFiles.Scope.GLOBAL ? "global" : "world"), true);
+            return 1;
+        } catch (java.io.IOException exception) {
+            source.sendFailure(Component.translatable("commands.ore_craft.me.write_failed"));
+            return 0;
+        }
+    }
+
+    /** 将主手物品转换为 ID 后复用显式物品设置逻辑。 */
+    private static int setHeldMe(CommandSourceStack source, long value, MeValueFiles.Scope scope) {
+        ServerPlayer player;
+        try {
+            player = source.getPlayerOrException();
+        } catch (Exception exception) {
+            source.sendFailure(Component.translatable("commands.ore_craft.me.player_only"));
+            return 0;
+        }
+        ItemStack held = player.getMainHandItem();
+        if (held.isEmpty()) {
+            source.sendFailure(Component.translatable("commands.ore_craft.me.empty_hand"));
+            return 0;
+        }
+        return setMe(source, BuiltInRegistries.ITEM.getKey(held.getItem()), value, scope);
     }
 
     /**

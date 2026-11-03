@@ -52,6 +52,8 @@ public final class OreConversionPrices {
     private static volatile Map<ResourceLocation, Long> prices = Map.of();
     /** 配置直接定价的物品集合；这些价格不会被配方推导覆盖。 */
     private static volatile Set<ResourceLocation> basePriced = Set.of();
+    /** 外部 ME 文件显式定价的物品集合；这些物品不受默认来源白名单限制。 */
+    private static volatile Set<ResourceLocation> externalPriced = Set.of();
     private static volatile MinecraftServer lastServer;
 
     /** 工具类不允许创建实例。 */
@@ -134,6 +136,12 @@ public final class OreConversionPrices {
         rebuild(event.getServer());
     }
 
+    /** 重新读取磁盘上的全局/存档 ME 文件，并立即让当前服务端采用新价格。 */
+    public static void reloadExternalValues(MinecraftServer server) {
+        lastServer = null;
+        rebuild(server);
+    }
+
     /** 数据包同步时重建价格表，并向相关玩家发送最新目录和账户状态。 */
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         MinecraftServer server = event.getPlayerList().getServer();
@@ -161,6 +169,9 @@ public final class OreConversionPrices {
                 .getTag(TagKey.create(Registries.ITEM, id))
                 .ifPresent(tag -> tag.forEach(holder -> resolved.put(BuiltInRegistries.ITEM.getKey(holder.value()), value))));
         resolved.putAll(snapshot.base());
+        // 外部文件用于最后覆盖数据包的显式价格，且存档文件已经在加载器中覆盖了全局文件。
+        Map<ResourceLocation, Long> external = MeValueFiles.load(server);
+        resolved.putAll(external);
         resolved.entrySet().removeIf(entry -> isBlocked(BuiltInRegistries.ITEM.get(entry.getKey())));
         // 显式物品价与标签价属于锚点，配方推导不会覆盖这些作者配置的价格。
         Set<ResourceLocation> anchors = Set.copyOf(resolved.keySet());
@@ -242,6 +253,7 @@ public final class OreConversionPrices {
         // 以不可变快照一次性发布，客户端查询不会读到推导过程中的中间结果。
         prices = Map.copyOf(resolved);
         basePriced = anchors;
+        externalPriced = Set.copyOf(external.keySet());
         lastServer = server;
         LOGGER.info("Ore conversion has {} priced items", prices.size());
     }
@@ -297,7 +309,8 @@ public final class OreConversionPrices {
         boolean emeraldCoal = item == ModItems.EMERALD_COAL.get() || item == ModItems.ETERNAL_EMERALD_COAL.get();
         // 容器自身是可定价物品，回收不依赖普通矿物来源列表；末影容器不读取所连账户。
         if (item instanceof OreContainerItem || item instanceof EnderOreContainerItem) return true;
-        if (!(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        if (!(basePriced.contains(id) || externalPriced.contains(id) || emeraldCoal)) return false;
         return config.sources().stream().anyMatch(source -> source.matches(stack));
     }
 
