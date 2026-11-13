@@ -291,10 +291,10 @@
   "message.ore_craft.enchanting.success": "附魔完成，消耗 %s ME",
   "message.ore_craft.enchanting.stored": "附魔调整完成，存入 %s ME",
   "message.ore_craft.enchanting.exchanged": "附魔调整完成，ME 余额不变",
-  "message.ore_craft.enchanting.container_full": "矿质容器没有足够空间存入 ME"
-  ,"commands.ore_craft.me.unknown_item": "Unknown item id: %s",
-  "commands.ore_craft.me.write_failed": "Failed to write the ME value file",
-  "commands.ore_craft.me.player_only": "This command must be run by a player",
-  "commands.ore_craft.me.empty_hand": "Hold an item in your main hand",
-  "commands.ore_craft.me.set": "Set %s to %s ME per item in the %s file"
+  "message.ore_craft.enchanting.container_full": "矿质容器没有足够空间存入 ME",
+  "commands.ore_craft.me.unknown_item": "未知物品 ID：%s",
+  "commands.ore_craft.me.write_failed": "无法写入 ME 价格文件",
+  "commands.ore_craft.me.player_only": "此命令只能由玩家执行",
+  "commands.ore_craft.me.empty_hand": "请在主手持有物品",
+  "commands.ore_craft.me.set": "已在 %3$s 文件中将 %1$s 的单价设为 %2$s ME"
 }

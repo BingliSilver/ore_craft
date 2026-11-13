@@ -21,11 +21,11 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * 注册矿质账户与世界回收规则的服务端管理命令，供开启作弊的玩家、管理员及服务器控制台使用。
+ * 注册矿质账户、世界回收规则及 ME 定价命令，供管理员、创造模式玩家及服务器控制台使用。
  * 清空操作只移除共享学习目录；ME 余额、背包物品和机器库存均保持原样。
  */
 public final class OreConversionCommands {
-    /** 与原版管理命令一致，要求命令来源具有等级 2 或更高权限。 */
+    /** 管理员及控制台需达到等级 2；创造模式玩家另有命令入口授权。 */
     private static final int REQUIRED_PERMISSION = 2;
 
     /** 命令工具不保存会话状态，也不允许创建实例。 */
@@ -35,6 +35,7 @@ public final class OreConversionCommands {
      * 注册 {@code /orecraft clearlearned [targets]}，省略目标时操作执行者本人。
      * 显式目标可使用玩家名、在线玩家 UUID 或 {@code @a} 等选择器。
      * {@code /orecraft convertall [true|false]} 查询或修改当前世界的全物品回收开关。
+     * {@code setme} 与 {@code sethand} 设置物品单价，默认写入存档，也可显式选择全局作用域。
      *
      * @param event 全局事件总线发送的服务端命令注册事件
      */

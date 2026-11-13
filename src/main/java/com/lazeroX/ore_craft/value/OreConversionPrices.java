@@ -52,7 +52,7 @@ public final class OreConversionPrices {
     private static volatile Map<ResourceLocation, Long> prices = Map.of();
     /** 配置直接定价的物品集合；这些价格不会被配方推导覆盖。 */
     private static volatile Set<ResourceLocation> basePriced = Set.of();
-    /** 外部 ME 文件显式定价的物品集合；这些物品不受默认来源白名单限制。 */
+    /** 外部 ME 文件显式定价的物品集合；默认回收模式仍需匹配来源白名单。 */
     private static volatile Set<ResourceLocation> externalPriced = Set.of();
     private static volatile MinecraftServer lastServer;
 

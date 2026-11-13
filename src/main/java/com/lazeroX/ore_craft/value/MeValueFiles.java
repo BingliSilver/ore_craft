@@ -28,17 +28,27 @@ import java.util.Map;
  * <p>全局文件位于模组配置目录，存档文件位于当前存档根目录；存档文件中的同名物品会覆盖全局值。</p>
  */
 public final class MeValueFiles {
+    /** 文件损坏或条目非法时记录位置，便于管理员定位配置问题。 */
     private static final Logger LOGGER = LogUtils.getLogger();
+    /** 可读 JSON 输出，写入时按注册 ID 排序。 */
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    /** 全局配置与存档根目录下共用的模组子目录。 */
     private static final String DIRECTORY = "ore_craft";
+    /** 每个作用域只使用一个扁平价格文件。 */
     private static final String FILE_NAME = "me_values.json";
 
     /** 文件作用域，决定价格写入全局配置还是当前存档。 */
     public enum Scope {
+        /** 安装实例的全局配置，可被存档中的同名物品覆盖。 */
         GLOBAL,
-        WORLD
+        /** 当前存档专属配置，具有最高价格覆盖优先级。 */
+        WORLD;
+
+        /** 作用域由 JVM 构造，不保存具体服务器或目录。 */
+        Scope() {}
     }
 
+    /** 文件服务仅提供静态操作，不持有跨世界缓存。 */
     private MeValueFiles() {
     }
 
@@ -85,7 +95,7 @@ public final class MeValueFiles {
         return root.resolve(DIRECTORY).resolve(FILE_NAME);
     }
 
-    /** 读取扁平 JSON 对象；单个非法条目不会阻止其他条目加载。 */
+    /** 读取扁平 JSON 对象；非法 ID 和非正价格跳过，解析异常记录后返回已读取的条目。 */
     private static Map<ResourceLocation, Long> read(Path file) {
         Map<ResourceLocation, Long> values = new HashMap<>();
         if (!Files.isRegularFile(file)) return values;

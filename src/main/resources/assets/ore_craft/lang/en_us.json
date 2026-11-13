@@ -291,8 +291,8 @@
   "message.ore_craft.enchanting.success": "Enchantment updated; spent %s ME",
   "message.ore_craft.enchanting.stored": "Enchantment updated; stored %s ME",
   "message.ore_craft.enchanting.exchanged": "Enchantment updated; ME balance unchanged",
-  "message.ore_craft.enchanting.container_full": "Not enough room in the mineral container to store ME"
-  ,"commands.ore_craft.me.unknown_item": "Unknown item id: %s",
+  "message.ore_craft.enchanting.container_full": "Not enough room in the mineral container to store ME",
+  "commands.ore_craft.me.unknown_item": "Unknown item id: %s",
   "commands.ore_craft.me.write_failed": "Failed to write the ME value file",
   "commands.ore_craft.me.player_only": "This command must be run by a player",
   "commands.ore_craft.me.empty_hand": "Hold an item in your main hand",
