@@ -2,23 +2,36 @@ package com.lazeroX.ore_craft.register;
 
 import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
+import com.lazeroX.ore_craft.menu.OreCraftingMenu;
 import com.lazeroX.ore_craft.menu.OreLearningMenu;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
 import com.lazeroX.ore_craft.menu.OreConverterMenu;
 import com.lazeroX.ore_craft.menu.OreExperienceConverterMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
+import com.lazeroX.ore_craft.menu.MineralTeleportScepterMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import java.util.function.Supplier;
 
 /** 集中声明和注册本模组的菜单类型。 */
 public final class ModMenus {
     private static final DeferredRegister<MenuType<?>> MENU_TYPES =
             DeferredRegister.create(Registries.MENU, Ore_craft.MODID);
+
+    /** 基础合成台菜单，服务端和客户端均创建交易容器槽及三阶合成区。 */
+    public static final Supplier<MenuType<OreCraftingMenu>> ORE_CRAFTING_MENU =
+            MENU_TYPES.register("ore_crafting_table", () -> IMenuTypeExtension.create(
+                    (id, inventory, extra) -> new OreCraftingMenu(id, inventory, extra.readBlockPos(), true)));
+
+    /** Plus 合成台菜单，通过独立注册类型固定其账户充提槽布局。 */
+    public static final Supplier<MenuType<OreCraftingMenu>> ORE_CRAFTING_PLUS_MENU =
+            MENU_TYPES.register("ore_crafting_table_plus", () -> IMenuTypeExtension.create(
+                    (id, inventory, extra) -> new OreCraftingMenu(id, inventory, extra.readBlockPos(), false)));
 
     /** 矿质转化桌菜单类型。 */
     public static final DeferredHolder<MenuType<?>, MenuType<OreConversionMenu>> ORE_CONVERSION_MENU =
@@ -53,6 +66,11 @@ public final class ModMenus {
     public static final DeferredHolder<MenuType<?>, MenuType<MineralTimeScepterMenu>> MINERAL_TIME_SCEPTER_MENU =
             MENU_TYPES.register("mineral_time_scepter", () -> IMenuTypeExtension.create(MineralTimeScepterMenu::new));
 
+    /** 传送权杖的命名及坐标列表菜单，额外数据包含持有手和服务端捕获的位置。 */
+    public static final Supplier<MenuType<MineralTeleportScepterMenu>> MINERAL_TELEPORT_SCEPTER_MENU =
+            MENU_TYPES.register("mineral_teleport_scepter", () -> IMenuTypeExtension.create(MineralTeleportScepterMenu::new));
+
+    /** 菜单类型由注册生命周期管理，不创建工具类实例。 */
     private ModMenus() {}
 
     /**

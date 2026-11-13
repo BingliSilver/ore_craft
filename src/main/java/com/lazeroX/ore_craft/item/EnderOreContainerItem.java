@@ -7,7 +7,8 @@ import net.minecraft.world.item.Item;
 /**
  * 直接连接持有者全局 ME 账户的末影矿质容器。
  *
- * <p>此物品不保存独立 ME，也不使用存储进度条；余额由玩家账户决定。</p>
+ * <p>此物品不保存独立 ME，也不使用存储进度条；余额由玩家账户决定。
+ * 可在铁砧中作为耗材，为盔甲赋予末影容器附魔，使穿戴者的随身道具接通同一账户。</p>
  */
 public final class EnderOreContainerItem extends Item {
     /**
@@ -28,4 +29,5 @@ public final class EnderOreContainerItem extends Item {
     public long accountMe(ServerPlayer player) {
         return OreConversionSavedData.get(player).account(player).balance();
     }
+
 }

@@ -1,0 +1,6 @@
+Generator: built-in image_gen
+Source: item_synthesis_core_source.png
+Game texture: ../src/main/resources/assets/ore_craft/textures/item/item_synthesis_core.png
+Preparation: nearest-neighbor resize to 64x64 RGBA, preserving transparency.
+
+Use case: stylized-concept. Asset type: Minecraft inventory item sprite, item synthesis core for a mineral crafting mod. Create one beautiful compact pixel-art synthesis core icon on a genuinely transparent background. A brilliant cyan faceted diamond-shaped crystal suspended inside a thick compact octagonal dark steel and warm gold mechanical ring, four small copper connectors, subtle pale cyan highlights. Readable chunky silhouette, disciplined pixel clusters, crisp hard pixel edges, approximately 32x32 pixel design rendered large, limited palette, upper-left light, front view with tiny depth on bottom right. Centered single item fills 85 percent of square canvas, generous transparent margin. Fits vanilla Minecraft inventory art, strong legibility at tiny size, restrained detail. No text, letters, numbers, symbols, UI, borders around canvas, scenery, cast shadow, glow halo, soft gradients, blur, extra objects or checkerboard background. Deliver a transparent PNG.

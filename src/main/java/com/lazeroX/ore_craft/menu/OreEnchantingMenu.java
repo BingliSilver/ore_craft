@@ -164,7 +164,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         return !stack.isEmpty() && (isBookTarget(stack) || EnchantmentHelper.canStoreEnchantments(stack));
     }
 
-    /** 普通书和附魔书都允许记录任意已注册附魔。 */
+    /** 普通书和附魔书均可作为目标；铁砧专用附魔仍由共享等级规则阻止新赋予。 */
     private static boolean isBookTarget(ItemStack stack) {
         return stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK);
     }

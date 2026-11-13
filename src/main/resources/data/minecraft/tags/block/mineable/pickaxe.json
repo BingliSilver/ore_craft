@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
+    "ore_craft:ore_crafting_table",
+    "ore_craft:ore_crafting_table_plus",
     "ore_craft:ore_conversion_table",
     "ore_craft:ore_container_conversion_table",
     "ore_craft:ore_enchanting_table",

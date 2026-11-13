@@ -3,10 +3,13 @@ package com.lazeroX.ore_craft;
 import com.lazeroX.ore_craft.command.OreConversionCommands;
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
 import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
+import com.lazeroX.ore_craft.event.MineralTeleportation;
 import com.lazeroX.ore_craft.event.OreExperienceConverterInteraction;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
+import com.lazeroX.ore_craft.network.SoulSeparationNetwork;
+import com.lazeroX.ore_craft.network.MineralTeleportScepterNetwork;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModCapabilities;
@@ -55,6 +58,8 @@ public class Ore_craft {
 
         modEventBus.addListener(OreConversionNetwork::register);
         modEventBus.addListener(OreEnchantingNetwork::register);
+        modEventBus.addListener(SoulSeparationNetwork::register);
+        modEventBus.addListener(MineralTeleportScepterNetwork::register);
         modEventBus.addListener((RegisterGameTestsEvent event) -> event.register(OreConversionGameTests.class));
         NeoForge.EVENT_BUS.addListener(OreConversionPrices::registerReloadListener);
         NeoForge.EVENT_BUS.addListener(OreConversionPrices::onServerStarted);
@@ -70,6 +75,8 @@ public class Ore_craft {
         NeoForge.EVENT_BUS.addListener(MiningFortuneEvents::onBlockDrops);
         NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerTick);
         NeoForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerStopped);
+        NeoForge.EVENT_BUS.addListener(MineralTeleportation::onServerStopped);
+        NeoForge.EVENT_BUS.addListener(MineralTeleportation::onEntityLeaveLevel);
         // 两端统一将经验转化器的潜行右键交给方块，确保手持物品时也能切换开关。
         NeoForge.EVENT_BUS.addListener(OreExperienceConverterInteraction::onRightClickBlock);
     }

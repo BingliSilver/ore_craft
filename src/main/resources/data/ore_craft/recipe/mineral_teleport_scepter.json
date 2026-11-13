@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "XAX",
+    "ACA",
+    "XAX"
+  ],
+  "key": {
+    "X": {
+      "item": "ore_craft:ender_ore_container"
+    },
+    "A": {
+      "item": "minecraft:ender_pearl"
+    },
+    "C": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "count": 1,
+    "id": "ore_craft:mineral_teleport_scepter"
+  }
+}

@@ -52,6 +52,8 @@ public final class OreConversionPrices {
     private static volatile Map<ResourceLocation, Long> prices = Map.of();
     /** 配置直接定价的物品集合；这些价格不会被配方推导覆盖。 */
     private static volatile Set<ResourceLocation> basePriced = Set.of();
+    /** 外部 ME 文件显式定价的物品集合；默认回收模式仍需匹配来源白名单。 */
+    private static volatile Set<ResourceLocation> externalPriced = Set.of();
     private static volatile MinecraftServer lastServer;
 
     /** 工具类不允许创建实例。 */
@@ -134,6 +136,12 @@ public final class OreConversionPrices {
         rebuild(event.getServer());
     }
 
+    /** 重新读取磁盘上的全局/存档 ME 文件，并立即让当前服务端采用新价格。 */
+    public static void reloadExternalValues(MinecraftServer server) {
+        lastServer = null;
+        rebuild(server);
+    }
+
     /** 数据包同步时重建价格表，并向相关玩家发送最新目录和账户状态。 */
     public static void onDatapackSync(OnDatapackSyncEvent event) {
         MinecraftServer server = event.getPlayerList().getServer();
@@ -159,6 +167,9 @@ public final class OreConversionPrices {
                 .getTag(TagKey.create(Registries.ITEM, id))
                 .ifPresent(tag -> tag.forEach(holder -> resolved.put(BuiltInRegistries.ITEM.getKey(holder.value()), value))));
         resolved.putAll(snapshot.base());
+        // 外部文件用于最后覆盖数据包的显式价格，且存档文件已经在加载器中覆盖了全局文件。
+        Map<ResourceLocation, Long> external = MeValueFiles.load(server);
+        resolved.putAll(external);
         resolved.entrySet().removeIf(entry -> isBlocked(BuiltInRegistries.ITEM.get(entry.getKey())));
         // 显式物品价与标签价属于锚点，配方推导不会覆盖这些作者配置的价格。
         Set<ResourceLocation> anchors = Set.copyOf(resolved.keySet());
@@ -241,6 +252,7 @@ public final class OreConversionPrices {
         // 以不可变快照一次性发布，客户端查询不会读到推导过程中的中间结果。
         prices = Map.copyOf(resolved);
         basePriced = anchors;
+        externalPriced = Set.copyOf(external.keySet());
         lastServer = server;
         LOGGER.info("Ore conversion has {} priced items", prices.size());
     }
@@ -269,21 +281,26 @@ public final class OreConversionPrices {
 
     /**
      * 判断物品是否能输入转化桌或传输接口。
+     * 全物品模式接受已有有效价格的特殊状态物品；默认模式保留来源及状态限制。
      * 矿质容器允许按本体价格回收；其他普通来源仍需直接定价，两种绿宝石煤炭允许配方推导价格。
      */
     public static boolean canDeposit(ItemStack stack) {
         Item item = stack.getItem();
         boolean emeraldCoal = item == ModItems.EMERALD_COAL.get() || item == ModItems.ETERNAL_EMERALD_COAL.get();
-        if (!isPlainForDeposit(stack) || !canExtract(item)) return false;
+        boolean allItems = convertAllItems();
+        if (!isValidForDeposit(stack, allItems) || !canExtract(item)) return false;
+        if (allItems) return true;
         // 容器自身是可定价物品，回收不依赖普通矿物来源列表；末影容器不读取所连账户。
         if (item instanceof OreContainerItem || item instanceof EnderOreContainerItem) return true;
-        if (!(basePriced.contains(BuiltInRegistries.ITEM.getKey(item)) || emeraldCoal)) return false;
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+        if (!(basePriced.contains(id) || externalPriced.contains(id) || emeraldCoal)) return false;
         return config.sources().stream().anyMatch(source -> source.matches(stack));
     }
 
     /**
-     * 计算输入栈中每件物品可回收的 ME；普通容器加上存储量，末影容器只回收本体。
-     * 输入资格先按原栈校验，避免附魔或其他额外组件随容器一起被低价吞掉。
+     * 计算输入栈中每件物品可回收的 ME，输入资格与金额始终由服务端校验。
+     * 两种回收模式下，普通矿质容器均按本体价格加内部存储 ME 结算，末影容器只回收本体。
+     * 全物品模式允许回收特殊状态物品，但附魔、损伤及容器内的物品不额外计价。
      *
      * @param stack 准备放入转化桌或传输接口的物品栈
      * @return 每件可到账的 ME；不允许输入或金额溢出时为空
@@ -293,7 +310,9 @@ public final class OreConversionPrices {
         OptionalLong base = price(stack.getItem());
         if (base.isEmpty()) return OptionalLong.empty();
         if (stack.getItem() instanceof OreContainerItem container) {
+            // 存储 ME 会随容器本体一起消耗，两种模式都必须计入，避免全物品回收时丢失余额。
             long stored = container.storedMe(stack);
+            // 超出 long 上限时拒绝整件回收，不能截断金额后仍消耗容器。
             if (base.getAsLong() > Long.MAX_VALUE - stored) return OptionalLong.empty();
             return OptionalLong.of(base.getAsLong() + stored);
         }
@@ -319,6 +338,19 @@ public final class OreConversionPrices {
             return isPlain(eternalCoal.copyWithoutOwnerForDeposit(stack));
         }
         return isPlain(stack);
+    }
+
+    /** 从当前服务器存档读取规则，避免切换世界后保留旧世界的静态状态。 */
+    public static boolean convertAllItems() {
+        MinecraftServer server = net.neoforged.neoforge.server.ServerLifecycleHooks.getCurrentServer();
+        return server != null && server.overworld() != null
+                && com.lazeroX.ore_craft.player.OreConversionSavedData.get(server).convertAllItems();
+    }
+
+    /** 两端共用的输入校验；全物品模式只放宽状态，不为未定价物品生成价格。 */
+    public static boolean isValidForDeposit(ItemStack stack, boolean allItems) {
+        return !stack.isEmpty() && stack.getCount() > 0 && stack.getCount() <= stack.getMaxStackSize()
+                && (allItems || isPlainForDeposit(stack));
     }
 
     /** 判断物品栈是否非空、未损坏且不带数据组件。 */

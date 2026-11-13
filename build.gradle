@@ -16,6 +16,20 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 
+repositories {
+    maven {
+        url = 'https://maven.blamejared.com'
+        content { includeGroup 'mezz.jei' }
+    }
+}
+
+dependencies {
+    // JEI 为可选集成，编译只依赖其公开 API。
+    compileOnly 'mezz.jei:jei-1.21.1-common-api:19.21.0.247'
+    compileOnly 'mezz.jei:jei-1.21.1-neoforge-api:19.21.0.247'
+    runtimeOnly 'mezz.jei:jei-1.21.1-neoforge:19.21.0.247'
+}
+
 neoForge {
     version = neo_version
 

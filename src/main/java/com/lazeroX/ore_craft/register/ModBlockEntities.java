@@ -6,17 +6,24 @@ import com.lazeroX.ore_craft.block.entity.OreConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreExperienceConverterBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreConversionMachineBlockEntity;
 import com.lazeroX.ore_craft.block.entity.OreContainerConversionTableBlockEntity;
+import com.lazeroX.ore_craft.block.entity.OreCraftingTableBlockEntity;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import java.util.function.Supplier;
 
 /** 集中注册需要逐帧渲染或保存状态的方块实体类型。 */
 public final class ModBlockEntities {
     /** 方块实体延迟注册器。 */
     private static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES =
             DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, Ore_craft.MODID);
+
+    /** 仅基础矿质合成台保存供能容器，合成网格按原版规则随菜单返还。 */
+    public static final Supplier<BlockEntityType<OreCraftingTableBlockEntity>> ORE_CRAFTING_TABLE =
+            BLOCK_ENTITY_TYPES.register("ore_crafting_table", () -> BlockEntityType.Builder.of(
+                    OreCraftingTableBlockEntity::new, ModBlocks.ORE_CRAFTING_TABLE.get()).build(null));
 
     /** 仅基础矿质转化桌保存交易槽，矿质转化桌+继续不创建方块实体。 */
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<OreContainerConversionTableBlockEntity>> ORE_CONTAINER_CONVERSION_TABLE =

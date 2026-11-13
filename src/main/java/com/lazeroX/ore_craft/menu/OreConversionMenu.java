@@ -19,6 +19,7 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -45,6 +46,8 @@ public class OreConversionMenu extends AbstractContainerMenu {
     private static final int ITEM_ICON_SIZE = 16;
     /** 是否强制通过交易槽中的矿质容器结算。 */
     private final boolean containerBacked;
+    /** 合成台为三阶网格腾出左页上半区，交易行为仍与普通转化桌相同。 */
+    private final boolean craftingLayout;
     /** 该菜单绑定的转化桌坐标。 */
     private final BlockPos pos;
     /** 转化桌所在世界，用于校验菜单有效性。 */
@@ -97,8 +100,25 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param containerBacked 为 true 时只提供交易容器槽，交易不得回退到全局余额
      */
     public OreConversionMenu(int id, Inventory inventory, BlockPos pos, boolean containerBacked) {
-        super(containerBacked ? ModMenus.ORE_CONTAINER_CONVERSION_MENU.get() : ModMenus.ORE_CONVERSION_MENU.get(), id);
+        this(containerBacked ? ModMenus.ORE_CONTAINER_CONVERSION_MENU.get() : ModMenus.ORE_CONVERSION_MENU.get(),
+                id, inventory, pos, containerBacked, false);
+    }
+
+    /**
+     * 创建转化桌或带合成功能的扩展菜单，共享交易、学习及持久容器规则。
+     *
+     * @param type 当前方块的菜单注册类型
+     * @param id 菜单编号
+     * @param inventory 玩家物品栏
+     * @param pos 桌子坐标
+     * @param containerBacked 是否仅通过交易容器结算
+     * @param craftingLayout 是否使用为合成区预留空间的槽位坐标
+     */
+    protected OreConversionMenu(MenuType<?> type, int id, Inventory inventory, BlockPos pos,
+                                boolean containerBacked, boolean craftingLayout) {
+        super(type, id);
         this.containerBacked = containerBacked;
+        this.craftingLayout = craftingLayout;
         this.oreContainers = new SimpleContainer(containerBacked ? 0 : 2);
         this.pos = pos.immutable();
         this.level = inventory.player.level();
@@ -110,10 +130,13 @@ public class OreConversionMenu extends AbstractContainerMenu {
         this.tradeContainer = table == null ? new SimpleContainer(1) : table.inventory();
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9, 41 + column * 19, 114 + row * 19));
+                addSlot(new Slot(inventory, column + row * 9 + 9,
+                        craftingLayout ? 30 + column * 18 : 41 + column * 19,
+                        craftingLayout ? 154 + row * 18 : 114 + row * 19));
             }
         }
-        for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column, 41 + column * 19, 174));
+        for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column,
+                craftingLayout ? 30 + column * 18 : 41 + column * 19, craftingLayout ? 212 : 174));
         // 同时移除客户端和服务端的无用端口，而非仅隐藏画面，避免出现不可见的可操作槽位。
         if (containerBacked) {
             addContainerSlot(2, TRADE_CONTAINER_X, TRADE_CONTAINER_Y);
@@ -140,6 +163,11 @@ public class OreConversionMenu extends AbstractContainerMenu {
         // 两轴各补上剩余空间的一半；槽位使用整数坐标，半像素按最近像素取整。
         int itemX = Math.round(x * 432 / 390.0F) + Math.round((frameWidth - ITEM_ICON_SIZE) / 2.0F);
         int itemY = Math.round(y * 228 / 206.0F) + Math.round((frameHeight - ITEM_ICON_SIZE) / 2.0F);
+        // 合成台直接使用逻辑像素，将充提口放在网格下方、背包上方。
+        if (craftingLayout) {
+            itemX = portIndex == 0 ? 132 : 168;
+            itemY = 118;
+        }
         // 槽位对象在菜单整个生命周期中校验物品；交易槽不自动搬运 ME。
         addSlot(new Slot(storage, storageIndex, itemX, itemY) {
             /** 按槽位用途校验矿质容器类型。 */
@@ -231,9 +259,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
 
     /**
      * 从背包物品的默认状态学习类型；只有原物品本身满足兑换规则时才消耗并转入 ME。
-     * 普通矿质容器回收本体和内部存储量；末影容器只回收本体，不把既有账户余额重复计价。
+     * 两种回收模式下普通矿质容器均回收本体和内部存储量，末影容器只回收本体。
      * 基础版把回收所得写入交易槽的容器，容量不足时不消耗原物品。
-     * 附魔、耐久等不允许输入的特殊组件不会被转化，原物品保留在背包。
+     * 全物品模式允许特殊状态物品回收，附魔、损伤和容器内的物品不额外计价。
      *
      * @param player 操作转化桌的服务端玩家
      * @param slotIndex 容器中的背包格子索引
@@ -247,18 +275,27 @@ public class OreConversionMenu extends AbstractContainerMenu {
         // 学习目录按物品 ID 保存，提取时生成该物品的默认状态；用同样的默认栈校验可学习性。
         // 这里不修改原栈，附魔、损伤、容器 ME 和其他数据都不会被写进学习记录。
         ItemStack learningStack = new ItemStack(stack.getItem());
-        if (!OreConversionPrices.isPlain(learningStack)) { status(player, "special_state"); return ItemStack.EMPTY; }
-        if (!OreConversionPrices.canLearn(learningStack)) { status(player, "unpriced"); return ItemStack.EMPTY; }
+        boolean canLearn = OreConversionPrices.canLearn(learningStack);
+        boolean canDeposit = OreConversionPrices.canDeposit(stack);
+        if (!canLearn && !canDeposit) {
+            status(player, OreConversionPrices.isPlain(learningStack) ? "unpriced" : "special_state");
+            return ItemStack.EMPTY;
+        }
         OreConversionSavedData data = OreConversionSavedData.get(player);
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (data.account(player).learned().size() >= OreConversionSavedData.MAX_LEARNED && !data.account(player).knows(id)) {
-            status(player, "learn_limit"); return ItemStack.EMPTY;
+        boolean known = data.account(player).knows(id);
+        if (data.account(player).learned().size() >= OreConversionSavedData.MAX_LEARNED && !known) {
+            // 全物品模式只限制新增学习，不阻止已定价物品回收。
+            if (!data.convertAllItems() || !canDeposit) {
+                status(player, "learn_limit"); return ItemStack.EMPTY;
+            }
+            canLearn = false;
         }
         long converted = 0;
         ItemStack moved = ItemStack.EMPTY;
         // 兑换按原栈计算，普通容器的存储量只在此时计入，学习记录仍是默认空容器。
         OptionalLong unit = OreConversionPrices.depositValue(stack);
-        if (unit.isEmpty() && OreConversionPrices.canDeposit(stack)) {
+        if (unit.isEmpty() && canDeposit) {
             status(player, "overflow");
             return ItemStack.EMPTY;
         }
@@ -278,9 +315,9 @@ public class OreConversionMenu extends AbstractContainerMenu {
             broadcastChanges();
         }
         // 价格交易和学习记录是两个独立结果：只允许学习的物品不会从背包中移除。
-        boolean learned = data.learn(player, id);
+        boolean learned = canLearn && data.learn(player, id);
         sync(player);
-        status(player, converted > 0 ? learned ? "converted_learned" : "converted_known"
+        status(player, converted > 0 ? learned ? "converted_learned" : known ? "converted_known" : "converted_only"
                 : learned ? "learned" : "already_learned", converted);
         return moved;
     }
@@ -410,7 +447,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param player 当前交易玩家，也是末影容器连接的账户所有者
      * @return 当前可支付的 ME；空交易槽为零
      */
-    private long tradeBalance(ServerPlayer player) {
+    protected long tradeBalance(ServerPlayer player) {
         return containerBacked
                 ? OreMachineEnergy.stored(player.getServer(), player.getUUID(), tradeContainer.getItem(0))
                 : OreConversionSavedData.get(player).account(player).balance();
@@ -438,7 +475,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
      * @param amount 要支付的正数 ME
      * @return 扣款成功时为 true
      */
-    private boolean debitTrade(ServerPlayer player, long amount) {
+    protected boolean debitTrade(ServerPlayer player, long amount) {
         if (!containerBacked) return OreConversionSavedData.get(player).debit(player, amount);
         ItemStack updated = OreMachineEnergy.debit(player.getServer(), player.getUUID(), tradeContainer.getItem(0), amount);
         if (updated == null) return false;
@@ -456,7 +493,7 @@ public class OreConversionMenu extends AbstractContainerMenu {
     }
 
     /** 验证请求玩家当前打开的正是此菜单且仍可交互。 */
-    private boolean validRequest(ServerPlayer player) {
+    protected boolean validRequest(ServerPlayer player) {
         return player.containerMenu == this && stillValid(player);
     }
 

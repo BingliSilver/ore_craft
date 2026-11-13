@@ -1,0 +1,6 @@
+Generator: built-in image_gen
+Source: soul_separation_eye_source.png
+Game texture: ../src/main/resources/assets/ore_craft/textures/item/soul_separation_eye.png
+Preparation: nearest-neighbor resize to 64x64 RGBA, preserving generated transparency.
+
+Use case: stylized-concept. Asset type: Minecraft inventory item sprite, Soul Separation Eye (魂离之眼), a magical item that lets the player leave their body as a flying spirit. Create a single compact pixel-art spectral eye: almond-shaped dark obsidian and muted violet rim, luminous icy cyan iris with a vertical deep pupil, pale soul-white highlights and two small curling spectral wisps integrated into the silhouette. Sharp chunky pixel clusters, limited palette, strong readability at 32x32 or 64x64, vanilla Minecraft-compatible inventory art, front view, centered and filling 80 percent of square canvas. Actual transparent background. No text, letters, numbers, UI, scenery, checkerboard, soft blur, cast shadow, or extra objects.

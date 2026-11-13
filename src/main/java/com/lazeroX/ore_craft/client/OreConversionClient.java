@@ -26,6 +26,8 @@ public final class OreConversionClient {
     private static Map<ResourceLocation, OreConversionNetwork.PriceEntry> prices = Map.of();
     /** 正在接收的价格分块；末块到达前不会发布为完整目录。 */
     private static Map<ResourceLocation, OreConversionNetwork.PriceEntry> incomingPrices;
+    /** 与价格目录一起发布的服务器回收规则，断线时恢复关闭。 */
+    private static boolean convertAllItems;
 
     /** 工具类不允许创建实例。 */
     private OreConversionClient() {}
@@ -54,20 +56,23 @@ public final class OreConversionClient {
             incomingPrices.put(entry.id(), entry);
         }
         if (packet.last()) {
+            convertAllItems = packet.convertAllItems();
             prices = Map.copyOf(incomingPrices);
             incomingPrices = null;
         }
     }
 
-    /** 将操作结果转交给当前转化桌或学习宝典界面，由界面校验菜单编号。 */
+    /** 将操作结果转交给转化桌、合成台或学习宝典界面，由界面校验菜单编号。 */
     public static void receiveStatus(OreConversionNetwork.StatusPayload packet) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof OreConversionScreen screen) screen.receiveStatus(packet);
         else if (minecraft.screen instanceof OreLearningScreen screen) screen.receiveStatus(packet);
+        else if (minecraft.screen instanceof OreCraftingScreen screen) screen.receiveStatus(packet);
     }
 
     /** 玩家退出服务器时清理所有服务端同步缓存。 */
     public static void clear() {
+        convertAllItems = false;
         balance = 0;
         catalog = List.of();
         learnedIds = Set.of();
@@ -93,6 +98,9 @@ public final class OreConversionClient {
     /** 判断物品栈能否作为普通物品输入转化桌。 */
     public static boolean canConvert(ItemStack stack) {
         OreConversionNetwork.PriceEntry entry = prices.get(BuiltInRegistries.ITEM.getKey(stack.getItem()));
-        return entry != null && entry.convertible() && OreConversionPrices.isPlainForDeposit(stack);
+        return entry != null && entry.convertible() && OreConversionPrices.isValidForDeposit(stack, convertAllItems);
     }
+
+    /** @return 最近完整价格快照对应的全物品回收开关 */
+    public static boolean convertAllItems() { return convertAllItems; }
 }

@@ -6,14 +6,17 @@ import com.lazeroX.ore_craft.item.EmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EmeraldNuggetItem;
 import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
+import com.lazeroX.ore_craft.item.ItemSynthesisCoreItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
 import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
+import com.lazeroX.ore_craft.item.MineralTeleportScepterItem;
 import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.OreExperienceConverterBlockItem;
 import com.lazeroX.ore_craft.item.OreLearningBookItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
+import com.lazeroX.ore_craft.item.SoulSeparationEyeItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
@@ -23,6 +26,11 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public final class ModItems {
     /** 创造模式选项卡也从此注册器读取全部模组物品。 */
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(Ore_craft.MODID);
+
+    /** 矿质合成台的可放置物品，自动进入本模组创造模式目录。 */
+    public static final DeferredItem<?> ORE_CRAFTING_TABLE_ITEM = ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CRAFTING_TABLE);
+    /** 直接使用账户 ME 的矿质合成台+物品。 */
+    public static final DeferredItem<?> ORE_CRAFTING_TABLE_PLUS_ITEM = ITEMS.registerSimpleBlockItem(ModBlocks.ORE_CRAFTING_TABLE_PLUS);
 
     /** 矿质转化桌对应的可放置物品。 */
     public static final DeferredItem<?> ORE_CONVERSION_TABLE_ITEM =
@@ -89,17 +97,31 @@ public final class ModItems {
                     new RadiantDiamondHeartItem(new Item.Properties().durability(6).stacksTo(1)));
 
     /**
-     * 不可堆叠的矿质照明核心：背包中携带时自动照明，右键用矿质容器中的 ME 制造火把。
+     * 不可堆叠的矿质照明核心：背包中携带时自动照明，右键支付 ME 制造火把。
+     * 携带末影容器或穿戴末影容器附魔盔甲时使用全局账户，否则由普通容器供能。
      * 每件核心单独保存自动照明开关；同一玩家携带多件时不会重复放置。
      */
     public static final DeferredItem<MineralIlluminationCoreItem> MINERAL_ILLUMINATION_CORE =
             ITEMS.register("mineral_illumination_core", () ->
                     new MineralIlluminationCoreItem(new Item.Properties().stacksTo(1)));
 
+    /** 按默认 ME 等值转换原料的合成催化剂；不可堆叠，合成后原样返还。 */
+    public static final DeferredItem<ItemSynthesisCoreItem> ITEM_SYNTHESIS_CORE =
+            ITEMS.register("item_synthesis_core", () -> new ItemSynthesisCoreItem(new Item.Properties()));
+
+    /** 魂离之眼：由普通容器或已接通的全局账户支付 4096 ME 出窍 30 秒，身体承伤，右键回归。 */
+    public static final DeferredItem<SoulSeparationEyeItem> SOUL_SEPARATION_EYE =
+            ITEMS.register("soul_separation_eye", () -> new SoulSeparationEyeItem(new Item.Properties()));
+
     /** 矿质时间权杖：右键设置倍率和时长，主手潜行右键为目标方块付费加速。 */
     public static final DeferredItem<MineralTimeScepterItem> MINERAL_TIME_SCEPTER =
             ITEMS.register("mineral_time_scepter", () ->
                     new MineralTimeScepterItem(new Item.Properties().stacksTo(1)));
+
+    /** 潜行右键命名当前位置，普通右键打开本人共享坐标列表的传送权杖。 */
+    public static final DeferredItem<MineralTeleportScepterItem> MINERAL_TELEPORT_SCEPTER =
+            ITEMS.register("mineral_teleport_scepter", () ->
+                    new MineralTeleportScepterItem(new Item.Properties().stacksTo(1)));
 
     /** 容量 10,240 ME 的铜质矿质容器。 */
     public static final DeferredItem<OreContainerItem> COPPER_ORE_CONTAINER =

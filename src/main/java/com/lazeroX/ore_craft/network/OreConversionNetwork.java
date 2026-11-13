@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.client.OreConversionClient;
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
+import com.lazeroX.ore_craft.menu.OreCraftingMenu;
 import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -42,7 +43,15 @@ public final class OreConversionNetwork {
      * @param event 网络载荷注册事件
      */
     public static void register(RegisterPayloadHandlersEvent event) {
-        event.registrar("8")
+        event.registrar("9")
+                .playToServer(CraftingPayload.TYPE, CraftingPayload.CODEC, (packet, context) -> {
+                    // 配方、余额及原料全部由当前服务端菜单重新验证。
+                    if (context.player() instanceof ServerPlayer player
+                            && player.containerMenu instanceof OreCraftingMenu menu
+                            && menu.containerId == packet.containerId()) {
+                        menu.transferRecipe(player, packet.recipeId(), packet.maximum());
+                    }
+                })
                 .playToServer(ActionPayload.TYPE, ActionPayload.CODEC, (packet, context) -> {
                     if (!(context.player() instanceof ServerPlayer player)) return;
                     // 校验菜单实例和容器 ID，拒绝旧界面或其他机器伪造的操作请求。
@@ -76,6 +85,26 @@ public final class OreConversionNetwork {
             sendPrices(player);
             sendState(player, -1);
         }
+    }
+
+    /** 客户端发送已注册的类型化载荷，服务端仍需验证菜单及操作权限。 */
+    public static void sendToServer(CustomPacketPayload packet) { PacketDistributor.sendToServer(packet); }
+
+    /**
+     * JEI 合成请求只携带配方标识，不信任客户端库存或费用。
+     * @param containerId 当前菜单编号
+     * @param recipeId 服务端配方标识
+     * @param maximum 是否请求批量填充
+     */
+    public record CraftingPayload(int containerId, ResourceLocation recipeId, boolean maximum) implements CustomPacketPayload {
+        /** 合成填充请求的注册类型。 */
+        public static final Type<CraftingPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "crafting"));
+        /** 只传输服务端可以重新验证的三个字段。 */
+        public static final StreamCodec<RegistryFriendlyByteBuf, CraftingPayload> CODEC = StreamCodec.of(
+                (buf, packet) -> { buf.writeVarInt(packet.containerId()); buf.writeResourceLocation(packet.recipeId()); buf.writeBoolean(packet.maximum()); },
+                buf -> new CraftingPayload(buf.readVarInt(), buf.readResourceLocation(), buf.readBoolean()));
+        /** 返回此载荷的注册类型。 */
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
     /** 玩家重生后重新发送价格目录和账户数据。 */
@@ -127,7 +156,7 @@ public final class OreConversionNetwork {
         for (int chunk = 0; chunk < chunks; chunk++) {
             int from = chunk * 256;
             PacketDistributor.sendToPlayer(player, new PricesPayload(chunk == 0, chunk == chunks - 1,
-                    allPrices.subList(from, Math.min(from + 256, allPrices.size()))));
+                    allPrices.subList(from, Math.min(from + 256, allPrices.size())), OreConversionPrices.convertAllItems()));
         }
     }
 
@@ -219,13 +248,15 @@ public final class OreConversionNetwork {
      * @param first 是否为本次传输的首块
      * @param last 是否为本次传输的末块
      * @param entries 当前分块中的价格条目
+     * @param convertAllItems 当前世界的回收开关，与完整价格目录一起发布
      */
-    public record PricesPayload(boolean first, boolean last, List<PriceEntry> entries) implements CustomPacketPayload {
+    public record PricesPayload(boolean first, boolean last, List<PriceEntry> entries, boolean convertAllItems) implements CustomPacketPayload {
         public static final Type<PricesPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(Ore_craft.MODID, "conversion_prices"));
         public static final StreamCodec<RegistryFriendlyByteBuf, PricesPayload> CODEC = StreamCodec.of(
                 (buf, packet) -> {
                     buf.writeBoolean(packet.first);
                     buf.writeBoolean(packet.last);
+                    buf.writeBoolean(packet.convertAllItems);
                     buf.writeVarInt(packet.entries.size());
                     for (PriceEntry entry : packet.entries) {
                         buf.writeResourceLocation(entry.id());
@@ -236,13 +267,14 @@ public final class OreConversionNetwork {
                 buf -> {
                     boolean first = buf.readBoolean();
                     boolean last = buf.readBoolean();
+                    boolean convertAllItems = buf.readBoolean();
                     int size = buf.readVarInt();
                     // 单个价格载荷最多包含 256 条，匹配服务端分块大小。
                     if (size < 0 || size > 256) throw new IllegalArgumentException("Invalid conversion price chunk size");
                     List<PriceEntry> entries = new ArrayList<>(size);
                     for (int i = 0; i < size; i++) entries.add(new PriceEntry(
                             buf.readResourceLocation(), buf.readLong(), buf.readBoolean()));
-                    return new PricesPayload(first, last, entries);
+                    return new PricesPayload(first, last, entries, convertAllItems);
                 });
 
         /** 返回此载荷的注册类型。 */

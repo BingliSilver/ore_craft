@@ -129,7 +129,7 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
 
     /**
      * 用当前世界的附魔注册表构建候选项，已有附魔也保留以供降级或移除。
-     * 书可以接受所有附魔；普通装备遵守 NeoForge 的物品扩展规则。
+     * 书同样不能新增铁砧专用附魔；普通装备还需遵守 NeoForge 的物品扩展规则。
      * 刷新仅保留仍可选择的用户高亮项，不自动选择首项，也不提交新的等级选择。
      */
     private void refresh() {
@@ -146,6 +146,8 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
         ItemEnchantments existing = target.getAllEnchantments(registry);
         ItemEnchantments stored = EnchantmentHelper.getEnchantmentsForCrafting(target);
         filtered = registry.listElements().filter(holder -> {
+            // 已有专用附魔保留展示入口，以便移除；不能从列表新增。
+            if (!EnchantLevelLimits.canCreateAtTable(holder) && existing.getLevel(holder) == 0) return false;
             if (!target.is(Items.BOOK) && !target.is(Items.ENCHANTED_BOOK)
                     && !target.supportsEnchantment(holder) && existing.getLevel(holder) == 0) return false;
             if (existing.getLevel(holder) > stored.getLevel(holder)) return false;
