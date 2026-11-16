@@ -10,6 +10,7 @@ import com.lazeroX.ore_craft.menu.OreExperienceConverterMenu;
 import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import com.lazeroX.ore_craft.menu.MineralTeleportScepterMenu;
+import com.lazeroX.ore_craft.menu.PortableOreConversionInterfaceMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -45,6 +46,10 @@ public final class ModMenus {
     /** 学习宝典的独立菜单类型，避免进入转化桌的提取网络处理分支。 */
     public static final RegistryObject<MenuType<OreLearningMenu>> ORE_LEARNING_MENU =
             MENU_TYPES.register("ore_learning_book", () -> IForgeMenuType.create(OreLearningMenu::new));
+
+    /** 便携式单向回收接口菜单，附加数据用于确认打开时的持有手。 */
+    public static final RegistryObject<MenuType<PortableOreConversionInterfaceMenu>> PORTABLE_ORE_CONVERSION_INTERFACE_MENU =
+            MENU_TYPES.register("portable_ore_conversion_interface", () -> IForgeMenuType.create(PortableOreConversionInterfaceMenu::new));
 
     /** 矿质附魔台的外观预览菜单类型。 */
     public static final RegistryObject<MenuType<OreEnchantingMenu>> ORE_ENCHANTING_MENU =

@@ -15,6 +15,7 @@ import com.lazeroX.ore_craft.item.MiningTntBlockItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.item.OreExperienceConverterBlockItem;
 import com.lazeroX.ore_craft.item.OreLearningBookItem;
+import com.lazeroX.ore_craft.item.PortableOreConversionInterfaceItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import com.lazeroX.ore_craft.item.SoulSeparationEyeItem;
 import net.minecraft.world.item.Item;
@@ -45,6 +46,11 @@ public final class ModItems {
     /** 便携式矿质学习宝典：无损学习物品，与转化桌共享记录，不提供提取或 ME 交易。 */
     public static final RegistryObject<OreLearningBookItem> ORE_LEARNING_BOOK =
             ITEMS.register("ore_learning_book", () -> new OreLearningBookItem(new Item.Properties().stacksTo(1)));
+
+    /** 随身单向矿质回收接口；容器与其 ME 余额保存在接口物品数据中。 */
+    public static final RegistryObject<PortableOreConversionInterfaceItem> PORTABLE_ORE_CONVERSION_INTERFACE =
+            ITEMS.register("portable_ore_conversion_interface", () ->
+                    new PortableOreConversionInterfaceItem(new Item.Properties().stacksTo(1)));
 
     /** 矿质附魔台的可放置方块物品，暂时没有额外使用效果。 */
     public static final RegistryObject<BlockItem> ORE_ENCHANTING_TABLE_ITEM =

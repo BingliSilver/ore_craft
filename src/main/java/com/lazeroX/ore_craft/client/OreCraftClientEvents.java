@@ -53,6 +53,7 @@ public final class OreCraftClientEvents {
             // 两种转化桌共用界面，容器版由菜单标记显示额外的交易槽。
             MenuScreens.register(ModMenus.ORE_CONTAINER_CONVERSION_MENU.get(), OreConversionScreen::new);
             MenuScreens.register(ModMenus.ORE_LEARNING_MENU.get(), OreLearningScreen::new);
+            MenuScreens.register(ModMenus.PORTABLE_ORE_CONVERSION_INTERFACE_MENU.get(), PortableOreConversionInterfaceScreen::new);
             MenuScreens.register(ModMenus.ORE_ENCHANTING_MENU.get(), OreEnchantingScreen::new);
             MenuScreens.register(ModMenus.ORE_CONVERTER_MENU.get(), OreConverterScreen::new);
             MenuScreens.register(ModMenus.ORE_CONVERSION_MACHINE_MENU.get(), OreConversionMachineScreen::new);
