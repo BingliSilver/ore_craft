@@ -11,6 +11,7 @@ import com.lazeroX.ore_craft.menu.OreConversionMachineMenu;
 import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import com.lazeroX.ore_craft.menu.MineralTeleportScepterMenu;
 import com.lazeroX.ore_craft.menu.PortableOreConversionInterfaceMenu;
+import com.lazeroX.ore_craft.menu.GeologicalDetectorMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -74,6 +75,10 @@ public final class ModMenus {
     /** 传送权杖的命名及坐标列表菜单，额外数据包含持有手和服务端捕获的位置。 */
     public static final RegistryObject<MenuType<MineralTeleportScepterMenu>> MINERAL_TELEPORT_SCEPTER_MENU =
             MENU_TYPES.register("mineral_teleport_scepter", () -> IForgeMenuType.create(MineralTeleportScepterMenu::new));
+
+    /** 地质探测器的无槽位矿石与半径设置菜单，支持主手和副手配置。 */
+    public static final RegistryObject<MenuType<GeologicalDetectorMenu>> GEOLOGICAL_DETECTOR_MENU =
+            MENU_TYPES.register("geological_detector", () -> IForgeMenuType.create(GeologicalDetectorMenu::new));
 
     /** 菜单类型由注册生命周期管理，不创建工具类实例。 */
     private ModMenus() {}

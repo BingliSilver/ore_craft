@@ -18,6 +18,7 @@ import com.lazeroX.ore_craft.item.OreLearningBookItem;
 import com.lazeroX.ore_craft.item.PortableOreConversionInterfaceItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import com.lazeroX.ore_craft.item.SoulSeparationEyeItem;
+import com.lazeroX.ore_craft.item.GeologicalDetectorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -133,6 +134,10 @@ public final class ModItems {
     public static final RegistryObject<MineralTeleportScepterItem> MINERAL_TELEPORT_SCEPTER =
             ITEMS.register("mineral_teleport_scepter", () ->
                     new MineralTeleportScepterItem(new Item.Properties().stacksTo(1)));
+
+    /** 潜行右键配置矿石与范围、普通右键消耗随身矿质容器 ME 的地质探测器。 */
+    public static final RegistryObject<GeologicalDetectorItem> GEOLOGICAL_DETECTOR =
+            ITEMS.register("geological_detector", () -> new GeologicalDetectorItem(new Item.Properties().stacksTo(1)));
 
     /** 容量 10,240 ME 的铜质矿质容器。 */
     public static final RegistryObject<OreContainerItem> COPPER_ORE_CONTAINER =

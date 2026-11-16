@@ -4,12 +4,14 @@ import com.lazeroX.ore_craft.command.OreConversionCommands;
 import com.lazeroX.ore_craft.event.MiningFortuneEvents;
 import com.lazeroX.ore_craft.event.MineralTimeAcceleration;
 import com.lazeroX.ore_craft.event.MineralTeleportation;
+import com.lazeroX.ore_craft.event.GeologicalDetection;
 import com.lazeroX.ore_craft.event.OreExperienceConverterInteraction;
 import com.lazeroX.ore_craft.gametest.OreConversionGameTests;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import com.lazeroX.ore_craft.network.OreEnchantingNetwork;
 import com.lazeroX.ore_craft.network.SoulSeparationNetwork;
 import com.lazeroX.ore_craft.network.MineralTeleportScepterNetwork;
+import com.lazeroX.ore_craft.network.GeologicalDetectorNetwork;
 import com.lazeroX.ore_craft.register.ModBlocks;
 import com.lazeroX.ore_craft.register.ModBlockEntities;
 import com.lazeroX.ore_craft.register.ModCapabilities;
@@ -68,6 +70,7 @@ public class Ore_craft {
         modEventBus.addListener(OreEnchantingNetwork::register);
         modEventBus.addListener(SoulSeparationNetwork::register);
         modEventBus.addListener(MineralTeleportScepterNetwork::register);
+        modEventBus.addListener(GeologicalDetectorNetwork::register);
         modEventBus.addListener((RegisterGameTestsEvent event) -> event.register(OreConversionGameTests.class));
         MinecraftForge.EVENT_BUS.addListener(OreConversionPrices::registerReloadListener);
         MinecraftForge.EVENT_BUS.addListener(OreConversionPrices::onServerStarted);
@@ -84,6 +87,9 @@ public class Ore_craft {
         MinecraftForge.EVENT_BUS.addListener(MineralTimeAcceleration::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(MineralTeleportation::onServerStopped);
         MinecraftForge.EVENT_BUS.addListener(MineralTeleportation::onEntityLeaveLevel);
+        // 探测任务统一分批执行，停服后释放持有的世界和物品快照。
+        MinecraftForge.EVENT_BUS.addListener(GeologicalDetection::onServerTick);
+        MinecraftForge.EVENT_BUS.addListener(GeologicalDetection::onServerStopped);
         // 两端统一将经验转化器的潜行右键交给方块，确保手持物品时也能切换开关。
         MinecraftForge.EVENT_BUS.addListener(OreExperienceConverterInteraction::onRightClickBlock);
     }

@@ -60,6 +60,7 @@ public final class OreCraftClientEvents {
             MenuScreens.register(ModMenus.ORE_EXPERIENCE_CONVERTER_MENU.get(), OreExperienceConverterScreen::new);
             MenuScreens.register(ModMenus.MINERAL_TIME_SCEPTER_MENU.get(), MineralTimeScepterScreen::new);
             MenuScreens.register(ModMenus.MINERAL_TELEPORT_SCEPTER_MENU.get(), MineralTeleportScepterScreen::new);
+            MenuScreens.register(ModMenus.GEOLOGICAL_DETECTOR_MENU.get(), GeologicalDetectorScreen::new);
         });
     }
 
