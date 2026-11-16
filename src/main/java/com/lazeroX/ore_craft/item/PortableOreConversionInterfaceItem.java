@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * 随身矿质转化接口，只能把可回收物品兑换为 ME 并登记物品学习记录。
- * 矿质容器及其中余额保存在接口物品 NBT，接口不提供 ME 提取能力。
+ * 关闭界面时返还带有当前余额的矿质容器及未回收原料，背包装不下的部分掉落；接口不提供 ME 提取能力。
  */
 public final class PortableOreConversionInterfaceItem extends Item {
     /**

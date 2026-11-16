@@ -7,6 +7,7 @@ import com.lazeroX.ore_craft.register.ModMenus;
 import com.lazeroX.ore_craft.value.OreConversionPrices;
 import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -21,6 +22,7 @@ import java.util.OptionalLong;
 
 /**
  * 便携接口的单向回收菜单：输入物品被回收后存入物品 NBT 中的矿质容器并写入共享学习记录。
+ * 两个槽位在使用期间由服务端备份到接口物品，关闭菜单时返还剩余原料和带余额的容器并清除备份。
  * 菜单只有原料输入和容器槽，不包含目录提取、余额扣除或 ME 到物品的转换操作。
  */
 public final class PortableOreConversionInterfaceMenu extends AbstractContainerMenu {
@@ -32,10 +34,16 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
     private static final int INVENTORY_END = INVENTORY_START + 36;
     /** 容器数据在便携接口物品 NBT 中的键名。 */
     private static final String CONTAINER_KEY = "PortableConversionContainer";
+    /** 未回收原料的保存键；容量不足时保留原物品及其完整 NBT。 */
+    private static final String INPUT_KEY = "PortableConversionInput";
+    /** 打开菜单的玩家背包，用于区分逻辑端并标记持有物品的数据变化。 */
+    private final Inventory playerInventory;
+    /** 接口本体所在的背包索引；副手为 40，菜单打开期间禁止移动该槽物品。 */
+    private final int interfaceInventorySlot;
     /** 打开菜单的持有手及其物品引用，防止把已切换走的另一件接口当作目标。 */
     private final InteractionHand hand;
     private final ItemStack openedStack;
-    /** 输入物品是菜单临时槽；容器槽的变化立即写入接口本体。 */
+    /** 两个会话槽；使用期间监听变化进行备份，关闭时清空并返还其中的物品。 */
     private final SimpleContainer inventory = new SimpleContainer(2);
 
     /**
@@ -50,7 +58,7 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
     }
 
     /**
-     * 创建输入槽、容器槽和玩家背包；已有容器从接口物品数据恢复。
+     * 创建输入槽、容器槽和玩家背包；从接口恢复两个槽位后注册服务端保存监听。
      *
      * @param id 菜单编号
      * @param playerInventory 玩家背包
@@ -58,32 +66,59 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
      */
     public PortableOreConversionInterfaceMenu(int id, Inventory playerInventory, InteractionHand hand) {
         super(ModMenus.PORTABLE_ORE_CONVERSION_INTERFACE_MENU.get(), id);
+        this.playerInventory = playerInventory;
+        interfaceInventorySlot = hand == InteractionHand.MAIN_HAND ? playerInventory.selected : 40;
         this.hand = hand;
         openedStack = playerInventory.player.getItemInHand(hand);
         ItemStack storedContainer = readContainer(openedStack);
         inventory.setItem(CONTAINER_SLOT, storedContainer);
+        if (openedStack.hasTag()) {
+            inventory.setItem(INPUT_SLOT, ItemStack.of(openedStack.getTag().getCompound(INPUT_KEY)));
+        }
+        // 必须先恢复两个槽再监听，避免加载第一个槽时覆盖尚未恢复的另一个槽。
+        inventory.addListener(changed -> saveInventory());
+        // 原料槽仅限制放入规则；已保存的原料即使价格配置改变也仍可取回。
         addSlot(new Slot(inventory, INPUT_SLOT, 62, 76) {
+            /** 只允许有回收价格的物品进入原料槽。 */
             @Override public boolean mayPlace(ItemStack stack) {
                 return OreConversionPrices.canDeposit(stack);
             }
         });
+        // 容器的替换、ME 更新与取出均由库存监听统一保存。
         addSlot(new Slot(inventory, CONTAINER_SLOT, 158, 76) {
+            /** 只接受普通或末影矿质容器。 */
             @Override public boolean mayPlace(ItemStack stack) { return OreMachineEnergy.isContainer(stack); }
-            @Override public void setChanged() {
-                super.setChanged();
-                // 每次替换容器后将完整 NBT 写回接口，关闭菜单也不会带走或清空余额。
-                writeContainer(openedStack, getItem());
-            }
         });
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(playerInventory, 9 + row * 9 + column,
-                        32 + column * 18, 145 + row * 18));
+                addPlayerSlot(9 + row * 9 + column, 32 + column * 18, 145 + row * 18);
             }
         }
         for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(playerInventory, column, 32 + column * 18, 203));
+            addPlayerSlot(column, 32 + column * 18, 203);
         }
+    }
+
+    /**
+     * 添加玩家背包槽并锁定接口本体，防止持久库存的宿主被移动或放入自身。
+     *
+     * @param index 玩家背包中的槽位索引
+     * @param x 菜单横坐标，单位为像素
+     * @param y 菜单纵坐标，单位为像素
+     */
+    private void addPlayerSlot(int index, int x, int y) {
+        // 同时限制取出和放入，覆盖普通点击、拖拽与快速移动等原版操作。
+        addSlot(new Slot(playerInventory, index, x, y) {
+            /** 接口本体所在槽位不接受其他物品替换。 */
+            @Override public boolean mayPlace(ItemStack stack) {
+                return index != interfaceInventorySlot && super.mayPlace(stack);
+            }
+
+            /** 菜单仍打开时禁止取走持有持久库存的接口。 */
+            @Override public boolean mayPickup(Player player) {
+                return index != interfaceInventorySlot && super.mayPickup(player);
+            }
+        });
     }
 
     /**
@@ -99,6 +134,35 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
     }
 
     /**
+     * 关闭菜单时将剩余原料和矿质容器返还玩家，背包装不下时按原版规则掉落。
+     * 容器保留当前完整 NBT 和 ME；死亡或断线时也由原版清理逻辑处理物品去向。
+     *
+     * @param player 关闭菜单的玩家
+     */
+    @Override
+    public void removed(Player player) {
+        super.removed(player);
+        // 只允许服务端返还，防止客户端预测产生重复物品。
+        if (player.level().isClientSide()) return;
+        clearContainer(player, inventory);
+        // 原版清理使用 removeItemNoUpdate，不会触发库存监听；必须显式移除两个空槽的备份，
+        // 否则下次打开会重新加载已经返还的物品，造成复制。
+        saveInventory();
+    }
+
+    /**
+     * 在服务端备份两个槽的完整物品数据，并通知玩家背包其持有物品已变化。
+     * 关闭时槽位已清空，同一入口会删除备份，确保返还后接口不再持有库存。
+     * 库存监听覆盖槽位点击和直接 setItem；客户端预测或槽位同步不得写回权威数据。
+     */
+    private void saveInventory() {
+        if (playerInventory.player.level().isClientSide()) return;
+        writeStoredStack(openedStack, CONTAINER_KEY, inventory.getItem(CONTAINER_SLOT));
+        writeStoredStack(openedStack, INPUT_KEY, inventory.getItem(INPUT_SLOT));
+        playerInventory.setChanged();
+    }
+
+    /**
      * 输入槽收到物品后立即按容器容量结算，且仅在成功入账时消耗原料。
      *
      * @param slotId 被点击菜单槽位
@@ -108,6 +172,8 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
      */
     @Override
     public void clicked(int slotId, int button, ClickType clickType, Player player) {
+        // 数字键及副手交换会直接访问背包，须额外保护作为交换目标的接口槽。
+        if (clickType == ClickType.SWAP && button == interfaceInventorySlot) return;
         super.clicked(slotId, button, clickType, player);
         if (player instanceof ServerPlayer serverPlayer && slotId == INPUT_SLOT && stillValid(player)) {
             convertInput(serverPlayer);
@@ -156,7 +222,7 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
     public ItemStack quickMoveStack(Player player, int slotIndex) {
         if (!stillValid(player) || slotIndex < INVENTORY_START || slotIndex >= INVENTORY_END) return ItemStack.EMPTY;
         Slot source = getSlot(slotIndex);
-        if (!source.hasItem()) return ItemStack.EMPTY;
+        if (!source.hasItem() || !source.mayPickup(player)) return ItemStack.EMPTY;
         ItemStack stack = source.getItem();
         ItemStack original = stack.copy();
         int target = OreMachineEnergy.isContainer(stack) ? CONTAINER_SLOT : INPUT_SLOT;
@@ -181,17 +247,18 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
     }
 
     /**
-     * 将当前容器写回接口物品，空槽时移除数据键以保持物品数据紧凑。
+     * 将指定槽位的完整物品数据写回接口，空槽时移除对应键。
      *
-     * @param interfaceStack 持有容器数据的便携接口
-     * @param container 要保存的容器栈
+     * @param interfaceStack 持有库存数据的便携接口
+     * @param key 对应槽位的保存键
+     * @param stack 要保存的物品栈，包含数量和完整 NBT
      */
-    private static void writeContainer(ItemStack interfaceStack, ItemStack container) {
+    private static void writeStoredStack(ItemStack interfaceStack, String key, ItemStack stack) {
         if (interfaceStack.isEmpty() || !(interfaceStack.getItem() instanceof PortableOreConversionInterfaceItem)) return;
-        if (container.isEmpty()) {
-            if (interfaceStack.hasTag()) interfaceStack.getTag().remove(CONTAINER_KEY);
+        if (stack.isEmpty()) {
+            if (interfaceStack.hasTag()) interfaceStack.getTag().remove(key);
         } else {
-            interfaceStack.getOrCreateTag().put(CONTAINER_KEY, container.save(new net.minecraft.nbt.CompoundTag()));
+            interfaceStack.getOrCreateTag().put(key, stack.save(new CompoundTag()));
         }
     }
 }
