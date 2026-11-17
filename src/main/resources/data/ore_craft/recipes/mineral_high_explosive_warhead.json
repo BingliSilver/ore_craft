@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["TBT", "DCD", "OBO"],
+  "key": {
+    "T": { "item": "minecraft:tnt" },
+    "B": { "item": "minecraft:blaze_powder" },
+    "D": { "item": "minecraft:diamond" },
+    "O": { "item": "minecraft:obsidian" },
+    "C": { "item": "ore_craft:iron_ore_container" }
+  },
+  "result": { "item": "ore_craft:mineral_high_explosive_warhead", "count": 1 }
+}

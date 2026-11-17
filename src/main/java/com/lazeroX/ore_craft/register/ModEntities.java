@@ -4,6 +4,7 @@ import com.lazeroX.ore_craft.Ore_craft;
 import com.lazeroX.ore_craft.entity.MiningPrimedTntEntity;
 import com.lazeroX.ore_craft.entity.SoulBodyEntity;
 import com.lazeroX.ore_craft.entity.MineralTeleportPortalEntity;
+import com.lazeroX.ore_craft.entity.SpatialMissileStrikeEntity;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
@@ -50,6 +51,18 @@ public final class ModEntities {
                     .noSave()
                     .noSummon()
                     .build(Ore_craft.MODID + ":mineral_teleport_portal"));
+
+    /** 空间导弹打击：逐刻同步锁定与飞行，不保存、不允许指令创建无目标实体，不阻挡其他实体。 */
+    public static final RegistryObject<EntityType<SpatialMissileStrikeEntity>> SPATIAL_MISSILE_STRIKE =
+            ENTITY_TYPES.register("spatial_missile_strike", () -> EntityType.Builder
+                    .<SpatialMissileStrikeEntity>of(SpatialMissileStrikeEntity::new, MobCategory.MISC)
+                    .fireImmune()
+                    .sized(0.4F, 0.4F)
+                    .clientTrackingRange(10)
+                    .updateInterval(1)
+                    .noSave()
+                    .noSummon()
+                    .build(Ore_craft.MODID + ":spatial_missile_strike"));
 
     /** 实体类型由注册生命周期管理，不创建工具类实例。 */
     private ModEntities() {}

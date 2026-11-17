@@ -19,6 +19,7 @@ import com.lazeroX.ore_craft.item.PortableOreConversionInterfaceItem;
 import com.lazeroX.ore_craft.item.RadiantDiamondHeartItem;
 import com.lazeroX.ore_craft.item.SoulSeparationEyeItem;
 import com.lazeroX.ore_craft.item.GeologicalDetectorItem;
+import com.lazeroX.ore_craft.item.SpatialLocatorItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.level.block.Block;
@@ -138,6 +139,41 @@ public final class ModItems {
     /** 潜行右键配置矿石与范围、普通右键消耗随身矿质容器 ME 的地质探测器。 */
     public static final RegistryObject<GeologicalDetectorItem> GEOLOGICAL_DETECTOR =
             ITEMS.register("geological_detector", () -> new GeologicalDetectorItem(new Item.Properties().stacksTo(1)));
+
+    /** 强化弹体外壳：导弹的结构组件；当前仅用于合成，不提供防护或其他使用效果。 */
+    public static final RegistryObject<Item> REINFORCED_MISSILE_CASING =
+            ITEMS.register("reinforced_missile_casing", () -> new Item(new Item.Properties()));
+
+    /** 空间制导芯片：导弹的制导组件；当前仅保留物品和配方，不执行定位或追踪。 */
+    public static final RegistryObject<Item> SPATIAL_GUIDANCE_CHIP =
+            ITEMS.register("spatial_guidance_chip", () -> new Item(new Item.Properties()));
+
+    /** 矿质推进引擎：导弹的推进组件；当前没有推进效果，不消耗燃料或 ME。 */
+    public static final RegistryObject<Item> MINERAL_PROPULSION_ENGINE =
+            ITEMS.register("mineral_propulsion_engine", () -> new Item(new Item.Properties()));
+
+    /** 矿质高爆战斗部：使用铁质矿质容器合成的组件；当前不会产生爆炸或伤害。 */
+    public static final RegistryObject<Item> MINERAL_HIGH_EXPLOSIVE_WARHEAD =
+            ITEMS.register("mineral_high_explosive_warhead", () -> new Item(new Item.Properties()));
+
+    /** 空间稳定器：导弹的空间组件；当前仅作为合成材料，不执行传送或空间投送。 */
+    public static final RegistryObject<Item> SPATIAL_STABILIZER =
+            ITEMS.register("spatial_stabilizer", () -> new Item(new Item.Properties()));
+
+    /**
+     * 矿质空间制导导弹：空间定位器的背包弹药，每个有效目标实际发射时消耗一枚。
+     * 使用原版普通物品，保持默认 64 个堆叠上限，并由现有注册器自动收录到模组创造模式选项卡。
+     */
+    public static final RegistryObject<Item> MINERAL_SPATIAL_GUIDED_MISSILE =
+            ITEMS.register("mineral_spatial_guided_missile", () -> new Item(new Item.Properties()));
+
+    /**
+     * 空间定位器：右键扫描周围 64 格内最多 64 个非中立敌对怪物，锁定五秒后消耗背包导弹。
+     * 每枚导弹追踪唯一目标并造成 50 点基础伤害，不破坏方块；默认可堆叠 64 个。
+     * 复用现有物品注册器，自动加入模组创造模式选项卡。
+     */
+    public static final RegistryObject<SpatialLocatorItem> SPATIAL_LOCATOR =
+            ITEMS.register("spatial_locator", () -> new SpatialLocatorItem(new Item.Properties()));
 
     /** 容量 10,240 ME 的铜质矿质容器。 */
     public static final RegistryObject<OreContainerItem> COPPER_ORE_CONTAINER =

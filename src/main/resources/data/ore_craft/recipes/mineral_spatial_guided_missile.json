@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CGC", "ESE", "IWI"],
+  "key": {
+    "C": { "item": "ore_craft:reinforced_missile_casing" },
+    "G": { "item": "ore_craft:spatial_guidance_chip" },
+    "E": { "item": "ore_craft:mineral_propulsion_engine" },
+    "S": { "item": "ore_craft:spatial_stabilizer" },
+    "I": { "item": "minecraft:iron_ingot" },
+    "W": { "item": "ore_craft:mineral_high_explosive_warhead" }
+  },
+  "result": { "item": "ore_craft:mineral_spatial_guided_missile", "count": 1 }
+}

@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["BGB", "CDC", "GGG"],
+  "key": {
+    "B": { "item": "minecraft:blaze_rod" },
+    "G": { "item": "minecraft:gunpowder" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "D": { "item": "minecraft:diamond" }
+  },
+  "result": { "item": "ore_craft:mineral_propulsion_engine", "count": 1 }
+}

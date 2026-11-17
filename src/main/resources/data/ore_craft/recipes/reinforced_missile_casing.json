@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ICI", "ONO", "ICI"],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "C": { "item": "minecraft:copper_ingot" },
+    "O": { "item": "minecraft:obsidian" },
+    "N": { "item": "minecraft:netherite_scrap" }
+  },
+  "result": { "item": "ore_craft:reinforced_missile_casing", "count": 1 }
+}

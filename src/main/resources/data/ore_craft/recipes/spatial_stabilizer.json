@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["PAP", "OEO", "PAP"],
+  "key": {
+    "P": { "item": "minecraft:ender_pearl" },
+    "O": { "item": "minecraft:crying_obsidian" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "E": { "item": "minecraft:ender_eye" }
+  },
+  "result": { "item": "ore_craft:spatial_stabilizer", "count": 1 }
+}

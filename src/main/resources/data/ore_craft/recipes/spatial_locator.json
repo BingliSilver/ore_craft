@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["CGC", "ENE", "DSD"],
+  "key": {
+    "C": { "item": "ore_craft:reinforced_missile_casing" },
+    "G": { "item": "ore_craft:spatial_guidance_chip" },
+    "E": { "item": "minecraft:ender_eye" },
+    "N": { "item": "minecraft:nether_star" },
+    "D": { "item": "minecraft:diamond" },
+    "S": { "item": "ore_craft:spatial_stabilizer" }
+  },
+  "result": { "item": "ore_craft:spatial_locator", "count": 1 }
+}

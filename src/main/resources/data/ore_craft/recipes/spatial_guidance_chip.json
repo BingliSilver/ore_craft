@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["RAR", "GPG", "RAR"],
+  "key": {
+    "R": { "item": "minecraft:redstone" },
+    "A": { "item": "minecraft:amethyst_shard" },
+    "G": { "item": "minecraft:glowstone_dust" },
+    "P": { "item": "minecraft:ender_pearl" }
+  },
+  "result": { "item": "ore_craft:spatial_guidance_chip", "count": 1 }
+}

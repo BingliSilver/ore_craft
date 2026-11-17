@@ -23,7 +23,7 @@ public final class OreCraftClientEvents {
     }
 
     /**
-     * 注册采矿 TNT、灵魂身体、权杖传送门以及矿质附魔书方块实体的渲染器。
+     * 注册采矿 TNT、灵魂身体、权杖传送门、空间导弹打击及矿质附魔书方块实体的渲染器。
      *
      * @param event MinecraftForge 实体渲染器注册事件
      */
@@ -32,6 +32,8 @@ public final class OreCraftClientEvents {
         event.registerEntityRenderer(ModEntities.MINING_TNT_ENTITY.get(), MiningTntRenderer::new);
         event.registerEntityRenderer(ModEntities.SOUL_BODY.get(), SoulBodyRenderer::new);
         event.registerEntityRenderer(ModEntities.MINERAL_TELEPORT_PORTAL.get(), MineralTeleportPortalRenderer::new);
+        // 空间打击渲染器仅在物理客户端注册，专用服务器无需加载任何渲染类。
+        event.registerEntityRenderer(ModEntities.SPATIAL_MISSILE_STRIKE.get(), SpatialMissileStrikeRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.ORE_ENCHANTING_TABLE.get(), OreEnchantingBookRenderer::new);
     }
 
