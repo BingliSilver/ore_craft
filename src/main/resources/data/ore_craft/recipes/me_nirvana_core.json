@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["ABA", "BCB", "ABA"],
+  "key": {
+    "A": { "item": "minecraft:nether_star" },
+    "B": { "item": "ore_craft:spatial_guidance_chip" },
+    "C": { "item": "ore_craft:spatial_locator" }
+  },
+  "result": { "item": "ore_craft:me_nirvana_core", "count": 1 }
+}

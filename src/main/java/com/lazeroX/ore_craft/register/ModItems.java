@@ -8,6 +8,7 @@ import com.lazeroX.ore_craft.item.EternalEmeraldCoalItem;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.ItemSynthesisCoreItem;
 import com.lazeroX.ore_craft.item.MinerBadgeItem;
+import com.lazeroX.ore_craft.item.MeNirvanaCoreItem;
 import com.lazeroX.ore_craft.item.MineralIlluminationCoreItem;
 import com.lazeroX.ore_craft.item.MineralTimeScepterItem;
 import com.lazeroX.ore_craft.item.MineralTeleportScepterItem;
@@ -100,6 +101,10 @@ public final class ModItems {
     /** 放在玩家物品栏中时定期修复装备的矿工徽章。 */
     public static final RegistryObject<MinerBadgeItem> MINER_BADGE =
             ITEMS.register("miner_badge", () -> new MinerBadgeItem(new Item.Properties().stacksTo(1)));
+
+    /** 背包中的 ME 涅槃核心，支付矿质能量拦截致命伤害；核心不消耗且不可堆叠。 */
+    public static final RegistryObject<MeNirvanaCoreItem> ME_NIRVANA_CORE =
+            ITEMS.register("me_nirvana_core", () -> new MeNirvanaCoreItem(new Item.Properties().stacksTo(1)));
 
     /**
      * 使用后给予玩家持续 1 分钟的急迫 IV 和速度 II 的辉耀钻石之心，具有 6 点耐久且不可堆叠。

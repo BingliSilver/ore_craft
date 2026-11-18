@@ -337,5 +337,11 @@
   "message.ore_craft.detector.cancelled": "探测已取消：位置、维度或手持配置发生变化，未扣费",
   "message.ore_craft.detector.not_found": "已加载范围内未找到目标矿石，未扣费",
   "message.ore_craft.detector.insufficient": "探测需要 %s ME，随身矿质容器余额不足，未扣费",
-  "message.ore_craft.detector.found": "找到 %s，距离 %s 格，消耗 %s ME；粒子引导持续 %s 秒"
+  "message.ore_craft.detector.found": "找到 %s，距离 %s 格，消耗 %s ME；粒子引导持续 %s 秒",
+  "item.ore_craft.me_nirvana_core": "ME 涅槃核心",
+  "tooltip.ore_craft.nirvana.trigger": "置于背包：致命伤害前干涉现实，重构至 50% 最大生命值",
+  "tooltip.ore_craft.nirvana.cost": "消耗 50,000 ME；超过 20 点的最大生命每 2 点加 5,000（向上取整）",
+  "tooltip.ore_craft.nirvana.effects": "生命恢复 II 45秒 / 伤害吸收 IV 5秒 / 抗性提升 II 10秒",
+  "tooltip.ore_craft.nirvana.cooldown": "玩家共享冷却 5分钟；供能不足不扣费，核心不消耗",
+  "message.ore_craft.nirvana.triggered": "ME 涅槃核心重构了你的生命，消耗 %s ME"
 }
