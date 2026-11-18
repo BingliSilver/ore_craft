@@ -18,15 +18,17 @@ public final class MeNirvanaCoreItem extends Item {
     }
 
     /**
-     * 展示触发条件、收费方式与增益时长，使玩家可提前准备足够 ME。
-     * @param stack 当前物品 @param level 提示世界，可为空
-     * @param tooltip 待追加的说明 @param flag 显示选项
+     * 展示触发条件、收费方式、负面效果净化和增益时长，使玩家可提前准备足够 ME。
+     * @param stack 当前物品
+     * @param level 提示世界，可为空
+     * @param tooltip 待追加的说明
+     * @param flag 显示选项
      */
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, level, tooltip, flag);
         // 逐行本地化，避免将中文写死在客户端逻辑中。
-        for (String line : List.of("trigger", "cost", "effects", "cooldown")) {
+        for (String line : List.of("trigger", "cost", "cleanse", "effects", "cooldown")) {
             tooltip.add(Component.translatable("tooltip.ore_craft.nirvana." + line).withStyle(ChatFormatting.AQUA));
         }
     }

@@ -341,6 +341,7 @@
   "item.ore_craft.me_nirvana_core": "ME Nirvana Core",
   "tooltip.ore_craft.nirvana.trigger": "Carry to intercept lethal damage and restore health to 50% of maximum",
   "tooltip.ore_craft.nirvana.cost": "50,000 ME + 5,000 per 2 maximum health above 20 (rounded up)",
+  "tooltip.ore_craft.nirvana.cleanse": "Removes all harmful status effects on activation",
   "tooltip.ore_craft.nirvana.effects": "Regeneration II 45s / Absorption IV 5s / Resistance II 10s",
   "tooltip.ore_craft.nirvana.cooldown": "Shared player cooldown: 5 min; no charge on failure; reusable",
   "message.ore_craft.nirvana.triggered": "ME Nirvana Core reconstructed your life for %s ME"

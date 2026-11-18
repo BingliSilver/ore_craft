@@ -13,6 +13,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
@@ -26,7 +28,7 @@ import net.minecraftforge.fml.common.Mod;
 import org.joml.Vector3f;
 
 /**
- * 服务端涅槃流程：最终伤害致命时先检查余额，完整付款后取消伤害并重构生命。
+ * 服务端涅槃流程：最终伤害致命时先检查余额，完整付款后取消伤害、净化有害状态并重构生命。
  * 冷却保存到玩家持久化数据，跨登录、维度和死亡保留，换核心不能绕过。
  */
 @Mod.EventBusSubscriber(modid = Ore_craft.MODID)
@@ -45,6 +47,7 @@ public final class MeNirvanaEvents {
 
     /**
      * 在护甲、抗性与已有吸收结算之后判断最终生命伤害；非致命命中不收取能量。
+     * 成功触发时，清除有害状态，再按净化后的最大生命重构并施加增益。
      * @param event Forge 最终伤害事件，优先让其他常规伤害处理器完成计算
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -70,7 +73,17 @@ public final class MeNirvanaEvents {
         data(player).putLong(READY_KEY, now + COOLDOWN);
         data(player).putLong(SHIELD_KEY, now + 100);
         event.setCanceled(true);
-        player.setHealth(maximum * 0.5F);
+
+        // 先将有害效果整理成独立列表，避免遍历玩家正在使用的效果集合时同时修改它。
+        for (MobEffect effect : player.getActiveEffects().stream()
+                .map(MobEffectInstance::getEffect)
+                .filter(activeEffect -> activeEffect.getCategory() == MobEffectCategory.HARMFUL)
+                .toList()) {
+            // 走原版移除流程，让效果附加的属性和客户端状态一起更新。
+            player.removeEffect(effect);
+        }
+        // 模组的有害效果可能影响最大生命值，因此恢复量以净化后的上限计算。
+        player.setHealth(player.getMaxHealth() * 0.5F);
         player.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));
         player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 3));
         player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 200, 1));
