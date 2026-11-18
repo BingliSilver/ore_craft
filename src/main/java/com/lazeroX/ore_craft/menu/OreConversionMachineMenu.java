@@ -85,16 +85,8 @@ public final class OreConversionMachineMenu extends AbstractContainerMenu {
             /** 产物只能由机器生成，玩家可以正常取走。 */
             @Override public boolean mayPlace(ItemStack stack) { return false; }
         });
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                // 两种机器共用背包布局，仅上方的操作流程不同。
-                addSlot(new Slot(inventory, column + row * 9 + 9,
-                        OreConverterMenu.INVENTORY_X + column * 18, OreConverterMenu.INVENTORY_Y + row * 18));
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, OreConverterMenu.INVENTORY_X + column * 18, OreConverterMenu.HOTBAR_Y));
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(OreConverterMenu.INVENTORY_X, OreConverterMenu.INVENTORY_Y, OreConverterMenu.INVENTORY_X, OreConverterMenu.HOTBAR_Y, 18);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
         // 原版数据槽同步短整数进度；选择图标经真实菜单槽位单独同步。
         addDataSlot(new DataSlot() {
             @Override public int get() { return machine == null ? clientProgress : machine.progressTicks(); }

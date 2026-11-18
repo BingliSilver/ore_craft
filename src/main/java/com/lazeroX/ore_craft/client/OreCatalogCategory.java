@@ -15,7 +15,7 @@ import net.minecraft.world.item.SwordItem;
  * 转化桌与矿质合成台共用的客户端目录分类，枚举顺序即筛选按钮的展示顺序。
  * 分类只决定已学习目录的显示范围，不改变服务端的定价、学习状态或合成材料选择。
  */
-enum OreCatalogCategory {
+public enum OreCatalogCategory {
     /** 显示所有已学习且可展示的物品。 */
     ALL("gui.ore_craft.conversion.category.all"),
     /** 可放置的方块物品，优先于材料名称规则匹配。 */
@@ -37,12 +37,12 @@ enum OreCatalogCategory {
      *
      * @param translation 分类按钮的本地化键
      */
-    OreCatalogCategory(String translation) {
+    private OreCatalogCategory(String translation) {
         this.translation = translation;
     }
 
     /** 返回按当前游戏语言解析的分类标签，供按钮显示及悬停提示使用。 */
-    Component label() {
+    public Component label() {
         return Component.translatable(translation);
     }
 
@@ -52,7 +52,7 @@ enum OreCatalogCategory {
      * @param item 从客户端物品注册表解析的物品
      * @return 全部分类始终返回 true，其他分类仅在识别结果相同时返回 true
      */
-    boolean matches(Item item) {
+    public boolean matches(Item item) {
         if (this == ALL) return true;
         OreCatalogCategory actual;
         // 先检查明确的方块、装备和工具类型，避免同名方块被材料后缀误归类。

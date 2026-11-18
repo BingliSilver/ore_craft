@@ -89,14 +89,8 @@ public final class PortableOreConversionInterfaceMenu extends AbstractContainerM
             /** 只接受普通或末影矿质容器。 */
             @Override public boolean mayPlace(ItemStack stack) { return OreMachineEnergy.isContainer(stack); }
         });
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addPlayerSlot(9 + row * 9 + column, 32 + column * 18, 145 + row * 18);
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            addPlayerSlot(column, 32 + column * 18, 203);
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(32, 145, 32, 203, 18);
+        layout.addSlots(this::addPlayerSlot);
     }
 
     /**

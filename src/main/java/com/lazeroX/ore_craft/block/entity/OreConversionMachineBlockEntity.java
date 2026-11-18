@@ -17,17 +17,15 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.OptionalLong;
-import java.util.UUID;
 
 /**
  * 普通版及升级版矿质转化器的持久状态：支付容器、单格产物、已学习选择和轮次计时。
  * 放置者离线时仍可运行；选择只保存物品 ID，不额外保存或掉落实物模板。
  */
-public final class OreConversionMachineBlockEntity extends BlockEntity implements OreMachineInventory {
+public final class OreConversionMachineBlockEntity extends OwnedMachineBlockEntity implements OreMachineInventory {
     /** 每轮间隔 100 游戏刻，正常刻速下约五秒。 */
     public static final int INTERVAL_TICKS = 100;
     /** 升级版每 20 游戏刻完成一轮，正常刻速下为一秒。 */
@@ -58,8 +56,6 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
             OreConversionMachineBlockEntity.this.setChanged();
         }
     };
-    /** 放置者 UUID；已学习目录和末影 ME 账户都以此为准。 */
-    private UUID owner;
     /** 当前选择的已学习物品 ID；未选择时为空。 */
     private ResourceLocation selected;
     /** 当前有效生产轮次累计的游戏刻数。 */
@@ -106,20 +102,6 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     @Override
     public boolean canTakeItemWithoutSide(int slot, ItemStack stack) {
         return slot == OUTPUT_SLOT;
-    }
-
-    /** 返回放置者 UUID；尚未认领时为空。 */
-    public UUID owner() { return owner; }
-
-    /**
-     * 只允许首次放置或旧方块首次打开时设置所有者。
-     *
-     * @param playerId 放置者的 UUID
-     */
-    public void claim(UUID playerId) {
-        if (owner != null) return;
-        owner = playerId;
-        setChanged();
     }
 
     /** 返回当前选择；选择的物品并不实际占用库存。 */
@@ -175,10 +157,10 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
      * @param machine 本次推进的方块实体
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, OreConversionMachineBlockEntity machine) {
-        if (level.isClientSide() || machine.owner == null || level.getServer() == null) return;
+        if (level.isClientSide() || machine.owner() == null || level.getServer() == null) return;
         ResourceLocation id = machine.selected;
         if (id == null || !BuiltInRegistries.ITEM.containsKey(id)
-                || !OreConversionSavedData.get(level.getServer()).account(machine.owner).knows(id)) {
+                || !OreConversionSavedData.get(level.getServer()).account(machine.owner()).knows(id)) {
             machine.resetProgress();
             return;
         }
@@ -199,7 +181,7 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         long unitPrice = unit.getAsLong();
         // 余额只够 1～15 件（升级版 1～31 件）时按实际数量结算，不再等待整批 ME。
         int count = OreMachineEnergy.conversionCount(requestedCount, unitPrice,
-                OreMachineEnergy.stored(level.getServer(), machine.owner, container));
+                OreMachineEnergy.stored(level.getServer(), machine.owner(), container));
         if (count == 0) {
             machine.resetProgress();
             return;
@@ -213,11 +195,11 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
         }
         machine.resetProgress();
         // 容器槽改动只能发生在服务端主线程；扣费后本轮立即产出对应的物品数。
-        ItemStack updated = OreMachineEnergy.debit(level.getServer(), machine.owner, container, amount);
+        ItemStack updated = OreMachineEnergy.debit(level.getServer(), machine.owner(), container, amount);
         if (updated == null) return;
         if (updated != container) machine.inventory.setItem(CONTAINER_SLOT, updated);
         machine.inventory.setItem(OUTPUT_SLOT, target.copyWithCount(output.getCount() + count));
-        ServerPlayer player = level.getServer().getPlayerList().getPlayer(machine.owner);
+        ServerPlayer player = level.getServer().getPlayerList().getPlayer(machine.owner());
         if (player != null && updated == container) OreConversionNetwork.sendState(player, -1);
     }
 
@@ -232,7 +214,6 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        if (owner != null) tag.putUUID("Owner", owner);
         if (selected != null) tag.putString("Selected", selected.toString());
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty())
             tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
@@ -245,7 +226,6 @@ public final class OreConversionMachineBlockEntity extends BlockEntity implement
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         ResourceLocation id = ResourceLocation.tryParse(tag.getString("Selected"));
         selected = id != null && BuiltInRegistries.ITEM.containsKey(id) ? id : null;
         inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));

@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.menu;
 
 import com.lazeroX.ore_craft.block.entity.OreEnchantingBlockEntity;
+import com.lazeroX.ore_craft.value.OreMachineEnergy;
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
@@ -114,7 +115,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
             @Override public int getMaxStackSize() { return 1; }
         });
         addSlot(new Slot(containerInput, 0, 80, 148) {
-            @Override public boolean mayPlace(ItemStack stack) { return isMeContainer(stack); }
+            @Override public boolean mayPlace(ItemStack stack) { return OreMachineEnergy.isContainer(stack); }
             @Override public int getMaxStackSize() { return 1; }
             /** 支付容器变化后刷新预览；库存本身负责标记方块实体待保存。 */
             @Override public void setChanged() {
@@ -139,16 +140,8 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
                 return super.tryRemove(amount, limit, player);
             }
         });
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                // 底图背包格为 23×23；物品图标居中后四周留约三像素边距。
-                addSlot(new Slot(inventory, column + row * 9 + 9, 54 + column * 23, 225 + row * 23));
-            }
-        }
-        // 预览图未画快捷栏；这里在底边补出九格，方便放入手持工具。
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, 52 + column * 23, 299));
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(54, 225, 52, 299, 23);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
         // 先同步金额片段、最后同步状态码，避免界面短暂显示新状态与旧金额。
         for (int index = 1; index < resultData.length; index++) addDataSlot(DataSlot.shared(resultData, index));
         addDataSlot(DataSlot.shared(resultData, 0));
@@ -163,11 +156,6 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
     /** 普通书和附魔书均可作为目标；铁砧专用附魔仍由共享等级规则阻止新赋予。 */
     private static boolean isBookTarget(ItemStack stack) {
         return stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK);
-    }
-
-    /** 固定容量容器与连接全局账户的末影容器都可支付 ME。 */
-    private static boolean isMeContainer(ItemStack stack) {
-        return stack.getItem() instanceof OreContainerItem || stack.getItem() instanceof EnderOreContainerItem;
     }
 
     /** 返回目标物品，供客户端构建候选附魔。 */
@@ -222,7 +210,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         ItemStack original = stack.copy();
         boolean moved;
         if (index < OUTPUT_SLOT) moved = moveItemStackTo(stack, INVENTORY_START, SLOT_COUNT, true);
-        else if (isMeContainer(stack)) moved = moveItemStackTo(stack, CONTAINER_SLOT, CONTAINER_SLOT + 1, false);
+        else if (OreMachineEnergy.isContainer(stack)) moved = moveItemStackTo(stack, CONTAINER_SLOT, CONTAINER_SLOT + 1, false);
         else if (canPlaceTarget(stack)) moved = moveItemStackTo(stack, TARGET_SLOT, TARGET_SLOT + 1, false);
         else return ItemStack.EMPTY;
         if (!moved) return ItemStack.EMPTY;
@@ -308,7 +296,7 @@ public final class OreEnchantingMenu extends AbstractContainerMenu {
         var lookup = BuiltInRegistries.ENCHANTMENT;
         ItemStack target = target();
         ItemStack source = container();
-        if (!canPlaceTarget(target) || !isMeContainer(source)
+        if (!canPlaceTarget(target) || !OreMachineEnergy.isContainer(source)
                 || target.getCount() != 1 || source.getCount() != 1) return null;
         Map<Enchantment, Integer> current = EnchantmentHelper.getEnchantments(target);
         Map<Enchantment, Integer> effective = target.getAllEnchantments();

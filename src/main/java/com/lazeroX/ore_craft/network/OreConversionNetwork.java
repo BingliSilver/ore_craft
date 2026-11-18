@@ -88,7 +88,7 @@ public final class OreConversionNetwork {
     public static void sendToServer(Object packet) { CHANNEL.sendToServer(packet); }
 
     /** 向已握手的真实玩家发包；测试模拟连接可不提供通道。 */
-    private static void sendToPlayer(ServerPlayer player, Object packet) {
+    public static void sendToPlayer(ServerPlayer player, Object packet) {
         if (CHANNEL.isRemotePresent(player.connection.connection)) {
             CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), packet);
         }

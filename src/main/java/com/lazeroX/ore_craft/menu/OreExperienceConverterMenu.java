@@ -77,15 +77,8 @@ public final class OreExperienceConverterMenu extends AbstractContainerMenu {
             @Override
             public int getMaxStackSize() { return 1; }
         });
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9,
-                        INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y));
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(INVENTORY_X, INVENTORY_Y, INVENTORY_X, HOTBAR_Y, 18);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
         // 打开菜单时就提供已保存档位，避免重开后先显示 x1 再跳到实际倍率。
         if (converter != null) machineData[MULTIPLIER_DATA] = converter.multiplier();
         // 原版菜单数据槽按短整数传输，long 余额拆为四段以避免大额 ME 截断。

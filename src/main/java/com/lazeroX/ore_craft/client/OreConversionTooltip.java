@@ -115,7 +115,7 @@ public final class OreConversionTooltip {
     }
 
     /** 生成可保留独立灰色学习标记的 ME 行；自定义绘制器也从这两个参数读取状态。 */
-    static MutableComponent meLine(String value, boolean learned) {
+    public static MutableComponent meLine(String value, boolean learned) {
         return Component.translatable(ME_LINE, value, learned
                 ? Component.translatable(LEARNED_LABEL).withStyle(style -> style.withColor(0xA9A6B0)) : "");
     }

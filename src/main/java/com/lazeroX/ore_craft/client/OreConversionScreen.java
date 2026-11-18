@@ -1,5 +1,7 @@
 package com.lazeroX.ore_craft.client;
 
+import static com.lazeroX.ore_craft.client.OreMachineScreenStyle.outline;
+
 import com.lazeroX.ore_craft.menu.OreConversionMenu;
 import com.lazeroX.ore_craft.network.OreConversionNetwork;
 import net.minecraft.client.Minecraft;
@@ -236,14 +238,6 @@ public final class OreConversionScreen extends AbstractOreContainerScreen<OreCon
         graphics.fill(x, y, x + sx(frameSize), y + sy(frameSize), 0xEB111A22);
         outline(graphics, x, y, sx(frameSize), sy(frameSize), 0xFF627383);
         graphics.fill(x + sx(1), y + sy(1), x + sx(16), y + sy(2), 0xFF2B3946);
-    }
-
-    /** 用四条矩形边绘制指定颜色的矩形边框。 */
-    private static void outline(GuiGraphics graphics, int x, int y, int width, int height, int color) {
-        graphics.fill(x, y, x + width, y + 1, color);
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        graphics.fill(x, y, x + 1, y + height, color);
-        graphics.fill(x + width - 1, y, x + width, y + height, color);
     }
 
     /** 将设计稿横向坐标换算为当前界面像素坐标。 */

@@ -6,7 +6,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.PacketDistributor;
 
 /** 灵魂出窍的单向状态同步与提前回归请求；身体位置、费用和计时始终由服务端决定。 */
 public final class SoulSeparationNetwork {
@@ -28,9 +27,7 @@ public final class SoulSeparationNetwork {
 
     /** @param player 接收者 @param active 是否处于出窍 @param remainingTicks 服务端剩余游戏刻 */
     public static void sync(ServerPlayer player, boolean active, int remainingTicks) {
-        if (OreConversionNetwork.CHANNEL.isRemotePresent(player.connection.connection)) {
-            OreConversionNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new State(active, remainingTicks));
-        }
+        OreConversionNetwork.sendToPlayer(player, new State(active, remainingTicks));
     }
 
     /** 客户端请求提前回归，不携带可以伪造的玩家身份或目的坐标。 */

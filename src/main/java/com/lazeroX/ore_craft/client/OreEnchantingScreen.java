@@ -1,5 +1,7 @@
 package com.lazeroX.ore_craft.client;
 
+import static com.lazeroX.ore_craft.client.OreMachineScreenStyle.outline;
+
 import com.lazeroX.ore_craft.item.EnderOreContainerItem;
 import com.lazeroX.ore_craft.item.OreContainerItem;
 import com.lazeroX.ore_craft.menu.OreEnchantingMenu;
@@ -483,14 +485,6 @@ public final class OreEnchantingScreen extends AbstractOreContainerScreen<OreEnc
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollY);
-    }
-
-    /** 用四条一像素线绘制统一方框。 */
-    private static void outline(GuiGraphics graphics, int x, int y, int width, int height, int color) {
-        graphics.fill(x, y, x + width, y + 1, color);
-        graphics.fill(x, y + height - 1, x + width, y + height, color);
-        graphics.fill(x, y, x + 1, y + height, color);
-        graphics.fill(x + width - 1, y, x + width, y + height, color);
     }
 
     /** 绘制附魔等级加减控件的深色背景。 */

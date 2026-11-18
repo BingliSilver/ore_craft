@@ -50,7 +50,7 @@ public final class MineralTeleportScepterNetwork {
         TELEPORT;
 
         /** 枚举实例只由 JVM 创建，网络按固定枚举次序编码。 */
-        Operation() {}
+        private Operation() {}
     }
 
     /**

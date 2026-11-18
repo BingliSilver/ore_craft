@@ -64,15 +64,8 @@ public final class OreLearningMenu extends AbstractContainerMenu {
         selectedSlot = inventory.selected;
         // 菜单不创建临时库存；关闭界面无需返还任何学习样本。
         // 所有背包槽位放在展开书本的右页，左页仅显示说明和反馈。
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, 9 + row * 9 + column,
-                        INVENTORY_X + column * SLOT_SPACING, INVENTORY_Y + row * SLOT_SPACING));
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, INVENTORY_X + column * SLOT_SPACING, HOTBAR_Y));
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(INVENTORY_X, INVENTORY_Y, INVENTORY_X, HOTBAR_Y, SLOT_SPACING);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
     }
 
     /**

@@ -13,17 +13,15 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.OptionalLong;
-import java.util.UUID;
 
 /**
  * 保存普通版及升级版矿质传输接口的输入物、收款容器、放置者和转换计时。
  * 设备等级由方块状态决定；普通容器收取 ME，末影容器连接放置者账户。
  */
-public final class OreConverterBlockEntity extends BlockEntity implements OreMachineInventory {
+public final class OreConverterBlockEntity extends OwnedMachineBlockEntity implements OreMachineInventory {
     /** 两次转换间隔为 100 游戏刻，即正常刻速下约五秒。 */
     public static final int INTERVAL_TICKS = 100;
     /** 升级版每 20 游戏刻完成一轮，正常刻速下为一秒。 */
@@ -61,8 +59,6 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
             OreConverterBlockEntity.this.setChanged();
         }
     };
-    /** 末影容器账户所属玩家；首位放置者固定此 UUID。 */
-    private UUID owner;
     /** 当前物品已等待的游戏刻数，最大值随设备等级变化。 */
     private int progressTicks;
 
@@ -108,18 +104,6 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         return false;
     }
 
-    /** 返回末影容器账户 UUID；未认领的旧方块返回 null。 */
-    public UUID owner() {
-        return owner;
-    }
-
-    /** 为未绑定的传输接口记录放置者，已绑定时不允许其他玩家覆盖。 */
-    public void claim(UUID playerId) {
-        if (owner != null) return;
-        owner = playerId;
-        setChanged();
-    }
-
     /** 返回本轮已等待的刻数，供菜单同步进度显示。 */
     public int progressTicks() {
         return progressTicks;
@@ -149,7 +133,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
      * @param converter 本次推进的传输接口实体
      */
     public static void serverTick(Level level, BlockPos pos, BlockState state, OreConverterBlockEntity converter) {
-        if (level.isClientSide() || converter.owner == null || level.getServer() == null) return;
+        if (level.isClientSide() || converter.owner() == null || level.getServer() == null) return;
         ItemStack stack = converter.inventory.getItem(INPUT_SLOT);
         ItemStack container = converter.inventory.getItem(CONTAINER_SLOT);
         OptionalLong unit = OreConversionPrices.depositValue(stack);
@@ -157,7 +141,7 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
         int requestedCount = Math.min(converter.itemsPerCycle(), stack.getCount());
         int count = !OreMachineEnergy.isContainer(container) || unit.isEmpty() ? 0
                 : OreMachineEnergy.conversionCount(requestedCount, unit.getAsLong(),
-                        OreMachineEnergy.remaining(level.getServer(), converter.owner, container));
+                        OreMachineEnergy.remaining(level.getServer(), converter.owner(), container));
         if (count == 0) {
             if (converter.progressTicks != 0) {
                 converter.progressTicks = 0;
@@ -175,14 +159,14 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
 
         // 数量已按本刻的实时价格和剩余容量核定，乘积不会超过容器可接收的 ME 上限。
         long amount = unit.getAsLong() * count;
-        ItemStack updated = OreMachineEnergy.credit(level.getServer(), converter.owner, container, amount);
+        ItemStack updated = OreMachineEnergy.credit(level.getServer(), converter.owner(), container, amount);
         if (updated == null) return;
         if (updated != container) converter.inventory.setItem(CONTAINER_SLOT, updated);
         converter.inventory.setItem(INPUT_SLOT, count == stack.getCount()
                 ? ItemStack.EMPTY : stack.copyWithCount(stack.getCount() - count));
 
         // 末影容器走全局账户，在线拥有者需要及时收到余额同步。
-        ServerPlayer player = level.getServer().getPlayerList().getPlayer(converter.owner);
+        ServerPlayer player = level.getServer().getPlayerList().getPlayer(converter.owner());
         if (player != null && updated == container) OreConversionNetwork.sendState(player, -1);
     }
 
@@ -190,7 +174,6 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        if (owner != null) tag.putUUID("Owner", owner);
         if (!inventory.getItem(INPUT_SLOT).isEmpty()) tag.put("Input", inventory.getItem(INPUT_SLOT).save(new CompoundTag()));
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty())
             tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
@@ -201,7 +184,6 @@ public final class OreConverterBlockEntity extends BlockEntity implements OreMac
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         inventory.setItem(INPUT_SLOT, ItemStack.of(tag.getCompound("Input")));
         inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));
         progressTicks = Mth.clamp(tag.getInt("Progress"), 0, intervalTicks() - 1);

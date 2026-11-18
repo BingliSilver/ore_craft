@@ -128,15 +128,10 @@ public class OreConversionMenu extends AbstractContainerMenu {
                 && level.getBlockEntity(pos) instanceof OreContainerConversionTableBlockEntity blockEntity
                 ? blockEntity : null;
         this.tradeContainer = table == null ? new SimpleContainer(1) : table.inventory();
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9,
-                        craftingLayout ? 30 + column * 18 : 41 + column * 19,
-                        craftingLayout ? 154 + row * 18 : 114 + row * 19));
-            }
-        }
-        for (int column = 0; column < 9; column++) addSlot(new Slot(inventory, column,
-                craftingLayout ? 30 + column * 18 : 41 + column * 19, craftingLayout ? 212 : 174));
+        PlayerInventoryLayout layout = craftingLayout
+                ? new PlayerInventoryLayout(30, 154, 30, 212, 18)
+                : new PlayerInventoryLayout(41, 114, 41, 174, 19);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
         // 同时移除客户端和服务端的无用端口，而非仅隐藏画面，避免出现不可见的可操作槽位。
         if (containerBacked) {
             addContainerSlot(2, TRADE_CONTAINER_X, TRADE_CONTAINER_Y);

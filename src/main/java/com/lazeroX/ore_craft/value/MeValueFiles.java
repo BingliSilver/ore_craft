@@ -45,7 +45,7 @@ public final class MeValueFiles {
         WORLD;
 
         /** 作用域由 JVM 构造，不保存具体服务器或目录。 */
-        Scope() {}
+        private Scope() {}
     }
 
     /** 文件服务仅提供静态操作，不持有跨世界缓存。 */

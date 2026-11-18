@@ -82,15 +82,8 @@ public final class OreConverterMenu extends AbstractContainerMenu {
                 return OreMachineEnergy.isContainer(stack);
             }
         });
-        for (int row = 0; row < 3; row++) {
-            for (int column = 0; column < 9; column++) {
-                addSlot(new Slot(inventory, column + row * 9 + 9,
-                        INVENTORY_X + column * 18, INVENTORY_Y + row * 18));
-            }
-        }
-        for (int column = 0; column < 9; column++) {
-            addSlot(new Slot(inventory, column, INVENTORY_X + column * 18, HOTBAR_Y));
-        }
+        PlayerInventoryLayout layout = new PlayerInventoryLayout(INVENTORY_X, INVENTORY_Y, INVENTORY_X, HOTBAR_Y, 18);
+        layout.addSlots((index, x, y) -> addSlot(new Slot(inventory, index, x, y)));
         // 数据槽同步短整数进度；服务端拥有真实计时，客户端只接收展示值。
         addDataSlot(new DataSlot() {
             @Override public int get() { return converter == null ? clientProgress : converter.progressTicks(); }

@@ -14,19 +14,17 @@ import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * 保存经验转化器的供能容器、放置者、生产倍率和计时，在服务端将 ME 转为实际经验球。
  * 普通容器扣自身存储量，末影容器扣放置者账户；无需玩家在线或保持界面打开。
  * 每轮按所选倍率整批生产；关闭、缺少容器或余额不足当前档位时不扣费，并清除进度。
  */
-public final class OreExperienceConverterBlockEntity extends BlockEntity {
+public final class OreExperienceConverterBlockEntity extends OwnedMachineBlockEntity {
     /** 每轮间隔为 20 游戏刻，正常刻速下是一秒。 */
     public static final int INTERVAL_TICKS = 20;
     /**
@@ -53,8 +51,6 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
             OreExperienceConverterBlockEntity.this.setChanged();
         }
     };
-    /** 首位放置者或认领者，决定末影容器扣费账户；未认领时为 null。 */
-    private UUID owner;
     /** 已等待的游戏刻数，保存范围为 0 到 19；暂停条件出现时重置。 */
     private int progressTicks;
     /** 当前生产倍率，同时是每轮产出的经验点数；新机器及旧存档默认使用 x1。 */
@@ -72,21 +68,6 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
 
     /** 返回持久供能槽，关闭菜单不会返还或清空其中的容器。 */
     public SimpleContainer inventory() { return inventory; }
-
-    /** 返回固定的末影账户所属玩家，尚未认领时返回 null。 */
-    public UUID owner() { return owner; }
-
-    /**
-     * 仅为无归属机器绑定账户，已有归属时保持原值并避免更换扣费对象。
-     *
-     * @param playerId 放置或首次使用机器的玩家 UUID
-     */
-    public void claim(UUID playerId) {
-        if (owner == null) {
-            owner = playerId;
-            setChanged();
-        }
-    }
 
     /** 返回本轮进度，供服务端菜单同步到客户端。 */
     public int progressTicks() { return progressTicks; }
@@ -123,8 +104,8 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
 
     /** 返回当前供能余额；客户端、未认领机器或无效容器均返回零。 */
     public long storedMe() {
-        if (owner == null || level == null || level.getServer() == null) return 0;
-        return OreMachineEnergy.stored(level.getServer(), owner, inventory.getItem(CONTAINER_SLOT));
+        if (owner() == null || level == null || level.getServer() == null) return 0;
+        return OreMachineEnergy.stored(level.getServer(), owner(), inventory.getItem(CONTAINER_SLOT));
     }
 
     /**
@@ -153,7 +134,7 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
         int experience = converter.multiplier;
         long amount = converter.cycleCost();
         ItemStack container = converter.inventory.getItem(CONTAINER_SLOT);
-        ItemStack updated = OreMachineEnergy.debit(serverLevel.getServer(), converter.owner, container, amount);
+        ItemStack updated = OreMachineEnergy.debit(serverLevel.getServer(), converter.owner(), container, amount);
         if (updated == null) return;
         if (updated != container) converter.inventory.setItem(CONTAINER_SLOT, updated);
 
@@ -161,7 +142,7 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
         ExperienceOrb.award(serverLevel, new Vec3(pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5),
                 experience);
         // 末影容器直接扣全局账户，及时刷新在线放置者其他界面使用的余额。
-        ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(converter.owner);
+        ServerPlayer player = serverLevel.getServer().getPlayerList().getPlayer(converter.owner());
         if (updated == container && player != null) OreConversionNetwork.sendState(player, -1);
     }
 
@@ -169,7 +150,6 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);
-        if (owner != null) tag.putUUID("Owner", owner);
         if (!inventory.getItem(CONTAINER_SLOT).isEmpty()) {
             tag.put("Container", inventory.getItem(CONTAINER_SLOT).save(new CompoundTag()));
         }
@@ -181,7 +161,6 @@ public final class OreExperienceConverterBlockEntity extends BlockEntity {
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
-        owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         inventory.setItem(CONTAINER_SLOT, ItemStack.of(tag.getCompound("Container")));
         int savedMultiplier = tag.getInt("Multiplier");
         multiplier = MULTIPLIERS.contains(savedMultiplier) ? savedMultiplier : 1;
