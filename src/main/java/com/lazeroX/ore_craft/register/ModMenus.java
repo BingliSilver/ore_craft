@@ -12,6 +12,7 @@ import com.lazeroX.ore_craft.menu.MineralTimeScepterMenu;
 import com.lazeroX.ore_craft.menu.MineralTeleportScepterMenu;
 import com.lazeroX.ore_craft.menu.PortableOreConversionInterfaceMenu;
 import com.lazeroX.ore_craft.menu.GeologicalDetectorMenu;
+import com.lazeroX.ore_craft.menu.SpatialLocatorMenu;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -79,6 +80,10 @@ public final class ModMenus {
     /** 地质探测器的无槽位矿石与半径设置菜单，支持主手和副手配置。 */
     public static final RegistryObject<MenuType<GeologicalDetectorMenu>> GEOLOGICAL_DETECTOR_MENU =
             MENU_TYPES.register("geological_detector", () -> IForgeMenuType.create(GeologicalDetectorMenu::new));
+
+    /** 空间定位器的双开关设置菜单，打开数据指定配置的手。 */
+    public static final RegistryObject<MenuType<SpatialLocatorMenu>> SPATIAL_LOCATOR_MENU =
+            MENU_TYPES.register("spatial_locator", () -> IForgeMenuType.create(SpatialLocatorMenu::new));
 
     /** 菜单类型由注册生命周期管理，不创建工具类实例。 */
     private ModMenus() {}

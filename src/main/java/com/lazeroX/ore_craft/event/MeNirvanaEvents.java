@@ -1,11 +1,8 @@
 package com.lazeroX.ore_craft.event;
 
 import com.lazeroX.ore_craft.Ore_craft;
-import com.lazeroX.ore_craft.item.OreContainerItem;
-import com.lazeroX.ore_craft.network.OreConversionNetwork;
-import com.lazeroX.ore_craft.player.OreConversionSavedData;
 import com.lazeroX.ore_craft.register.ModItems;
-import com.lazeroX.ore_craft.value.EnderContainerAccess;
+import com.lazeroX.ore_craft.value.CarriedContainerEnergy;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -18,7 +15,6 @@ import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -67,7 +63,7 @@ public final class MeNirvanaEvents {
         double tiers = Math.ceil(Math.max(0D, maximum - 20D) / 2D);
         if (tiers > (Long.MAX_VALUE - 50_000L) / 5_000L) return;
         long cost = 50_000L + (long) tiers * 5_000L;
-        if (!pay(player, cost)) return;
+        if (!CarriedContainerEnergy.pay(player, cost)) return;
 
         // 先写共享冷却，再取消伤害；同一刻后续攻击不能再次购买保命。
         data(player).putLong(READY_KEY, now + COOLDOWN);
@@ -93,42 +89,6 @@ public final class MeNirvanaEvents {
                 player.getZ(), 100, 0.6, 0.9, 0.6, 0.15);
         player.serverLevel().playSound(null, player.blockPosition(), SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 1F, 0.8F);
         player.displayClientMessage(Component.translatable("message.ore_craft.nirvana.triggered", cost), true);
-    }
-
-    /**
-     * 先完整预检再扣费；沿用道具规则，接通末影账户时只使用该账户，否则合并普通容器。
-     * @param player 服务端付款玩家 @param cost 本次完整费用，必须为正数
-     * @return 付款成功；余额不足时所有余额保持不变
-     */
-    private static boolean pay(ServerPlayer player, long cost) {
-        if (EnderContainerAccess.hasAccess(player)) {
-            if (!OreConversionSavedData.get(player).debit(player, cost)) return false;
-            OreConversionNetwork.sendState(player, -1);
-            return true;
-        }
-        long remaining = cost;
-        for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
-            ItemStack stack = player.getInventory().getItem(slot);
-            if (stack.getItem() instanceof OreContainerItem container) {
-                // 使用剩余金额递减，避免多个高容量容器累加时发生溢出。
-                remaining -= Math.min(remaining, container.storedMe(stack));
-            }
-        }
-        if (remaining > 0) return false;
-        // 两轮遍历在同一服务端线程同步完成，中间没有异步任务改变容器余额。
-        remaining = cost;
-        for (int slot = 0; slot < player.getInventory().getContainerSize() && remaining > 0; slot++) {
-            ItemStack stack = player.getInventory().getItem(slot);
-            if (stack.getItem() instanceof OreContainerItem container) {
-                long stored = container.storedMe(stack);
-                long debit = Math.min(remaining, stored);
-                container.setStoredMe(stack, stored - debit);
-                remaining -= debit;
-            }
-        }
-        player.getInventory().setChanged();
-        player.containerMenu.broadcastChanges();
-        return true;
     }
 
     /** @param player 数据所属玩家 @return 死亡重生时需要保留的专用数据容器 */

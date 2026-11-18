@@ -1,6 +1,7 @@
 package com.lazeroX.ore_craft.entity;
 
 import com.lazeroX.ore_craft.event.SpatialMissileStrikes;
+import com.lazeroX.ore_craft.item.SpatialLocatorItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.nbt.CompoundTag;
@@ -54,6 +55,11 @@ public final class SpatialMissileStrikeEntity extends Entity {
     /** 服务端使用 UUID 查找当前已加载实体，不持有跨世界生物引用，也不会为追踪加载区块。 */
     private UUID ownerId;
     private UUID targetId;
+    /** 锁定时复制的回收开关，发射计费与击杀结算共用，不受之后换手或修改设置影响。 */
+    private int recoveryOptions;
+
+    /** @param option 待检查的回收功能位 @return 本枚导弹是否已选择该功能 */
+    public boolean hasRecoveryOption(int option) { return (recoveryOptions & option) != 0; }
 
     /** @param type 已注册类型 @param level 所在世界；弹体无重力、无物理碰撞、没有实体阴影 */
     public SpatialMissileStrikeEntity(EntityType<? extends SpatialMissileStrikeEntity> type, Level level) {
@@ -66,10 +72,12 @@ public final class SpatialMissileStrikeEntity extends Entity {
      * 在生成包发出前设定归属、目标与计时，初始位置放在目标脚部供锁定环使用。
      * @param owner 发起打击的玩家
      * @param target 本次固定目标，不会在飞行中改打其他生物
+     * @param options 发起定位时选定的回收开关
      */
-    public void initialize(ServerPlayer owner, LivingEntity target) {
+    public void initialize(ServerPlayer owner, LivingEntity target, int options) {
         ownerId = owner.getUUID();
         targetId = target.getUUID();
+        recoveryOptions = options;
         setPos(target.position());
         entityData.set(RING_RADIUS, Math.max(0.7F, target.getBbWidth() * 0.75F));
         entityData.set(PHASE_STARTED, level().getGameTime());
@@ -123,7 +131,7 @@ public final class SpatialMissileStrikeEntity extends Entity {
      * @param target 此刻仍可攻击的原目标
      */
     private void launch(ServerPlayer owner, LivingEntity target) {
-        if (!SpatialMissileStrikes.consumeMissile(owner)) {
+        if (!SpatialMissileStrikes.consumeMissile(owner, SpatialLocatorItem.surcharge(recoveryOptions))) {
             discard();
             return;
         }

@@ -174,7 +174,7 @@ public final class ModItems {
 
     /**
      * 空间定位器：右键扫描周围 64 格内最多 64 个非中立敌对怪物，锁定五秒后消耗背包导弹。
-     * 每枚导弹追踪唯一目标并造成 50 点基础伤害，不破坏方块；默认可堆叠 64 个。
+     * 每枚导弹追踪唯一目标并造成 100 点基础伤害，不破坏方块；默认可堆叠 64 个。
      * 复用现有物品注册器，自动加入模组创造模式选项卡。
      */
     public static final RegistryObject<SpatialLocatorItem> SPATIAL_LOCATOR =
